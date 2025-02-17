@@ -1,0 +1,15 @@
+{
+  "originHash" : "5c8e5fb3f3eaf725824f0fad7599b30941e59a54679b2cce3fc84ce3c509eefa",
+  "pins" : [
+    {
+      "identity" : "hubclient",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/v57/HubClient",
+      "state" : {
+        "branch" : "main",
+        "revision" : "3971a29e4df9a9c9ecc0e6da63ed8f853f720ce1"
+      }
+    }
+  ],
+  "version" : 3
+}
