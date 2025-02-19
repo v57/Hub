@@ -10,14 +10,20 @@ import SwiftUI
 struct ContentView: View {
   enum SideView {
     case services
+    case launcher
     case cluster
   }
-  @State var sideView: SideView = .services
+  @State var sideView: SideView = .launcher
   var body: some View {
     NavigationSplitView {
       List(selection: $sideView) {
         Section("General") {
-          Text("Hub").badge(hub.status?.services.count ?? 0).id(SideView.services)
+          Text("Hub").badge(hub.status?.services.count ?? 0)
+            .id(SideView.services)
+#if os(macOS)
+          Text("Launcher")
+            .id(SideView.launcher)
+#endif
         }
       }
     } detail: {
@@ -26,6 +32,10 @@ struct ContentView: View {
         Services()
       case .cluster:
         Cluster()
+      case .launcher:
+#if os(macOS)
+        LauncherView()
+#endif
       }
     }.task {
       
