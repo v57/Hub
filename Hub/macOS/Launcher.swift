@@ -116,7 +116,7 @@ struct LauncherView: View {
           return Text("\(mem.description)MB")
         }
       } else {
-        return nil
+        return Text("Not running")
       }
     }
   }
