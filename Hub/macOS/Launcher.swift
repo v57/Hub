@@ -26,8 +26,8 @@ struct LauncherView: View {
             .foregroundStyle(.secondary)
         }
         Spacer()
-        if let buttonTitle = status.buttonTitle {
-          Button(buttonTitle) {
+        if let buttonIcon = status.buttonIcon {
+          Button {
             Task {
               switch status {
               case .notInstalled, .installationFailed:
@@ -39,7 +39,7 @@ struct LauncherView: View {
               case .status: break
               }
             }
-          }.buttonStyle(.borderedProminent)
+          } label: { Image(systemName: buttonIcon) }.buttonStyle(.borderless)
         }
       }.contextMenu {
         Button("Update") {
@@ -171,6 +171,14 @@ extension Launcher.Status {
     case .notInstalled: "Install"
     case .installed, .offline: "Launch"
     case .running: "Stop"
+    default: nil
+    }
+  }
+  var buttonIcon: String? {
+    switch self {
+    case .notInstalled: "plus"
+    case .installed, .offline: "play.fill"
+    case .running: "pause.fill"
     default: nil
     }
   }
