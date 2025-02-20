@@ -23,9 +23,9 @@ let hub = Hub()
     do {
       while true {
         let status = try? await client.status()
-        if status != self.status {
+        self.status = status
+        if status?.services != self.status?.services {
           attempts = 1
-          self.status = status
         } else {
           attempts += 1
         }
@@ -38,9 +38,6 @@ let hub = Hub()
 struct Status: Decodable, Hashable {
   let requests: Int
   let services: [Service]
-  static func ==(l: Status, r: Status) -> Bool {
-    l.services == r.services
-  }
   struct Service: Decodable, Hashable {
     let name: String
     let services: Int
