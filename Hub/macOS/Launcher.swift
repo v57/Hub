@@ -10,6 +10,7 @@ import SwiftUI
 
 struct LauncherView: View {
   var launcher: Launcher { .main }
+  @State var apps: [App] = []
   var status: Launcher.Status {
     launcher.status
   }
@@ -47,6 +48,11 @@ struct LauncherView: View {
           }
         }
       }
+      if isConnected {
+        ForEach(apps) { app in
+          AppView(app: app)
+        }
+      }
     }.task(id: isConnected) {
       if isConnected {
         launcher.status = .running
@@ -55,7 +61,98 @@ struct LauncherView: View {
           launcher.status = .offline
         }
       }
+    }.task(id: isConnected) {
+      guard isConnected else { return }
+      await syncApps()
+    }.task(id: isConnected) {
+      guard isConnected else { return }
+      await syncStatus()
     }
+  }
+  func syncApps() async {
+    print("syncApps")
+    do {
+      let apps: Apps = try await hub.client.send("launcher/info")
+      self.apps = apps.apps.map { App(id: $0.name, info: $0) }
+    } catch { print(error) }
+  }
+  func syncStatus() async {
+    print("syncStatus")
+    do {
+      while true {
+        let apps: Status = try await hub.client.send("launcher/status")
+        if apps.apps.count != self.apps.count {
+          await syncApps()
+        }
+        apps.apps.forEach { status in
+          guard let index = self.apps.firstIndex(where: { $0.id == status.name }) else { return }
+          self.apps[index].status = status
+        }
+        try await Task.sleep(for: .seconds(0.5))
+      }
+    } catch {
+      print(error)
+    }
+  }
+  struct AppView: View {
+    let app: App
+    var body: some View {
+      HStack {
+        VStack(alignment: .leading) {
+          Text(app.id)
+          if let status {
+            status.font(.caption2).foregroundStyle(.secondary)
+          }
+        }
+      }
+    }
+    var status: Text? {
+      if let info = app.info, !info.active {
+        return Text("Not running")
+      } else if let status = app.status, let mem = status.memory {
+        if let cpu = status.cpu {
+          return Text("\(Int(cpu))% \(mem.description)MB")
+        } else {
+          return Text("\(mem.description)MB")
+        }
+      } else {
+        return nil
+      }
+    }
+  }
+  struct App: Identifiable, Hashable {
+    let id: String
+    var info: AppInfo?
+    var status: AppStatus?
+  }
+  struct Apps: Decodable, Hashable {
+    var apps: [AppInfo]
+  }
+  struct Status: Decodable, Hashable {
+    var apps: [AppStatus]
+  }
+  struct AppInfo: Decodable, Hashable {
+    var name: String
+    var active: Bool
+    var restarts: Bool
+    enum CodingKeys: CodingKey {
+      case name
+      case active
+      case restarts
+    }
+    
+    init(from decoder: any Decoder) throws {
+      let container: KeyedDecodingContainer<LauncherView.AppInfo.CodingKeys> = try decoder.container(keyedBy: LauncherView.AppInfo.CodingKeys.self)
+      self.name = try container.decode(String.self, forKey: .name)
+      self.active = try container.decodeIfPresent(Bool.self, forKey: .active) ?? false
+      self.restarts = try container.decodeIfPresent(Bool.self, forKey: .restarts) ?? false
+    }
+  }
+  struct AppStatus: Decodable, Hashable {
+    var name: String
+    var crashes: Int
+    var cpu: Double?
+    var memory: Double?
   }
 }
 extension Launcher.Status {
@@ -144,6 +241,6 @@ screen -dmS v57launcher bun .
 }
 
 #Preview {
-  LauncherView()
+  LauncherView().frame(width: 300, height: 200)
 }
 #endif
