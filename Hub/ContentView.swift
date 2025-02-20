@@ -17,7 +17,7 @@ struct ContentView: View {
   var body: some View {
     NavigationSplitView {
       List(selection: $sideView) {
-        Section("General") {
+        Section {
           Text("Hub").badge(hub.status?.services.count ?? 0)
             .id(SideView.services)
 #if os(macOS)
