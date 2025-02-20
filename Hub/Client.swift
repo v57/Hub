@@ -38,6 +38,9 @@ let hub = Hub()
 struct Status: Decodable, Hashable {
   let requests: Int
   let services: [Service]
+  static func ==(l: Status, r: Status) -> Bool {
+    l.services == r.services
+  }
   struct Service: Decodable, Hashable {
     let name: String
     let services: Int
