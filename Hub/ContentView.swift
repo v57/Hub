@@ -12,8 +12,9 @@ struct ContentView: View {
     case services
     case launcher
     case cluster
+    case roadmap
   }
-  @State var sideView: SideView = .launcher
+  @State var sideView: SideView = .roadmap
   var body: some View {
     NavigationSplitView {
       List(selection: $sideView) {
@@ -24,6 +25,9 @@ struct ContentView: View {
           Text("Launcher")
             .id(SideView.launcher)
 #endif
+        }
+        Section {
+          Text("Roadmap").id(SideView.roadmap)
         }
       }
     } detail: {
@@ -36,9 +40,9 @@ struct ContentView: View {
 #if os(macOS)
         LauncherView()
 #endif
+      case .roadmap:
+        RoadmapView()
       }
-    }.task {
-      
     }
   }
 }
