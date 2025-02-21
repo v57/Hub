@@ -9,8 +9,43 @@
 import SwiftUI
 
 struct LauncherView: View {
+  @Observable class Manager {
+    var apps: [App] = []
+    var isConnected: Bool {
+      hub.status?.services.contains(where: {
+        $0.name == "launcher"
+      }) ?? false
+    }
+    func syncApps() async {
+      guard isConnected else { return }
+      print("syncApps")
+      do {
+        let apps: Apps = try await hub.client.send("launcher/info")
+        self.apps = apps.apps.map { App(id: $0.name, info: $0) }
+      } catch { print(error) }
+    }
+    func syncStatus() async {
+      guard isConnected else { return }
+      print("syncStatus")
+      do {
+        while true {
+          let apps: Status = try await hub.client.send("launcher/status")
+          if apps.apps.count != self.apps.count {
+            await syncApps()
+          }
+          apps.apps.forEach { status in
+            guard let index = self.apps.firstIndex(where: { $0.id == status.name }) else { return }
+            self.apps[index].status = status
+          }
+          try await Task.sleep(for: .seconds(0.5))
+        }
+      } catch {
+        print(error)
+      }
+    }
+  }
   var launcher: Launcher { .main }
-  @State var apps: [App] = []
+  @State var manager = Manager()
   var status: Launcher.Status {
     launcher.status
   }
@@ -49,9 +84,9 @@ struct LauncherView: View {
         }
       }
       if isConnected {
-        ForEach(apps) { app in
+        ForEach(manager.apps) { app in
           AppView(app: app)
-        }
+        }.environment(manager)
       }
     }.task(id: isConnected) {
       if isConnected {
@@ -63,38 +98,14 @@ struct LauncherView: View {
       }
     }.task(id: isConnected) {
       guard isConnected else { return }
-      await syncApps()
+      await manager.syncApps()
     }.task(id: isConnected) {
       guard isConnected else { return }
-      await syncStatus()
-    }
-  }
-  func syncApps() async {
-    print("syncApps")
-    do {
-      let apps: Apps = try await hub.client.send("launcher/info")
-      self.apps = apps.apps.map { App(id: $0.name, info: $0) }
-    } catch { print(error) }
-  }
-  func syncStatus() async {
-    print("syncStatus")
-    do {
-      while true {
-        let apps: Status = try await hub.client.send("launcher/status")
-        if apps.apps.count != self.apps.count {
-          await syncApps()
-        }
-        apps.apps.forEach { status in
-          guard let index = self.apps.firstIndex(where: { $0.id == status.name }) else { return }
-          self.apps[index].status = status
-        }
-        try await Task.sleep(for: .seconds(0.5))
-      }
-    } catch {
-      print(error)
+      await manager.syncStatus()
     }
   }
   struct AppView: View {
+    @Environment(Manager.self) var manager
     let app: App
     var body: some View {
       HStack {
@@ -104,20 +115,37 @@ struct LauncherView: View {
             status.font(.caption2).foregroundStyle(.secondary)
           }
         }
-      }
+      }.contextMenu {
+        if let status = app.status {
+          if status.isRunning {
+            Button("Stop", systemImage: "stop.fill") {
+              Task {
+                try await hub.client.send("launcher/app/stop", app.id)
+                await manager.syncApps()
+              }
+            }
+          } else {
+            Button("Start", systemImage: "play.fill") {
+              Task {
+                try await hub.client.send("launcher/app/start", app.id)
+                await manager.syncApps()
+              }
+            }
+          }
+        }
+      }.labelStyle(.titleAndIcon)
     }
     var status: Text? {
-      if let info = app.info, !info.active {
-        return Text("Not running")
-      } else if let status = app.status, let mem = status.memory {
-        if let cpu = status.cpu {
-          return Text("\(Int(cpu))% \(mem.description)MB")
-        } else {
-          return Text("\(mem.description)MB")
+      if let status = app.status {
+        if status.isRunning, let mem = status.memory {
+          if let cpu = status.cpu {
+            return Text("\(Int(cpu))% \(mem.description)MB")
+          } else {
+            return Text("\(mem.description)MB")
+          }
         }
-      } else {
-        return Text("Not running")
       }
+      return Text("Not running")
     }
   }
   struct App: Identifiable, Hashable {
@@ -150,6 +178,7 @@ struct LauncherView: View {
   }
   struct AppStatus: Decodable, Hashable {
     var name: String
+    var isRunning: Bool
     var crashes: Int
     var cpu: Double?
     var memory: Double?

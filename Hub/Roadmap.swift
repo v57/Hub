@@ -18,7 +18,7 @@ struct RoadmapView: View {
       Item(name: "Restart on crash", done: true),
       Item(name: "Launched list", done: true),
       Item(name: "Cpu/Memory usage", done: true),
-      Item(name: "Start/stop app", done: false),
+      Item(name: "Start/stop app", done: true),
       Item(name: "Add app", done: false),
       Item(name: "Remove app", done: false),
       Item(name: "Set relaunch options", done: false),
