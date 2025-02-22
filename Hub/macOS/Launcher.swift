@@ -131,6 +131,12 @@ struct LauncherView: View {
                 await manager.syncApps()
               }
             }
+            Button("Uninstall", systemImage: "trash.fill", role: .destructive) {
+              Task {
+                try await hub.client.send("launcher/app/uninstall", app.id)
+                await manager.syncApps()
+              }
+            }
           }
         }
       }.labelStyle(.titleAndIcon)
