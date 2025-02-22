@@ -7,37 +7,60 @@
 
 import SwiftUI
 
+let roadmap = """
+# Launcher
++ Launch app
++ Clone from github
++ Download launcher
++ Start from mac
++ Stop launcher
++ Restart on crash
++ Launched list
++ Cpu/Memory usage
++ Start/stop app
++ Add app
++ Remove app
++ Set relaunch options
++ Fix bugs
+
+# Hub
++ Hub lite library
++ Service library
++ Client library
++ Apns service
++ Login with Google service
++ Login with Apple service
++ Apple StoreKit service
++ Swift library
++ Hub stats
++ HubUI app
++ HubUI hub page
+"""
+
 struct RoadmapView: View {
-  @State var sections: [ItemSection] = [
-    ItemSection(name: "Launcher", items: [
-      Item(name: "Launch app", done: true),
-      Item(name: "Clone from github", done: true),
-      Item(name: "Download launcher", done: true),
-      Item(name: "Start from mac", done: true),
-      Item(name: "Stop launcher", done: true),
-      Item(name: "Restart on crash", done: true),
-      Item(name: "Launched list", done: true),
-      Item(name: "Cpu/Memory usage", done: true),
-      Item(name: "Start/stop app", done: true),
-      Item(name: "Add app", done: true),
-      Item(name: "Remove app", done: true),
-      Item(name: "Set relaunch options", done: true),
-      Item(name: "Fix bugs", done: true),
-    ]),
-    ItemSection(name: "Hub", items: [
-      Item(name: "Hub lite library", done: true),
-      Item(name: "Service library", done: true),
-      Item(name: "Client library", done: true),
-      Item(name: "Apns service", done: true),
-      Item(name: "Login with Google service", done: true),
-      Item(name: "Login with Apple service", done: true),
-      Item(name: "Apple StoreKit service", done: true),
-      Item(name: "Swift library", done: true),
-      Item(name: "Hub stats", done: true),
-      Item(name: "HubUI app", done: true),
-      Item(name: "HubUI hub page", done: true),
-    ]),
-  ]
+  static func sections() -> [ItemSection] {
+    var sections = [ItemSection]()
+    var section: ItemSection?
+    roadmap.components(separatedBy: "\n").lazy.map {
+      $0.trimmingCharacters(in: .whitespaces)
+    }.filter { !$0.isEmpty }.forEach { line in
+      if line.starts(with: "# ") {
+        if let section {
+          sections.append(section)
+        }
+        section = ItemSection(name: String(line.dropFirst(2)), items: [])
+      } else if line.starts(with: "+ ") {
+        section?.items.append(Item(name: String(line.dropFirst(2)), done: true))
+      } else {
+        section?.items.append(Item(name: line, done: false))
+      }
+    }
+    if let section {
+      sections.append(section)
+    }
+    return sections
+  }
+  @State var sections: [ItemSection] = RoadmapView.sections()
   var body: some View {
     List {
       ForEach(sections, id: \.name) { section in
@@ -62,11 +85,11 @@ struct RoadmapView: View {
     }
   }
   struct Item {
-    var name: String
-    var done: Bool
+    let name: String
+    let done: Bool
   }
   struct ItemSection {
-    var name: String
+    let name: String
     var items: [Item]
   }
 }
