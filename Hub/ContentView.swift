@@ -14,7 +14,7 @@ struct ContentView: View {
     case cluster
     case roadmap
   }
-  @State var sideView: SideView = .roadmap
+  @State var sideView: SideView = .launcher
   var body: some View {
     NavigationSplitView {
       List(selection: $sideView) {

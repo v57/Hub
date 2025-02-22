@@ -46,6 +46,7 @@ struct LauncherView: View {
   }
   var launcher: Launcher { .main }
   @State var manager = Manager()
+  @State var creating = false
   var status: Launcher.Status {
     launcher.status
   }
@@ -88,6 +89,12 @@ struct LauncherView: View {
           AppView(app: app)
         }.environment(manager)
       }
+    }.toolbar {
+      Button("Create", systemImage: "plus") {
+        creating.toggle()
+      }.labelStyle(.iconOnly)
+    }.sheet(isPresented: $creating) {
+      CreateApp().padding().frame(maxWidth: 300)
     }.task(id: isConnected) {
       if isConnected {
         launcher.status = .running
