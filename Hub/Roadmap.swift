@@ -21,8 +21,8 @@ struct RoadmapView: View {
       Item(name: "Start/stop app", done: true),
       Item(name: "Add app", done: true),
       Item(name: "Remove app", done: true),
-      Item(name: "Set relaunch options", done: false),
-      Item(name: "Fix bugs", done: false),
+      Item(name: "Set relaunch options", done: true),
+      Item(name: "Fix bugs", done: true),
     ]),
     ItemSection(name: "Hub", items: [
       Item(name: "Hub lite library", done: true),
