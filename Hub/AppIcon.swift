@@ -17,66 +17,87 @@ struct AppIcon: View {
   enum Style {
     case light, dark, tint
   }
-  @State var angle: Double = 0
-  @State var midOffset: Double = 5
-  @State var offset: Double = 15
-  @State var size: Double = 90
   var style: Style = .dark
   var fillColor: Color {
     style == .dark ? .black : .white
   }
   var body: some View {
     GeometryReader { view in
-      let scale = view.size.height / 256
-      ZStack {
+      let o = view.size.height / 1024
+      GeometryReader { view in
+        let scale = view.size.height / 256
         RoundedRectangle(cornerRadius: 0)
-          .fill(.radialGradient(fillColor.gradient, center: .top, startRadius: 100 * scale, endRadius: 480 * scale))
-        ZStack {
-          RoundedRectangle(cornerRadius: 16 * scale).rotation(.degrees(45))
-            .fill(.gray.gradient)
-            .rotation3DEffect(.degrees(angle), axis: (1, 0, 0))
-            .offset(y: offset * 2 * scale)
-          RoundedRectangle(cornerRadius: 16 * scale).rotation(.degrees(45))
-            .fill(.red.gradient)
-            .strokeBorder(.regularMaterial, lineWidth: 8)
-            .rotation3DEffect(.degrees(angle), axis: (1, 0, 0))
-            .offset(y: midOffset * scale)
-          RoundedRectangle(cornerRadius: 16 * scale).rotation(.degrees(45))
-            .fill(.yellow.gradient)
-            .strokeBorder(.regularMaterial, lineWidth: 8)
-            .rotation3DEffect(.degrees(angle), axis: (1, 0, 0))
-            .offset(y: 0)
-          RoundedRectangle(cornerRadius: 16 * scale).rotation(.degrees(45))
-            .fill(.blue.gradient)
-            .strokeBorder(.regularMaterial, lineWidth: 8)
-            .rotation3DEffect(.degrees(angle), axis: (1, 0, 0))
-            .offset(y: -midOffset * scale)
-          RoundedRectangle(cornerRadius: 16 * scale).rotation(.degrees(45))
-            .fill(.regularMaterial)
-            .rotation3DEffect(.degrees(angle), axis: (1, 0, 0))
-            .offset(y: -offset * 2 * scale)
-        }.frame(width: size * scale, height: size * 1.1 * scale)
-          .shadow(color: .black.opacity(0.2), radius: 16 * scale)
-          .colorScheme(.light)
-          .modifier {
-            if style == .tint {
-              $0.luminanceToAlpha()
-            } else {
-              $0
-            }
-          }
+          .fill(.radialGradient(fillColor.gradient, center: .init(x: 0.7, y: -0.1), startRadius: 0, endRadius: 480 * scale))
+        Circle().fill(AngularGradient(colors: [Color(hue: 0, saturation: 0, brightness: 0.2), .clear], center: .topLeading))
+          .strokeBorder(AngularGradient(stops: [.init(color: .white, location: 0), .init(color: .clear, location: 0.2)], center: .topLeading), lineWidth: 1)
+          .frame(width: 714 * scale, height: 714 * scale)
+      }
+      .cornerRadius(175 * o)
+      .shadow(color: .black.opacity(0.5), radius: 28 * o, y: 12 * o)
+      .padding(100 * o)
+    }
+  }
+  struct Export: View {
+    var body: some View {
+      Button("Export") {
+        export(size: 16, scale: 1)
+        export(size: 16, scale: 2)
+        export(size: 32, scale: 1)
+        export(size: 32, scale: 2)
+        export(size: 128, scale: 1)
+        export(size: 128, scale: 2)
+        export(size: 256, scale: 1)
+        export(size: 256, scale: 2)
+        export(size: 512, scale: 1)
+        export(size: 512, scale: 2)
+      }
+    }
+    func export(size: Int, scale: Int) {
+      let renderer = ImageRenderer(content: AppIcon().frame(width: CGFloat(size), height: CGFloat(size)))
+      renderer.scale = CGFloat(scale)
+      if let image = renderer.cgImage {
+        do {
+          try image.heic(0.8).write(to: .downloadsDirectory.appendingPathComponent("AppIcon\(size)@\(scale)x.heic", conformingTo: .heic))
+          print("Exported \(size)x\(size)@\(scale)x.heic")
+        } catch {
+          print(error)
+        }
       }
     }
   }
 }
 
+
+
+extension CGImage {
+  func heic(_ quality: CGFloat) -> Data {
+    let data = NSMutableData()
+    let destination = CGImageDestinationCreateWithData(data as CFMutableData, "public.heic" as CFString, 1, nil)!
+    
+    var properties = [CFString: Any]()
+    properties[kCGImageDestinationLossyCompressionQuality] = quality
+    // properties[kCGImagePropertyJFIFDictionary] = [kCGImagePropertyJFIFIsProgressive: true]
+    
+    CGImageDestinationAddImage(destination, self, properties as NSDictionary)
+    CGImageDestinationFinalize(destination)
+    
+    return data as Data
+  }
+}
+
 #Preview {
   VStack {
-    AppIcon(style: .light)
-      .frame(width: 256, height: 256)
+//    AppIcon(style: .light)
+//      .frame(width: 256, height: 256)
     AppIcon(style: .dark)
-      .frame(width: 256, height: 256)
-    AppIcon(style: .tint)
-      .frame(width: 256, height: 256)
+      .frame(width: 512, height: 512)
+    HStack {
+      ForEach(0..<10) { _ in
+        AppIcon(style: .dark)
+          .frame(width: 50, height: 50)
+      }
+    }
+//    AppIcon(style: .tint)
+//      .frame(width: 256, height: 256)
   }
 }
