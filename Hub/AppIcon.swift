@@ -33,7 +33,7 @@ struct AppIcon: View {
           .frame(width: 714 * scale, height: 714 * scale)
       }
       .cornerRadius(175 * o)
-      .shadow(color: .black.opacity(0.5), radius: 28 * o, y: 12 * o)
+      .shadow(color: .black.opacity(0.30), radius: 5*o, y: 10*o)
       .padding(100 * o)
     }
   }
@@ -86,18 +86,28 @@ extension CGImage {
 }
 
 #Preview {
-  VStack {
+  VStack(spacing: 0) {
 //    AppIcon(style: .light)
 //      .frame(width: 256, height: 256)
-    AppIcon(style: .dark)
+    AppIcon()
       .frame(width: 512, height: 512)
+    HStack(spacing: 0) {
+      AppIcon()
+        .frame(width: 256, height: 256)
+      VStack(spacing: 0) {
+        AppIcon()
+          .frame(width: 128, height: 128)
+        AppIcon()
+          .frame(width: 64, height: 64)
+      }
+    }
     HStack {
       ForEach(0..<10) { _ in
-        AppIcon(style: .dark)
+        AppIcon()
           .frame(width: 50, height: 50)
       }
     }
 //    AppIcon(style: .tint)
 //      .frame(width: 256, height: 256)
-  }
+  }.background(Color.white)
 }
