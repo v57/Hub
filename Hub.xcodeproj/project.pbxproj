@@ -13,7 +13,7 @@
 
 /* Begin PBXFileReference section */
 		13C54C712D638AA1000C4CA5 /* Hub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Hub.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13F5738E2D68EDB4008546EB /* HubAdmin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HubAdmin.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13F5738E2D68EDB4008546EB /* Hub Pro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Hub Pro.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -57,7 +57,7 @@
 			isa = PBXGroup;
 			children = (
 				13C54C712D638AA1000C4CA5 /* Hub.app */,
-				13F5738E2D68EDB4008546EB /* HubAdmin.app */,
+				13F5738E2D68EDB4008546EB /* Hub Pro.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,9 +95,9 @@
 			productReference = 13C54C712D638AA1000C4CA5 /* Hub.app */;
 			productType = "com.apple.product-type.application";
 		};
-		13F5738D2D68EDB4008546EB /* HubAdmin */ = {
+		13F5738D2D68EDB4008546EB /* Hub Pro */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13F5739A2D68EDB5008546EB /* Build configuration list for PBXNativeTarget "HubAdmin" */;
+			buildConfigurationList = 13F5739A2D68EDB5008546EB /* Build configuration list for PBXNativeTarget "Hub Pro" */;
 			buildPhases = (
 				13F5738A2D68EDB4008546EB /* Sources */,
 				13F5738B2D68EDB4008546EB /* Frameworks */,
@@ -110,12 +110,12 @@
 			fileSystemSynchronizedGroups = (
 				13C54C732D638AA1000C4CA5 /* Hub */,
 			);
-			name = HubAdmin;
+			name = "Hub Pro";
 			packageProductDependencies = (
 				13F573AB2D68EE24008546EB /* HubClient */,
 			);
 			productName = HubAdmin;
-			productReference = 13F5738E2D68EDB4008546EB /* HubAdmin.app */;
+			productReference = 13F5738E2D68EDB4008546EB /* Hub Pro.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -154,7 +154,7 @@
 			projectRoot = "";
 			targets = (
 				13C54C702D638AA1000C4CA5 /* Hub */,
-				13F5738D2D68EDB4008546EB /* HubAdmin */,
+				13F5738D2D68EDB4008546EB /* Hub Pro */,
 			);
 		};
 /* End PBXProject section */
@@ -321,6 +321,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -360,6 +361,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -400,6 +402,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -429,6 +432,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -465,7 +469,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		13F5739A2D68EDB5008546EB /* Build configuration list for PBXNativeTarget "HubAdmin" */ = {
+		13F5739A2D68EDB5008546EB /* Build configuration list for PBXNativeTarget "Hub Pro" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13F5739B2D68EDB5008546EB /* Debug */,
