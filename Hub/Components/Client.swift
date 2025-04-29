@@ -8,10 +8,14 @@
 import Foundation
 import HubClient
 
+extension KeyChain {
+  static let main = KeyChain(keyChain: "me.v57.hub")
+}
+
 let hub = Hub()
 @Observable class Hub {
   @MainActor
-  let client = HubClient()
+  let client = HubClient(keyChain: .main)
   var status: Status?
   var attempts = 1
   init() {
