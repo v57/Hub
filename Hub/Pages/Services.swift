@@ -6,6 +6,19 @@
 //
 
 import SwiftUI
+import HubClient
+
+extension String {
+  func copyToClipboard() {
+    #if os(macOS)
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    pasteboard.setString(self, forType: .string)
+    #else
+    UIPasteboard.general.string = self
+    #endif
+  }
+}
 
 struct Services: View {
   var body: some View {
@@ -15,7 +28,11 @@ struct Services: View {
           Service(service: service)
         }
       }
-    }.navigationTitle("\(hub.status?.requests ?? 0) requests")
+    }.navigationTitle("\(hub.status?.requests ?? 0) requests").toolbar {
+      Button("Copy Key", systemImage: "key.fill") {
+        KeyChain.main.publicKey().copyToClipboard()
+      }
+    }
   }
 }
 struct Service: View {
