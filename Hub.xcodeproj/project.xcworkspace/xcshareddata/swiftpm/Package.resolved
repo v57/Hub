@@ -2,12 +2,21 @@
   "originHash" : "5c8e5fb3f3eaf725824f0fad7599b30941e59a54679b2cce3fc84ce3c509eefa",
   "pins" : [
     {
+      "identity" : "channelswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/v57/ChannelSwift.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "7d21e68b89d6c69e27f0df644be14e8feab025b3"
+      }
+    },
+    {
       "identity" : "hubclient",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/v57/HubClient",
       "state" : {
         "branch" : "main",
-        "revision" : "cbd53b7ccd518a520281d7da76535e12c480fbe2"
+        "revision" : "6ef6b60531f47e2d2fab02084d79a8b7bb491db5"
       }
     }
   ],
