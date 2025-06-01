@@ -5,7 +5,6 @@
 //  Created by Dmitry Kozlov on 19/2/25.
 //
 
-#if os(macOS)
 import SwiftUI
 
 struct LauncherView: View {
@@ -229,4 +228,3 @@ extension Launcher.Status {
 #Preview {
   LauncherView().frame(width: 300, height: 200)
 }
-#endif
