@@ -43,12 +43,15 @@ struct LauncherView: View {
       }
     }
   }
+  
+#if PRO
   var launcher: Launcher { .main }
-  @State var manager = Manager()
-  @State var creating = false
   var status: Launcher.Status {
     launcher.status
   }
+#endif
+  @State var manager = Manager()
+  @State var creating = false
   var body: some View {
     let isConnected = hub.status?.services.contains(where: {
       $0.name == "launcher"
@@ -57,10 +60,13 @@ struct LauncherView: View {
       HStack {
         VStack(alignment: .leading) {
           Text("Launcher")
+          #if PRO
           Text(status.statusText).font(.caption2)
             .foregroundStyle(.secondary)
+          #endif
         }
         Spacer()
+#if PRO
         if let buttonIcon = status.buttonIcon {
           Button {
             Task {
@@ -76,6 +82,7 @@ struct LauncherView: View {
             }
           } label: { Image(systemName: buttonIcon) }.buttonStyle(.borderless)
         }
+#endif
       }.contextMenu {
         Button("Update") {
           Task {
@@ -95,6 +102,7 @@ struct LauncherView: View {
     }.sheet(isPresented: $creating) {
       CreateApp().padding().frame(maxWidth: 300)
     }.task(id: isConnected) {
+#if PRO
       if isConnected {
         launcher.status = .running
       } else {
@@ -102,6 +110,7 @@ struct LauncherView: View {
           launcher.status = .offline
         }
       }
+#endif
     }.task(id: isConnected) {
       guard isConnected else { return }
       await manager.syncApps()
@@ -196,6 +205,7 @@ struct LauncherView: View {
     var memory: Double?
   }
 }
+#if PRO
 extension Launcher.Status {
   var statusText: LocalizedStringKey {
     switch self {
@@ -224,6 +234,7 @@ extension Launcher.Status {
     }
   }
 }
+#endif
 
 #Preview {
   LauncherView().frame(width: 300, height: 200)

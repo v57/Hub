@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+#if PRO
 @Observable
 class Launcher {
   static var main = Launcher()
@@ -70,3 +71,4 @@ screen -dmS v57launcher bun .
     try? await sh("git pull", from: url)
   }
 }
+#endif

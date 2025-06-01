@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-  enum SideView {
+  enum SideView: Int, CaseIterable {
     case services
     case launcher
     case cluster
@@ -16,16 +16,29 @@ struct ContentView: View {
   @State var sideView: SideView = .launcher
   var body: some View {
     NavigationSplitView {
+      #if os(macOS)
       List(selection: $sideView) {
         Section {
           Text("Hub").badge(hub.status?.services.count ?? 0)
             .id(SideView.services)
-#if os(macOS)
           Text("Launcher")
             .id(SideView.launcher)
-#endif
         }
       }
+      #else
+      List(SideView.allCases, id: \.rawValue) { item in
+        Section {
+          switch item {
+          case .services:
+            Text("Hub").badge(hub.status?.services.count ?? 0)
+          case .launcher:
+            Text("Launcher")
+          case .cluster:
+            Text("Cluster")
+          }
+        }
+      }
+      #endif
     } detail: {
       switch sideView {
       case .services:
@@ -33,9 +46,7 @@ struct ContentView: View {
       case .cluster:
         Cluster()
       case .launcher:
-#if os(macOS)
         LauncherView()
-#endif
       }
     }
   }
