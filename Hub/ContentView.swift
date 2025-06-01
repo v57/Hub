@@ -12,7 +12,6 @@ struct ContentView: View {
     case services
     case launcher
     case cluster
-    case roadmap
   }
   @State var sideView: SideView = .launcher
   var body: some View {
@@ -26,9 +25,6 @@ struct ContentView: View {
             .id(SideView.launcher)
 #endif
         }
-        Section {
-          Text("Roadmap").id(SideView.roadmap)
-        }
       }
     } detail: {
       switch sideView {
@@ -40,8 +36,6 @@ struct ContentView: View {
 #if os(macOS)
         LauncherView()
 #endif
-      case .roadmap:
-        RoadmapView()
       }
     }
   }
