@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct CreateApp: View {
+  typealias Create = Hub.Launcher.Create
+  typealias Setup = Hub.Launcher.Setup
   enum AppType {
     case bun, shell
   }
@@ -64,9 +66,7 @@ struct CreateApp: View {
           if isReady {
             Button("Create") {
               guard let create else { return }
-              Task {
-                try await hub.client.send("launcher/app/create", create)
-              }
+              Task { try await hub.launcher.create(create) }
               dismiss()
             }.buttonStyle(.borderedProminent).transition(.blurReplace)
           }
@@ -83,57 +83,6 @@ struct CreateApp: View {
     case .shell: .sh(.init(directory: nil, install: install.commands(), uninstall: uninstall.commands(), run: launch))
     }
   }
-  struct Create: Encodable {
-    let name: String
-    let active: Bool
-    let restarts: Bool
-    let setup: Setup
-    
-    private enum CodingKeys: CodingKey {
-      case name
-      case active
-      case restarts
-    }
-    
-    func encode(to encoder: any Encoder) throws {
-      var container = encoder.container(keyedBy: CodingKeys.self)
-      try container.encode(name, forKey: .name)
-      try container.encode(active, forKey: .active)
-      try container.encode(restarts, forKey: .restarts)
-      try setup.encode(to: encoder)
-    }
-  }
-  enum Setup: Encodable {
-    case bun(Bun)
-    struct Bun: Encodable {
-      let repo: String
-      let commit: String?
-      let command: String?
-    }
-    case sh(Sh)
-    struct Sh: Encodable {
-      let directory: String?
-      let install: [String]?
-      let uninstall: [String]?
-      let run: String
-    }
-    
-    private enum CodingKeys: CodingKey {
-      case type
-    }
-    
-    func encode(to encoder: any Encoder) throws {
-      var container = encoder.container(keyedBy: CodingKeys.self)
-      switch self {
-      case .bun(let bun):
-        try container.encode("bun", forKey: .type)
-        try bun.encode(to: encoder)
-      case .sh(let sh):
-        try container.encode("sh", forKey: .type)
-        try sh.encode(to: encoder)
-      }
-    }
-  }
 }
 extension String {
   func replacingEmpty(with value: String) -> String {
@@ -145,6 +94,5 @@ extension String {
 }
 
 #Preview {
-  CreateApp().padding()
-    .frame(maxWidth: 300)
+  CreateApp().padding().frame(maxWidth: 300)
 }

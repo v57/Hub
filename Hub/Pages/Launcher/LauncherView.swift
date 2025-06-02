@@ -7,15 +7,8 @@
 
 import SwiftUI
 
-extension Hub {
-  var isLauncherConnected: Bool {
-    isConnected && (status?.services.contains(where: {
-      $0.name.starts(with: "launcher/")
-    }) ?? false)
-  }
-}
-
 struct LauncherView: View {
+  typealias App = Hub.Launcher.App
   @MainActor
   @Observable class Manager {
     var apps: [App] = []
@@ -23,8 +16,7 @@ struct LauncherView: View {
       guard hub.isLauncherConnected else { return }
       print("syncApps")
       do {
-        let apps: Apps = try await hub.client.send("launcher/info")
-        self.apps = apps.apps.map { App(id: $0.name, info: $0) }
+        self.apps = try await hub.launcher.info().apps.map { App(id: $0.name, info: $0) }
       } catch { print(error) }
     }
     func syncStatus() async {
@@ -32,7 +24,7 @@ struct LauncherView: View {
       print("syncStatus")
       do {
         while true {
-          let apps: Status = try await hub.client.send("launcher/status")
+          let apps = try await hub.launcher.status()
           if apps.apps.count != self.apps.count {
             await syncApps()
           }
@@ -70,7 +62,6 @@ struct LauncherView: View {
         }
         Spacer()
 #if PRO
-        
         HStack {
           if updatesAvailable {
             AsyncButton("Update", systemImage: "square.and.arrow.down.fill") {
@@ -151,16 +142,16 @@ struct LauncherView: View {
         if let status = app.status {
           if status.isRunning {
             AsyncButton("Stop", systemImage: "stop.fill") {
-              try await hub.client.send("launcher/app/stop", app.id)
+              try await hub.launcher.app(id: app.id).stop()
               await manager.syncApps()
             }
           } else {
             AsyncButton("Start", systemImage: "play.fill") {
-              try await hub.client.send("launcher/app/start", app.id)
+              try await hub.launcher.app(id: app.id).start()
               await manager.syncApps()
             }
             AsyncButton("Uninstall", systemImage: "trash.fill", role: .destructive) {
-              try await hub.client.send("launcher/app/uninstall", app.id)
+              try await hub.launcher.app(id: app.id).uninstall()
               await manager.syncApps()
             }
           }
@@ -179,41 +170,6 @@ struct LauncherView: View {
       }
       return Text("Not running")
     }
-  }
-  struct App: Identifiable, Hashable {
-    let id: String
-    var info: AppInfo?
-    var status: AppStatus?
-  }
-  struct Apps: Decodable, Hashable {
-    var apps: [AppInfo]
-  }
-  struct Status: Decodable, Hashable {
-    var apps: [AppStatus]
-  }
-  struct AppInfo: Decodable, Hashable {
-    var name: String
-    var active: Bool
-    var restarts: Bool
-    enum CodingKeys: CodingKey {
-      case name
-      case active
-      case restarts
-    }
-    
-    init(from decoder: any Decoder) throws {
-      let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.name = try container.decode(String.self, forKey: .name)
-      self.active = try container.decodeIfPresent(Bool.self, forKey: .active) ?? false
-      self.restarts = try container.decodeIfPresent(Bool.self, forKey: .restarts) ?? false
-    }
-  }
-  struct AppStatus: Decodable, Hashable {
-    var name: String
-    var isRunning: Bool
-    var crashes: Int
-    var cpu: Double?
-    var memory: Double?
   }
 }
 #if PRO
