@@ -7,20 +7,28 @@
 
 import Foundation
 import HubClient
+import Combine
 
 extension KeyChain {
   static let main = KeyChain(keyChain: "me.v57.hub")
 }
 
+@MainActor
 let hub = Hub()
+@MainActor
 @Observable class Hub {
-  @MainActor
   let client = HubClient(keyChain: .main)
   var status: Status?
+  var isConnected: Bool = false
   var attempts = 1
+  @ObservationIgnored
+  var connectionTask: AnyCancellable?
   init() {
     Task {
       try await keepUpdating()
+    }
+    connectionTask = client.isConnected.sink { [unowned self] isConnected in
+      self.isConnected = isConnected
     }
   }
   func keepUpdating() async throws {
