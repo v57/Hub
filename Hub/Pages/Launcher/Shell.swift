@@ -8,6 +8,10 @@
 #if os(macOS)
 import Foundation
 
+extension Data {
+  var string: String? { String(data: self, encoding: .utf8) }
+}
+
 struct ShellError: Error {
   let code: Int32
 }
@@ -33,4 +37,38 @@ func sh(_ command: String, from: URL = .homeDirectory) async throws {
     }
   }
 }
+
+extension Process {
+  static func execute(_ command: String, from: URL = .homeDirectory) throws -> ExecutingProcess {
+    let process = Process()
+    let executingProcess = ExecutingProcess(process: process)
+    process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+    process.arguments = ["-c", command.replacingOccurrences(of: "\n", with: ";")]
+    process.currentDirectoryURL = from
+    try process.run()
+    return executingProcess
+  }
+  struct ExecutingProcess {
+    let process: Process
+    private let stdout: Pipe
+    private let stderr: Pipe
+    var output: AsyncLineSequence<FileHandle.AsyncBytes> {
+      stdout.fileHandleForReading.bytes.lines
+    }
+    var error: AsyncLineSequence<FileHandle.AsyncBytes> {
+      stderr.fileHandleForReading.bytes.lines
+    }
+    init(process: Process) {
+      self.process = process
+      stdout = Pipe()
+      stderr = Pipe()
+      process.standardOutput = stdout
+      process.standardError = stderr
+    }
+    func run() async throws {
+      for try await _ in output {}
+    }
+  }
+}
+
 #endif
