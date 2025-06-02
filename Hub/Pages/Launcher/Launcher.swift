@@ -71,5 +71,8 @@ screen -dmS v57launcher bun .
   func update() async {
     try? await git.pull()
   }
+  func checkForUpdates() async -> Bool {
+    await git.checkForUpdates()
+  }
 }
 #endif
