@@ -7,16 +7,20 @@
 
 import SwiftUI
 
+extension Hub {
+  var isLauncherConnected: Bool {
+    isConnected && (status?.services.contains(where: {
+      $0.name.starts(with: "launcher/")
+    }) ?? false)
+  }
+}
+
 struct LauncherView: View {
+  @MainActor
   @Observable class Manager {
     var apps: [App] = []
-    var isConnected: Bool {
-      hub.status?.services.contains(where: {
-        $0.name == "launcher"
-      }) ?? false
-    }
     func syncApps() async {
-      guard isConnected else { return }
+      guard hub.isLauncherConnected else { return }
       print("syncApps")
       do {
         let apps: Apps = try await hub.client.send("launcher/info")
@@ -24,7 +28,7 @@ struct LauncherView: View {
       } catch { print(error) }
     }
     func syncStatus() async {
-      guard isConnected else { return }
+      guard hub.isLauncherConnected else { return }
       print("syncStatus")
       do {
         while true {
@@ -54,9 +58,7 @@ struct LauncherView: View {
   @State var creating = false
   @State var updatesAvailable = false
   var body: some View {
-    let isConnected = hub.status?.services.contains(where: {
-      $0.name.starts(with: "launcher/")
-    }) ?? false
+    let isConnected = hub.isLauncherConnected
     List {
       HStack {
         VStack(alignment: .leading) {
@@ -85,7 +87,7 @@ struct LauncherView: View {
                 await Launcher.main.launch()
               case .running:
                 await Launcher.main.stop()
-              case .status: break
+              case .status, .stopping: break
               }
             }.help(buttonTitle)
           }
@@ -119,8 +121,10 @@ struct LauncherView: View {
       if isConnected {
         launcher.status = .running
       } else {
-        if case .running = Launcher.main.status {
+        switch Launcher.main.status {
+        case .running, .stopping:
           launcher.status = .offline
+        default: break
         }
       }
 #endif
@@ -220,6 +224,7 @@ extension Launcher.Status {
     case .installationFailed: "Installation failed"
     case .installed: "Installed"
     case .status(let s): s
+    case .stopping: "Stopping"
     case .offline: "Offline"
     case .running: "Running"
     }
@@ -229,6 +234,7 @@ extension Launcher.Status {
     case .notInstalled: "Install"
     case .installed, .offline: "Launch"
     case .running: "Stop"
+    case .stopping: "Stopping"
     default: nil
     }
   }

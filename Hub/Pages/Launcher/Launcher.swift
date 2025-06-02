@@ -14,7 +14,7 @@ class Launcher {
   var isInstalled: Bool = false
   var status: Status
   enum Status {
-    case installed, offline, running
+    case installed, offline, running, stopping
     case notInstalled
     case status(LocalizedStringKey), installationFailed
   }
@@ -62,7 +62,7 @@ screen -dmS v57launcher bun .
   }
   func stop() async {
     do {
-      status = .status("Stopping")
+      status = .stopping
       _ = try await hub.client.send("launcher/stop") as Int?
     } catch {
       status = .offline
