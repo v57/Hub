@@ -22,6 +22,7 @@ class Launcher {
     URL.homeDirectory.appendingPathComponent("hub-launcher", conformingTo: .directory)
   }
   var url: URL { Launcher.url }
+  var git: GitHub { GitHub(directory: url) }
   init() {
     if FileManager.default.fileExists(atPath: Launcher.url.path()) {
       status = .offline
@@ -32,7 +33,7 @@ class Launcher {
   func install() async {
     do {
       status = .status("Downloading")
-      try await sh("git clone https://github.com/v57/hub-launcher")
+      try await git.clone("v57/hub-launcher")
       status = .status("Installing")
       try await sh("""
 source .zshrc
@@ -68,7 +69,7 @@ screen -dmS v57launcher bun .
     }
   }
   func update() async {
-    try? await sh("git pull", from: url)
+    try? await git.pull()
   }
 }
 #endif
