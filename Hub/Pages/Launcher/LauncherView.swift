@@ -55,7 +55,7 @@ struct LauncherView: View {
   @State var updatesAvailable = false
   var body: some View {
     let isConnected = hub.status?.services.contains(where: {
-      $0.name == "launcher"
+      $0.name.starts(with: "launcher/")
     }) ?? false
     List {
       HStack {
