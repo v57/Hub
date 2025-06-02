@@ -52,6 +52,7 @@ struct LauncherView: View {
 #endif
   @State var manager = Manager()
   @State var creating = false
+  @State var updatesAvailable = false
   var body: some View {
     let isConnected = hub.status?.services.contains(where: {
       $0.name == "launcher"
@@ -67,9 +68,16 @@ struct LauncherView: View {
         }
         Spacer()
 #if PRO
-        if let buttonIcon = status.buttonIcon {
-          Button {
-            Task {
+        
+        HStack {
+          if updatesAvailable {
+            AsyncButton("Update", systemImage: "square.and.arrow.down.fill") {
+              await launcher.update()
+              updatesAvailable = false
+            }.help("Update")
+          }
+          if let buttonIcon = status.buttonIcon, let buttonTitle = status.buttonTitle {
+            AsyncButton(buttonTitle, systemImage: buttonIcon) {
               switch status {
               case .notInstalled, .installationFailed:
                 await Launcher.main.install()
@@ -79,14 +87,19 @@ struct LauncherView: View {
                 await Launcher.main.stop()
               case .status: break
               }
-            }
-          } label: { Image(systemName: buttonIcon) }.buttonStyle(.borderless)
-        }
+            }.help(buttonTitle)
+          }
+        }.labelStyle(.iconOnly).buttonStyle(.borderless)
 #endif
       }.contextMenu {
-        Button("Update") {
-          Task {
-            
+        if updatesAvailable {
+          AsyncButton("Update") {
+            await launcher.update()
+            updatesAvailable = false
+          }
+        } else {
+          AsyncButton("Check for Updates") {
+            updatesAvailable = await launcher.checkForUpdates()
           }
         }
       }
