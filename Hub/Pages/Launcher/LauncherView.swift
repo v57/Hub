@@ -146,24 +146,18 @@ struct LauncherView: View {
       }.contextMenu {
         if let status = app.status {
           if status.isRunning {
-            Button("Stop", systemImage: "stop.fill") {
-              Task {
-                try await hub.client.send("launcher/app/stop", app.id)
-                await manager.syncApps()
-              }
+            AsyncButton("Stop", systemImage: "stop.fill") {
+              try await hub.client.send("launcher/app/stop", app.id)
+              await manager.syncApps()
             }
           } else {
-            Button("Start", systemImage: "play.fill") {
-              Task {
-                try await hub.client.send("launcher/app/start", app.id)
-                await manager.syncApps()
-              }
+            AsyncButton("Start", systemImage: "play.fill") {
+              try await hub.client.send("launcher/app/start", app.id)
+              await manager.syncApps()
             }
-            Button("Uninstall", systemImage: "trash.fill", role: .destructive) {
-              Task {
-                try await hub.client.send("launcher/app/uninstall", app.id)
-                await manager.syncApps()
-              }
+            AsyncButton("Uninstall", systemImage: "trash.fill", role: .destructive) {
+              try await hub.client.send("launcher/app/uninstall", app.id)
+              await manager.syncApps()
             }
           }
         }
