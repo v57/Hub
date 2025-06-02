@@ -29,6 +29,9 @@ extension Hub {
     func create(_ create: Create) async throws {
       try await hub.client.send("launcher/app/create", create)
     }
+    func pro(_ key: String) async throws {
+      try await hub.client.send("launcher/pro", key)
+    }
     struct AppApi {
       let hub: Hub
       let id: String
