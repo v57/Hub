@@ -71,4 +71,28 @@ extension Process {
   }
 }
 
+struct GitHub {
+  let directory: URL
+  func clone(_ project: String) async throws {
+    let root = directory.deletingLastPathComponent()
+    try await Process.execute("git clone https://github.com/v57/hub-launcher", from: root).run()
+  }
+  func pull() async throws {
+    try await Process.execute("git pull", from: directory).run()
+  }
+  func checkForUpdates() async -> Bool {
+    do {
+      let execution = try Process.execute("git fetch origin >/dev/null 2>&1 && git rev-list HEAD..origin/$(git rev-parse --abbrev-ref HEAD) --count", from: directory)
+      for try await line in execution.output {
+        if let value = Int(line) {
+          return value > 0
+        }
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+}
+
 #endif
