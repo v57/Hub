@@ -24,7 +24,7 @@ extension Hub {
       try await hub.client.send("launcher/info")
     }
     func status() async throws -> Status {
-      try await hub.client.send("launcher/info")
+      try await hub.client.send("launcher/status")
     }
     func create(_ create: Create) async throws {
       try await hub.client.send("launcher/app/create", create)
