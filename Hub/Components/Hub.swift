@@ -61,4 +61,7 @@ extension HubClient {
   func status() async throws -> Status {
     try await send("hub/status")
   }
+  func permissions() async throws -> [String] {
+    try await send("hub/permissions")
+  }
 }
