@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HubClient
 
 struct LauncherView: View {
   typealias App = Hub.Launcher.App
@@ -145,6 +146,12 @@ struct LauncherView: View {
           if let status {
             status.font(.caption2).foregroundStyle(.secondary)
           }
+        }
+        Spacer()
+        if app.id == "Hub Lite" {
+          AsyncButton("Upgrade to Pro") {
+            try await hub.launcher.pro(KeyChain.main.publicKey())
+          }.buttonStyle(.link)
         }
       }.contextMenu {
         if let status = app.status {
