@@ -42,16 +42,53 @@ struct LauncherView: View {
   
 #if PRO
   var launcher: Launcher { .main }
-  var status: Launcher.Status {
-    launcher.status
-  }
 #endif
   @State var manager = Manager()
   @State var creating = false
-  @State var updatesAvailable = false
   var body: some View {
     let isConnected = hub.isLauncherConnected
     List {
+      LauncherCell()
+      if isConnected {
+        ForEach(manager.apps) { app in
+          AppView(app: app)
+        }.environment(manager)
+      }
+    }.toolbar {
+      Button("Create", systemImage: "plus") {
+        creating.toggle()
+      }.labelStyle(.iconOnly)
+    }.sheet(isPresented: $creating) {
+      CreateApp().padding().frame(maxWidth: 300)
+    }.task(id: isConnected) {
+#if PRO
+      if isConnected {
+        launcher.status = .running
+      } else {
+        switch Launcher.main.status {
+        case .running, .stopping:
+          launcher.status = .offline
+        default: break
+        }
+      }
+#endif
+    }.task(id: isConnected) {
+      guard isConnected else { return }
+      await manager.syncApps()
+    }.task(id: isConnected) {
+      guard isConnected else { return }
+      await manager.syncStatus()
+    }
+  }
+  struct LauncherCell: View {
+#if PRO
+    var launcher: Launcher { .main }
+    var status: Launcher.Status {
+      launcher.status
+    }
+    @State var updatesAvailable = false
+#endif
+    var body: some View {
       HStack {
         VStack(alignment: .leading) {
           Text("Launcher")
@@ -96,35 +133,6 @@ struct LauncherView: View {
           }
         }
       }
-      if isConnected {
-        ForEach(manager.apps) { app in
-          AppView(app: app)
-        }.environment(manager)
-      }
-    }.toolbar {
-      Button("Create", systemImage: "plus") {
-        creating.toggle()
-      }.labelStyle(.iconOnly)
-    }.sheet(isPresented: $creating) {
-      CreateApp().padding().frame(maxWidth: 300)
-    }.task(id: isConnected) {
-#if PRO
-      if isConnected {
-        launcher.status = .running
-      } else {
-        switch Launcher.main.status {
-        case .running, .stopping:
-          launcher.status = .offline
-        default: break
-        }
-      }
-#endif
-    }.task(id: isConnected) {
-      guard isConnected else { return }
-      await manager.syncApps()
-    }.task(id: isConnected) {
-      guard isConnected else { return }
-      await manager.syncStatus()
     }
   }
   struct AppView: View {
