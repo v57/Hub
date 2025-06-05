@@ -20,12 +20,6 @@ extension Hub {
     func app(id: String) -> AppApi {
       AppApi(hub: hub, id: id)
     }
-    func info() async throws -> Apps {
-      try await hub.client.send("launcher/info")
-    }
-    func status() async throws -> Status {
-      try await hub.client.send("launcher/status")
-    }
     func create(_ create: Create) async throws {
       try await hub.client.send("launcher/app/create", create)
     }

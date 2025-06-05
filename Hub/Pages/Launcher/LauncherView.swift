@@ -17,23 +17,26 @@ struct LauncherView: View {
       guard hub.isLauncherConnected else { return }
       print("syncApps")
       do {
-        self.apps = try await hub.launcher.info().apps.map { App(id: $0.name, info: $0) }
-      } catch { print(error) }
+        for try await apps: Hub.Launcher.Apps in hub.client.values("launcher/info") {
+          print(apps)
+          self.apps = apps.apps.map {
+            App(id: $0.name, info: $0)
+          }
+        }
+      } catch {
+        print(error)
+      }
     }
     func syncStatus() async {
       guard hub.isLauncherConnected else { return }
       print("syncStatus")
       do {
-        while true {
-          let apps = try await hub.launcher.status()
-          if apps.apps.count != self.apps.count {
-            await syncApps()
-          }
+        for try await apps: Hub.Launcher.Status in hub.client.values("launcher/status") {
+          print(apps)
           apps.apps.forEach { status in
             guard let index = self.apps.firstIndex(where: { $0.id == status.name }) else { return }
             self.apps[index].status = status
           }
-          try await Task.sleep(for: .seconds(0.5))
         }
       } catch {
         print(error)
@@ -75,10 +78,10 @@ struct LauncherView: View {
 #endif
     }.task(id: isConnected) {
       guard isConnected else { return }
-      await manager.syncApps()
+      await manager.syncStatus()
     }.task(id: isConnected) {
       guard isConnected else { return }
-      await manager.syncStatus()
+      await manager.syncApps()
     }
   }
   struct LauncherCell: View {
@@ -158,16 +161,13 @@ struct LauncherView: View {
           if status.isRunning {
             AsyncButton("Stop", systemImage: "stop.fill") {
               try await hub.launcher.app(id: app.id).stop()
-              await manager.syncApps()
             }
           } else {
             AsyncButton("Start", systemImage: "play.fill") {
               try await hub.launcher.app(id: app.id).start()
-              await manager.syncApps()
             }
             AsyncButton("Uninstall", systemImage: "trash.fill", role: .destructive) {
               try await hub.launcher.app(id: app.id).uninstall()
-              await manager.syncApps()
             }
           }
         }
