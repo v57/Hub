@@ -20,28 +20,18 @@ let hub = Hub()
   let client = HubClient(keyChain: .main)
   var status: Status?
   var isConnected: Bool = false
-  var attempts = 1
   @ObservationIgnored
   var connectionTask: AnyCancellable?
   init() {
-    Task {
-      try await keepUpdating()
-    }
+    Task { try await keepUpdating() }
     connectionTask = client.isConnected.sink { [unowned self] isConnected in
       self.isConnected = isConnected
     }
   }
   func keepUpdating() async throws {
     do {
-      while true {
-        let status = try? await client.status()
+      for try await status: Status in client.values("hub/status") {
         self.status = status
-        if status?.services != self.status?.services {
-          attempts = 1
-        } else {
-          attempts += 1
-        }
-        try await Task.sleep(for: .milliseconds(min(attempts, 100) * 100))
       }
     } catch { }
   }
@@ -58,9 +48,6 @@ struct Status: Decodable, Hashable {
 }
 
 extension HubClient {
-  func status() async throws -> Status {
-    try await send("hub/status")
-  }
   func permissions() async throws -> [String] {
     try await send("hub/permissions")
   }
