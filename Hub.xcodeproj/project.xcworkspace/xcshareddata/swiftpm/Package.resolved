@@ -7,7 +7,7 @@
       "location" : "https://github.com/v57/ChannelSwift.git",
       "state" : {
         "branch" : "main",
-        "revision" : "1cccabf467c68290fe279fd8218fdefac1b7aba6"
+        "revision" : "dfbb4329012e76e3a98700431c552df72af0dd1d"
       }
     },
     {
@@ -16,7 +16,7 @@
       "location" : "https://github.com/v57/HubClient",
       "state" : {
         "branch" : "main",
-        "revision" : "fde72134fd76e60eb6065b0db1e1bfa27d9cf02f"
+        "revision" : "3c0a85f077938fd8ae1c2ece2fc8425e37d213cc"
       }
     }
   ],
