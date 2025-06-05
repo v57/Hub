@@ -14,32 +14,26 @@ struct LauncherView: View {
   @Observable class Manager {
     var apps: [App] = []
     func syncApps() async {
-      guard hub.isLauncherConnected else { return }
-      print("syncApps")
       do {
         for try await apps: Hub.Launcher.Apps in hub.client.values("launcher/info") {
-          print(apps)
           self.apps = apps.apps.map {
             App(id: $0.name, info: $0)
           }
         }
       } catch {
-        print(error)
+        print("syncApps", error)
       }
     }
     func syncStatus() async {
-      guard hub.isLauncherConnected else { return }
-      print("syncStatus")
       do {
         for try await apps: Hub.Launcher.Status in hub.client.values("launcher/status") {
-          print(apps)
           apps.apps.forEach { status in
             guard let index = self.apps.firstIndex(where: { $0.id == status.name }) else { return }
             self.apps[index].status = status
           }
         }
       } catch {
-        print(error)
+        print("syncStatus", error)
       }
     }
   }
