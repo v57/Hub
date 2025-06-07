@@ -30,6 +30,10 @@ struct Services: View {
         }
       }
     }.navigationTitle("\(hub.status?.requests ?? 0) requests").toolbar {
+      Text(hub.isConnected ? "Connected" : "Disconnected")
+        .font(.caption2).foregroundStyle(.white)
+          .padding(.horizontal, 6).padding(.vertical, 2)
+          .background(.red, in: .capsule)
       ForEach(permissions, id: \.self) { permission in
         Text(permission).font(.caption2).foregroundStyle(.white)
           .padding(.horizontal, 6).padding(.vertical, 2)
