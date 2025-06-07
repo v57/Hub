@@ -120,6 +120,7 @@ struct LauncherView: View {
         }.labelStyle(.iconOnly).buttonStyle(.borderless)
 #endif
       }.contextMenu {
+#if PRO
         if updatesAvailable {
           AsyncButton("Update") {
             await launcher.update()
@@ -130,6 +131,7 @@ struct LauncherView: View {
             updatesAvailable = await launcher.checkForUpdates()
           }
         }
+#endif
       }
     }
   }
