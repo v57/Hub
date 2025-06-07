@@ -12,20 +12,25 @@ struct ContentView: View {
     case services
     case launcher
     case cluster
+    case security
   }
-  @State var sideView: SideView = .launcher
+  @State var sideView: SideView = .security
   var body: some View {
     NavigationSplitView {
-      #if os(macOS)
+#if os(macOS)
       List(selection: $sideView) {
         Section {
           Text("Hub").badge(hub.status?.services.count ?? 0)
             .id(SideView.services)
+          Text("Connections")
+            .id(SideView.cluster)
           Text("Launcher")
             .id(SideView.launcher)
+          Text("Security")
+            .id(SideView.security)
         }
       }
-      #else
+#else
       List(SideView.allCases, id: \.rawValue) { item in
         Section {
           switch item {
@@ -35,6 +40,8 @@ struct ContentView: View {
             Text("Launcher")
           case .cluster:
             Text("Cluster")
+          case .security:
+            Text("Security")
           }
         }
       }
@@ -47,6 +54,8 @@ struct ContentView: View {
         Cluster()
       case .launcher:
         LauncherView()
+      case .security:
+        SecurityView()
       }
     }
   }
