@@ -17,6 +17,10 @@ struct SecurityView: View {
           Text(item.id).font(.caption2)
             .foregroundStyle(.secondary)
         }
+        Spacer()
+        AsyncButton("Allow") {
+          try await hub.client.send("hub/permissions/add", Allow(services: item.pending, permission: item.id))
+        }
       }
     }.navigationTitle("Security").task {
       do {
@@ -27,6 +31,10 @@ struct SecurityView: View {
         print(error)
       }
     }
+  }
+  struct Allow: Encodable {
+    let services: [String]
+    let permission: String
   }
   struct PendingAuthorization: Identifiable, Decodable {
     let id: String
