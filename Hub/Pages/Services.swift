@@ -51,14 +51,25 @@ struct Services: View {
 }
 struct Service: View {
   let service: Status.Service
+  var onlineStatus: OnlineStatus {
+    if service.services > 0 {
+      OnlineStatus.online
+    } else if service.disabled > 0 {
+      OnlineStatus.unauthorized
+    } else {
+      OnlineStatus.offline
+    }
+  }
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
       HStack(spacing: 6) {
         Text(service.name)
-        OnlineStatus.online.view
+        onlineStatus.view
       }
-      Text("\(service.requests) requests").font(.caption2)
-        .foregroundStyle(.secondary)
+      if service.requests > 0 {
+        Text("\(service.requests) requests").font(.caption2)
+          .foregroundStyle(.secondary)
+      }
     }
   }
 }

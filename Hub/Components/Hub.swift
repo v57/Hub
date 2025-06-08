@@ -43,6 +43,7 @@ struct Status: Decodable, Hashable {
   struct Service: Decodable, Hashable {
     let name: String
     let services: Int
+    let disabled: Int
     let requests: Int
   }
 }
