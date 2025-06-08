@@ -21,7 +21,6 @@ extension String {
 }
 
 struct Services: View {
-  @State var permissions = [String]()
   var body: some View {
     List {
       if let status = hub.status {
@@ -34,7 +33,7 @@ struct Services: View {
         .font(.caption2).foregroundStyle(.white)
           .padding(.horizontal, 6).padding(.vertical, 2)
           .background(.red, in: .capsule)
-      ForEach(permissions, id: \.self) { permission in
+      ForEach(hub.permissions.sorted(), id: \.self) { permission in
         Text(permission).font(.caption2).foregroundStyle(.white)
           .padding(.horizontal, 6).padding(.vertical, 2)
           .background(.red, in: .capsule)
@@ -42,10 +41,6 @@ struct Services: View {
       Button("Copy Key", systemImage: "key.fill") {
         KeyChain.main.publicKey().copyToClipboard()
       }
-    }.task {
-      do {
-        permissions = try await hub.client.permissions().sorted()
-      } catch { }
     }
   }
 }

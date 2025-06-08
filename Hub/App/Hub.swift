@@ -22,10 +22,14 @@ let hub = Hub()
   var isConnected: Bool = false
   @ObservationIgnored
   var connectionTask: AnyCancellable?
+  var permissions = Set<String>()
   init() {
     Task { try await keepUpdating() }
     connectionTask = client.isConnected.sink { [unowned self] isConnected in
       self.isConnected = isConnected
+      if isConnected {
+        Task { permissions = try await client.send("hub/permissions") }
+      }
     }
   }
   func keepUpdating() async throws {
@@ -45,11 +49,5 @@ struct Status: Decodable, Hashable {
     let services: Int
     let disabled: Int
     let requests: Int
-  }
-}
-
-extension HubClient {
-  func permissions() async throws -> [String] {
-    try await send("hub/permissions")
   }
 }
