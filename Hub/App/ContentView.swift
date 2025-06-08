@@ -15,18 +15,20 @@ struct ContentView: View {
     case security
   }
   @State var sideView: SideView = .security
+  @State var statusBadges = StatusBadges()
   var body: some View {
     NavigationSplitView {
 #if os(macOS)
       List(selection: $sideView) {
         Section {
-          Text("Hub").badge(hub.status?.services.count ?? 0)
+          Text("Hub").badge(statusBadges.services)
             .id(SideView.services)
           Text("Connections")
             .id(SideView.cluster)
           Text("Launcher")
             .id(SideView.launcher)
-          Text("Security")
+          Text("Security").badge(statusBadges.security)
+            .badgeProminence(.increased)
             .id(SideView.security)
         }
       }
@@ -35,13 +37,14 @@ struct ContentView: View {
         Section {
           switch item {
           case .services:
-            Text("Hub").badge(hub.status?.services.count ?? 0)
+            Text("Hub").badge(statusBadges.services)
           case .launcher:
             Text("Launcher")
           case .cluster:
             Text("Cluster")
           case .security:
-            Text("Security")
+            Text("Security").badge(statusBadges.security)
+              .badgeProminence(.increased)
           }
         }
       }
@@ -57,7 +60,19 @@ struct ContentView: View {
       case .security:
         SecurityView()
       }
+    }.task {
+      do {
+        for try await status: StatusBadges in hub.client.values("hub/status/badges") {
+          self.statusBadges = status
+        }
+      } catch {
+        print(error)
+      }
     }
+  }
+  struct StatusBadges: Decodable {
+    var services: Int = 0
+    var security: Int = 0
   }
 }
 
