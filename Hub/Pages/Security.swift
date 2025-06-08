@@ -16,7 +16,9 @@ struct SecurityView: View {
           Text(item.name)
           Text(item.id).font(.caption2)
             .foregroundStyle(.secondary)
-        }
+            .textScale(.secondary)
+            .fontDesign(.monospaced)
+        }.lineLimit(2)
         Spacer()
         AsyncButton("Allow") {
           try await hub.client.send("hub/permissions/add", Allow(services: item.pending, permission: item.id))
