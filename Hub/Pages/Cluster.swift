@@ -22,6 +22,12 @@ enum OnlineStatus: Comparable {
   }
 }
 
+extension Hub {
+  var onlineStatus: OnlineStatus {
+    isConnected ? .online : .offline
+  }
+}
+
 struct Cluster: View {
   @State var isCreating: Bool = false
   let hubs = Hubs.main
@@ -39,6 +45,7 @@ struct Cluster: View {
           VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
               Text(hub.settings.name)
+              hub.onlineStatus.view
             }
             Text(hub.settings.address.description).font(.caption2).foregroundStyle(.secondary)
           }.contextMenu {
