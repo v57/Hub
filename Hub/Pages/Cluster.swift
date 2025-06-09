@@ -95,18 +95,32 @@ struct Cluster: View {
 
 private extension URLComponents {
   mutating func hub() {
-    if host == nil, !path.isEmpty {
+    if host == nil, !path.isEmpty || scheme != nil {
       var components = path.components(separatedBy: "/")
-      host = components.removeFirst()
-      if components.count > 0 {
+      if scheme != nil {
+        host = scheme
+        scheme = nil
+        if let port = Int(components[0]) {
+          self.port = port
+          components.removeFirst()
+        }
+      } else {
+        host = components.removeFirst()
+      }
+      if components.filter({ !$0.isEmpty }).count > 0 {
         path = "/" + components.joined(separator: "/")
       } else {
         path = ""
       }
     }
     // Getting scheme if needed {
-    if scheme == nil, let host, !host.isEmpty {
-      scheme = host.isIp || host.isLocal ? "ws" : "wss"
+    if let host, !host.isEmpty {
+      if scheme == nil {
+        scheme = host.isIp || host.isLocal ? "ws" : "wss"
+      }
+      if port == nil && scheme == "ws" {
+        port = 1997
+      }
     }
   }
 }
