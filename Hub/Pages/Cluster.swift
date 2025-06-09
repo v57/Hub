@@ -35,15 +35,15 @@ struct Cluster: View {
             hubs.insert(with: Hub.Settings(name: "My Mac", address: HubClient.local))
           }
         }
-        ForEach(hubs.infos) { (info: Hub.Settings) in
+        ForEach(hubs.list) { (hub: Hub) in
           VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
-              Text(info.name)
+              Text(hub.settings.name)
             }
-            Text(info.address.description).font(.caption2).foregroundStyle(.secondary)
+            Text(hub.settings.address.description).font(.caption2).foregroundStyle(.secondary)
           }.contextMenu {
             Button("Remove") {
-              hubs.remove(with: info)
+              hubs.remove(with: hub.settings)
             }
           }
         }

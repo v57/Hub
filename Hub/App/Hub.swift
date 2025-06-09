@@ -16,8 +16,9 @@ extension KeyChain {
 @MainActor
 let hub = Hub(settings: .init(name: "Local", address: HubClient.local))
 @MainActor
-@Observable class Hub {
-  let settings: Settings
+@Observable class Hub: @preconcurrency Identifiable {
+  var id: Settings.ID { settings.id }
+  var settings: Settings
   let client: HubClient
   var status: Status?
   var isConnected: Bool = false
@@ -65,45 +66,41 @@ struct Status: Decodable, Hashable {
 class Hubs {
   static let main = Hubs()
   var selected: Int?
-  var hubs = [Hub]()
-  var infos = [Hub.Settings]()
-  var hasLocal: Bool { infos.contains(where: { $0.address.absoluteString.starts(with: "ws:") })}
+  var list = [Hub]()
+  var hasLocal: Bool { list.contains(where: { $0.settings.address.absoluteString.starts(with: "ws:") })}
   init() {
     load()
   }
   func insert(with settings: Hub.Settings) {
-    if let index = infos.firstIndex(where: { $0.id == settings.id }) {
-      infos[index] = settings
+    if let index = list.firstIndex(where: { $0.id == settings.id }) {
+      list[index].settings = settings
       selected = index
     } else {
       let hub = Hub(settings: settings)
-      hubs.append(hub)
-      infos.append(settings)
-      selected = self.hubs.count - 1
+      list.append(hub)
+      selected = self.list.count - 1
     }
     save()
   }
   func remove(with settings: Hub.Settings) {
-    if let index = self.infos.firstIndex(where: { $0.id == settings.id }) {
-      infos.remove(at: index)
-      hubs.remove(at: index)
+    if let index = self.list.firstIndex(where: { $0.id == settings.id }) {
+      list.remove(at: index)
       save()
     }
   }
   func save() {
     do {
-      let data = try JSONEncoder().encode(infos)
+      let data = try JSONEncoder().encode(list.map(\.settings))
       UserDefaults.standard.set(data, forKey: "hubs")
     } catch { }
   }
   func load() {
     guard let data = UserDefaults.standard.data(forKey: "hubs") else { return }
     do {
-      infos = try JSONDecoder().decode([Hub.Settings].self, from: data)
-      hubs = []
-      for settings in infos {
+      list = []
+      for settings in try JSONDecoder().decode([Hub.Settings].self, from: data) {
         let hub = Hub(settings: settings)
-        hubs.append(hub)
+        list.append(hub)
       }
     } catch {}
   }
