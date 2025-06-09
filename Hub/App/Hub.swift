@@ -14,19 +14,19 @@ extension KeyChain {
 }
 
 @MainActor
-let hub = Hub(name: "local")
+let hub = Hub(settings: .init(name: "Local", address: HubClient.local))
 @MainActor
 @Observable class Hub {
-  let name: String
+  let settings: Settings
   let client: HubClient
   var status: Status?
   var isConnected: Bool = false
   @ObservationIgnored
   var connectionTask: AnyCancellable?
   var permissions = Set<String>()
-  init(name: String, url: URL = HubClient.local) {
-    self.name = name
-    self.client = HubClient(keyChain: .main)
+  init(settings: Settings) {
+    self.settings = settings
+    self.client = HubClient(settings.address, keyChain: .main)
     Task { try await keepUpdating() }
     connectionTask = client.isConnected.sink { [unowned self] isConnected in
       self.isConnected = isConnected
@@ -71,20 +71,20 @@ class Hubs {
   init() {
     load()
   }
-  func insert(info: Hub.Settings) {
-    if let index = infos.firstIndex(where: { $0.id == info.id }) {
-      infos[index] = info
+  func insert(with settings: Hub.Settings) {
+    if let index = infos.firstIndex(where: { $0.id == settings.id }) {
+      infos[index] = settings
       selected = index
     } else {
-      let hub = Hub(name: info.name, url: info.address)
+      let hub = Hub(settings: settings)
       hubs.append(hub)
-      infos.append(info)
+      infos.append(settings)
       selected = self.hubs.count - 1
     }
     save()
   }
-  func remove(info: Hub.Settings) {
-    if let index = self.infos.firstIndex(where: { $0.id == info.id }) {
+  func remove(with settings: Hub.Settings) {
+    if let index = self.infos.firstIndex(where: { $0.id == settings.id }) {
       infos.remove(at: index)
       hubs.remove(at: index)
       save()
@@ -101,8 +101,8 @@ class Hubs {
     do {
       infos = try JSONDecoder().decode([Hub.Settings].self, from: data)
       hubs = []
-      for info in infos {
-        let hub = Hub(name: info.name, url: info.address)
+      for settings in infos {
+        let hub = Hub(settings: settings)
         hubs.append(hub)
       }
     } catch {}

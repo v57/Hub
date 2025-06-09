@@ -32,7 +32,7 @@ struct Cluster: View {
           Create(isCreating: $isCreating)
         } else if !hubs.hasLocal {
           Button("Add local") {
-            hubs.insert(info: Hub.Settings(name: "My Mac", address: HubClient.local))
+            hubs.insert(with: Hub.Settings(name: "My Mac", address: HubClient.local))
           }
         }
         ForEach(hubs.infos) { (info: Hub.Settings) in
@@ -43,7 +43,7 @@ struct Cluster: View {
             Text(info.address.description).font(.caption2).foregroundStyle(.secondary)
           }.contextMenu {
             Button("Remove") {
-              hubs.remove(info: info)
+              hubs.remove(with: info)
             }
           }
         }
@@ -75,7 +75,7 @@ struct Cluster: View {
         TextField(url?.name ?? "Name", text: $name)
         if let url, let providedName {
           Button("Connect") {
-            hubs.insert(info: Hub.Settings(name: providedName, address: url))
+            hubs.insert(with: Hub.Settings(name: providedName, address: url))
             self.name = ""
             self.address = ""
             self.isCreating = false
