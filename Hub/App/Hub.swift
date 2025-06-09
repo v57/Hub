@@ -84,6 +84,7 @@ class Hubs {
   }
   func remove(with settings: Hub.Settings) {
     if let index = self.list.firstIndex(where: { $0.id == settings.id }) {
+      list[index].client.stop()
       list.remove(at: index)
       save()
     }
