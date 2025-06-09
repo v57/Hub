@@ -76,7 +76,9 @@ class Hubs {
     load()
   }
   func select(_ hub: Hub.ID?) {
+    guard selected != hub else { return }
     selected = hub
+    UserDefaults.standard.set(self.selected, forKey: "selected")
   }
   func insert(with settings: Hub.Settings) {
     if let index = list.firstIndex(where: { $0.id == settings.id }) {
@@ -86,12 +88,14 @@ class Hubs {
       list.append(hub)
     }
     selected = settings.id
+    UserDefaults.standard.set(self.selected, forKey: "selected")
     save()
   }
   func remove(with settings: Hub.Settings) {
     guard let index = self.list.firstIndex(where: { $0.id == settings.id }) else { return }
     if let selected, selected == settings.id {
       self.selected = list.first?.id
+      UserDefaults.standard.set(self.selected, forKey: "selected")
     }
     list[index].client.stop()
     list.remove(at: index)
@@ -110,6 +114,9 @@ class Hubs {
       for settings in try JSONDecoder().decode([Hub.Settings].self, from: data) {
         let hub = Hub(settings: settings)
         list.append(hub)
+      }
+      if let selected = UserDefaults.standard.url(forKey: "selected") {
+        self.selected = selected
       }
     } catch {}
   }
