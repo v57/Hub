@@ -41,15 +41,16 @@ struct Cluster: View {
               Text(info.name)
             }
             Text(info.address.description).font(.caption2).foregroundStyle(.secondary)
+          }.contextMenu {
+            Button("Remove") {
+              hubs.remove(info: info)
+            }
           }
         }
       }.toolbar {
-        Button("Copy Key", systemImage: "person.badge.key.fill") {
-          
-        }
-        Button("Connect", systemImage: "plus") {
+        Button("Connect", systemImage: "plus", role: isCreating ? .cancel : nil) {
           isCreating.toggle()
-        }
+        }.buttonBorderShape(.capsule)
       }.navigationTitle("Connections")
     }
   }
