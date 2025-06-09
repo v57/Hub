@@ -32,10 +32,10 @@ struct Cluster: View {
           Create(isCreating: $isCreating)
         } else if !hubs.hasLocal {
           Button("Add local") {
-            hubs.insert(info: HubInfo(name: "My Mac", address: HubClient.local))
+            hubs.insert(info: Hub.Settings(name: "My Mac", address: HubClient.local))
           }
         }
-        ForEach(hubs.infos) { (info: HubInfo) in
+        ForEach(hubs.infos) { (info: Hub.Settings) in
           VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
               Text(info.name)
@@ -75,7 +75,7 @@ struct Cluster: View {
         TextField(url?.name ?? "Name", text: $name)
         if let url, let providedName {
           Button("Connect") {
-            hubs.insert(info: HubInfo(name: providedName, address: url))
+            hubs.insert(info: Hub.Settings(name: providedName, address: url))
             self.name = ""
             self.address = ""
             self.isCreating = false

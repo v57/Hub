@@ -42,6 +42,11 @@ let hub = Hub(name: "local")
       }
     } catch { }
   }
+  struct Settings: Codable, Identifiable, Hashable {
+    var id: URL { address }
+    var name: String
+    var address: URL
+  }
 }
 
 struct Status: Decodable, Hashable {
@@ -61,12 +66,12 @@ class Hubs {
   static let main = Hubs()
   var selected: Int?
   var hubs = [Hub]()
-  var infos = [HubInfo]()
+  var infos = [Hub.Settings]()
   var hasLocal: Bool { infos.contains(where: { $0.address.absoluteString.starts(with: "ws:") })}
   init() {
     load()
   }
-  func insert(info: HubInfo) {
+  func insert(info: Hub.Settings) {
     if let index = infos.firstIndex(where: { $0.id == info.id }) {
       infos[index] = info
       selected = index
@@ -78,7 +83,7 @@ class Hubs {
     }
     save()
   }
-  func remove(info: HubInfo) {
+  func remove(info: Hub.Settings) {
     if let index = self.infos.firstIndex(where: { $0.id == info.id }) {
       infos.remove(at: index)
       hubs.remove(at: index)
@@ -94,7 +99,7 @@ class Hubs {
   func load() {
     guard let data = UserDefaults.standard.data(forKey: "hubs") else { return }
     do {
-      infos = try JSONDecoder().decode([HubInfo].self, from: data)
+      infos = try JSONDecoder().decode([Hub.Settings].self, from: data)
       hubs = []
       for info in infos {
         let hub = Hub(name: info.name, url: info.address)
@@ -102,9 +107,4 @@ class Hubs {
       }
     } catch {}
   }
-}
-struct HubInfo: Codable, Identifiable, Hashable {
-  var id: URL { address }
-  var name: String
-  var address: URL
 }
