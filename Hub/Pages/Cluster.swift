@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HubClient
 
 enum OnlineStatus: Comparable {
   case online, unauthorized, offline
@@ -22,35 +23,22 @@ enum OnlineStatus: Comparable {
 }
 
 struct Cluster: View {
-  struct ClusterInfo: Identifiable, Comparable {
-    let id = UUID()
-    let name: String
-    let address: String
-    let status: OnlineStatus
-    static func ==(l: Self, r: Self) -> Bool {
-      l.status == r.status
-    }
-    static func <(l: Self, r: Self) -> Bool {
-      l.status < r.status
-    }
-  }
   @State var create: Bool = false
-  @State var clusters: [ClusterInfo] = [
-    ClusterInfo(name: "Local", address: "127.0.0.1", status: .offline),
-    ClusterInfo(name: "MacBook Pro", address: "m3pro.local", status: .online),
-    ClusterInfo(name: "Main Server", address: "apple.com", status: .unauthorized),
-    ClusterInfo(name: "Droplet", address: "digitalocean.com", status: .online),
-  ].sorted()
+  let hubs = Hubs.main
   var body: some View {
     NavigationStack {
       List {
-        ForEach(clusters) { cluster in
+        if !hubs.hasLocal {
+          Button("Add local") {
+            hubs.insert(info: HubInfo(name: "My Mac", address: HubClient.local))
+          }
+        }
+        ForEach(hubs.infos) { (info: HubInfo) in
           VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
-              Text(cluster.name)
-              cluster.status.view
+              Text(info.name)
             }
-            Text(cluster.address).font(.caption2).foregroundStyle(.secondary)
+            Text(info.address.description).font(.caption2).foregroundStyle(.secondary)
           }
         }
       }.toolbar {
@@ -60,7 +48,7 @@ struct Cluster: View {
         Button("Create", systemImage: "plus") {
           create = true
         }
-      }.navigationTitle("Cluster").navigationDestination(isPresented: $create) {
+      }.navigationTitle("Connections").navigationDestination(isPresented: $create) {
         Create()
       }
     }

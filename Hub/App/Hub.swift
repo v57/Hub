@@ -62,6 +62,7 @@ class Hubs {
   var selected: Int?
   var hubs = [Hub]()
   var infos = [HubInfo]()
+  var hasLocal: Bool { infos.contains(where: { $0.address.absoluteString.starts(with: "ws:") })}
   init() {
     load()
   }
