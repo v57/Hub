@@ -67,9 +67,21 @@ class Hubs {
   static let main = Hubs()
   var selected: Int?
   var list = [Hub]()
+  var selectedHub: Hub? {
+    guard let selected else { return nil }
+    return list[selected]
+  }
   var hasLocal: Bool { list.contains(where: { $0.settings.address.absoluteString.starts(with: "ws:") })}
   init() {
     load()
+  }
+  func select(_ hub: Hub.ID?) {
+    if let hub {
+      guard let index = list.firstIndex(where: { $0.id == hub }) else { return }
+      self.selected = index
+    } else {
+      self.selected = nil
+    }
   }
   func insert(with settings: Hub.Settings) {
     if let index = list.firstIndex(where: { $0.id == settings.id }) {
@@ -83,11 +95,17 @@ class Hubs {
     save()
   }
   func remove(with settings: Hub.Settings) {
-    if let index = self.list.firstIndex(where: { $0.id == settings.id }) {
-      list[index].client.stop()
-      list.remove(at: index)
-      save()
+    guard let index = self.list.firstIndex(where: { $0.id == settings.id }) else { return }
+    if let selected {
+      if selected == index {
+        self.selected = nil
+      } else if selected > index {
+        self.selected = selected - 1
+      }
     }
+    list[index].client.stop()
+    list.remove(at: index)
+    save()
   }
   func save() {
     do {

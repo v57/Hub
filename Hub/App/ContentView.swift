@@ -16,20 +16,23 @@ struct ContentView: View {
   }
   @State var sideView: SideView = .cluster
   @State var statusBadges = StatusBadges()
+  let hubs = Hubs.main
   var body: some View {
     NavigationSplitView {
 #if os(macOS)
       List(selection: $sideView) {
-        Section {
-          Text("Hub").badge(statusBadges.services)
-            .id(SideView.services)
-          Text("Connections")
-            .id(SideView.cluster)
-          Text("Launcher")
-            .id(SideView.launcher)
-          Text("Security").badge(statusBadges.security)
-            .badgeProminence(.increased)
-            .id(SideView.security)
+        Text("Connections")
+          .id(SideView.cluster)
+        if let hub = hubs.selectedHub {
+          Section {
+            Text("Hub").badge(statusBadges.services)
+              .id(SideView.services)
+            Text("Launcher")
+              .id(SideView.launcher)
+            Text("Security").badge(statusBadges.security)
+              .badgeProminence(.increased)
+              .id(SideView.security)
+          }
         }
       }
 #else
