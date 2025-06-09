@@ -65,43 +65,33 @@ struct Status: Decodable, Hashable {
 @Observable
 class Hubs {
   static let main = Hubs()
-  var selected: Int?
+  var selected: Hub.ID?
   var list = [Hub]()
   var selectedHub: Hub? {
     guard let selected else { return nil }
-    return list[selected]
+    return list.first(where: { $0.id == selected })
   }
   var hasLocal: Bool { list.contains(where: { $0.settings.address.absoluteString.starts(with: "ws:") })}
   init() {
     load()
   }
   func select(_ hub: Hub.ID?) {
-    if let hub {
-      guard let index = list.firstIndex(where: { $0.id == hub }) else { return }
-      self.selected = index
-    } else {
-      self.selected = nil
-    }
+    selected = hub
   }
   func insert(with settings: Hub.Settings) {
     if let index = list.firstIndex(where: { $0.id == settings.id }) {
       list[index].settings = settings
-      selected = index
     } else {
       let hub = Hub(settings: settings)
       list.append(hub)
-      selected = self.list.count - 1
     }
+    selected = settings.id
     save()
   }
   func remove(with settings: Hub.Settings) {
     guard let index = self.list.firstIndex(where: { $0.id == settings.id }) else { return }
-    if let selected {
-      if selected == index {
-        self.selected = nil
-      } else if selected > index {
-        self.selected = selected - 1
-      }
+    if let selected, selected == settings.id {
+      self.selected = list.first?.id
     }
     list[index].client.stop()
     list.remove(at: index)
