@@ -14,7 +14,7 @@ struct ContentView: View {
     case cluster
     case security
   }
-  @State var sideView: SideView = .security
+  @State var sideView: SideView = .cluster
   @State var statusBadges = StatusBadges()
   var body: some View {
     NavigationSplitView {
