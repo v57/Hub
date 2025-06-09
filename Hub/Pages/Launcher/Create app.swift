@@ -13,6 +13,7 @@ struct CreateApp: View {
   enum AppType {
     case bun, shell
   }
+  @Environment(Hub.self) var hub
   @Environment(\.dismiss) var dismiss
   @State var install: String = ""
   @State var uninstall: String = ""
@@ -95,4 +96,5 @@ extension String {
 
 #Preview {
   CreateApp().padding().frame(maxWidth: 300)
+    .environment(Hub.test)
 }

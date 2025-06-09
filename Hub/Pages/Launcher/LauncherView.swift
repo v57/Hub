@@ -13,7 +13,7 @@ struct LauncherView: View {
   @MainActor
   @Observable class Manager {
     var apps: [App] = []
-    func syncApps() async {
+    func syncApps(hub: Hub) async {
       do {
         for try await apps: Hub.Launcher.Apps in hub.client.values("launcher/info") {
           self.apps = apps.apps.map {
@@ -24,7 +24,7 @@ struct LauncherView: View {
         print("syncApps", error)
       }
     }
-    func syncStatus() async {
+    func syncStatus(hub: Hub) async {
       do {
         for try await apps: Hub.Launcher.Status in hub.client.values("launcher/status") {
           apps.apps.forEach { status in
@@ -41,13 +41,14 @@ struct LauncherView: View {
 #if PRO
   var launcher: Launcher { .main }
 #endif
+  @Environment(Hub.self) var hub
   @State var manager = Manager()
   @State var creating = false
   var body: some View {
-    let isConnected = hub.isLauncherConnected
+    let task = TaskId(hub: hub.id, isConnected: hub.isLauncherConnected)
     List {
       LauncherCell()
-      if isConnected {
+      if task.isConnected {
         ForEach(manager.apps) { app in
           AppView(app: app)
         }.environment(manager)
@@ -58,9 +59,9 @@ struct LauncherView: View {
       }.labelStyle(.iconOnly)
     }.sheet(isPresented: $creating) {
       CreateApp().padding().frame(maxWidth: 300)
-    }.task(id: isConnected) {
+    }.task(id: task) {
 #if PRO
-      if isConnected {
+      if task {
         launcher.status = .running
       } else {
         switch Launcher.main.status {
@@ -70,13 +71,17 @@ struct LauncherView: View {
         }
       }
 #endif
-    }.task(id: isConnected) {
-      guard isConnected else { return }
-      await manager.syncStatus()
-    }.task(id: isConnected) {
-      guard isConnected else { return }
-      await manager.syncApps()
+    }.task(id: task) {
+      guard task.isConnected else { return }
+      await manager.syncStatus(hub: hub)
+    }.task(id: task) {
+      guard task.isConnected else { return }
+      await manager.syncApps(hub: hub)
     }
+  }
+  struct TaskId: Hashable {
+    var hub: Hub.ID
+    var isConnected: Bool
   }
   struct LauncherCell: View {
 #if PRO
@@ -136,6 +141,7 @@ struct LauncherView: View {
     }
   }
   struct AppView: View {
+    @Environment(Hub.self) var hub
     @Environment(Manager.self) var manager
     let app: App
     var body: some View {
@@ -150,7 +156,7 @@ struct LauncherView: View {
         if app.id == "Hub Lite" {
           AsyncButton("Upgrade to Pro") {
             try await hub.launcher.pro(KeyChain.main.publicKey())
-          }.buttonStyle(.link)
+          }.buttonStyle(.borderedProminent)
         }
       }.contextMenu {
         if let status = app.status {
@@ -218,4 +224,5 @@ extension Launcher.Status {
 
 #Preview {
   LauncherView().frame(width: 300, height: 200)
+    .environment(Hub.test)
 }

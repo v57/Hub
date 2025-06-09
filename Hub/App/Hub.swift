@@ -14,9 +14,8 @@ extension KeyChain {
 }
 
 @MainActor
-let hub = Hub(settings: .init(name: "Local", address: HubClient.local))
-@MainActor
 @Observable class Hub: @preconcurrency Identifiable {
+  static let test = Hub(settings: Settings(name: "Local", address: URL(string: "ws://localhost:1997")!))
   var id: Settings.ID { settings.id }
   var settings: Settings
   let client: HubClient
@@ -65,7 +64,12 @@ struct Status: Decodable, Hashable {
 @Observable
 class Hubs {
   static let main = Hubs()
-  var selected: Hub.ID?
+  var selected: Hub.ID? {
+    didSet {
+      guard selected != oldValue else { return }
+      UserDefaults.standard.set(selected, forKey: "selected")
+    }
+  }
   var list = [Hub]()
   var selectedHub: Hub? {
     guard let selected else { return nil }
@@ -73,41 +77,6 @@ class Hubs {
   }
   var hasLocal: Bool { list.contains(where: { $0.settings.address.absoluteString.starts(with: "ws:") })}
   init() {
-    load()
-  }
-  func select(_ hub: Hub.ID?) {
-    guard selected != hub else { return }
-    selected = hub
-    UserDefaults.standard.set(self.selected, forKey: "selected")
-  }
-  func insert(with settings: Hub.Settings) {
-    if let index = list.firstIndex(where: { $0.id == settings.id }) {
-      list[index].settings = settings
-    } else {
-      let hub = Hub(settings: settings)
-      list.append(hub)
-    }
-    selected = settings.id
-    UserDefaults.standard.set(self.selected, forKey: "selected")
-    save()
-  }
-  func remove(with settings: Hub.Settings) {
-    guard let index = self.list.firstIndex(where: { $0.id == settings.id }) else { return }
-    if let selected, selected == settings.id {
-      self.selected = list.first?.id
-      UserDefaults.standard.set(self.selected, forKey: "selected")
-    }
-    list[index].client.stop()
-    list.remove(at: index)
-    save()
-  }
-  func save() {
-    do {
-      let data = try JSONEncoder().encode(list.map(\.settings))
-      UserDefaults.standard.set(data, forKey: "hubs")
-    } catch { }
-  }
-  func load() {
     guard let data = UserDefaults.standard.data(forKey: "hubs") else { return }
     do {
       list = []
@@ -119,5 +88,33 @@ class Hubs {
         self.selected = selected
       }
     } catch {}
+  }
+  func select(_ hub: Hub.ID?) {
+    selected = hub
+  }
+  func insert(with settings: Hub.Settings) {
+    if let index = list.firstIndex(where: { $0.id == settings.id }) {
+      list[index].settings = settings
+    } else {
+      let hub = Hub(settings: settings)
+      list.append(hub)
+    }
+    selected = settings.id
+    save()
+  }
+  func remove(with settings: Hub.Settings) {
+    guard let index = self.list.firstIndex(where: { $0.id == settings.id }) else { return }
+    if let selected, selected == settings.id {
+      self.selected = list.first?.id
+    }
+    list[index].client.stop()
+    list.remove(at: index)
+    save()
+  }
+  func save() {
+    do {
+      let data = try JSONEncoder().encode(list.map(\.settings))
+      UserDefaults.standard.set(data, forKey: "hubs")
+    } catch { }
   }
 }

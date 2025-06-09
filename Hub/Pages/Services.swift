@@ -21,6 +21,7 @@ extension String {
 }
 
 struct Services: View {
+  @Environment(Hub.self) var hub
   var body: some View {
     List {
       if let status = hub.status {
@@ -71,4 +72,5 @@ struct Service: View {
 
 #Preview {
   Services()
+    .environment(Hub.test)
 }

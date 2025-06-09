@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SecurityView: View {
+  @Environment(Hub.self) var hub
   @State var pending: [PendingAuthorization] = []
   var body: some View {
     List(pending) { item in
@@ -51,4 +52,5 @@ struct SecurityView: View {
 
 #Preview {
   SecurityView().frame(width: 400, height: 200)
+    .environment(Hub.test)
 }

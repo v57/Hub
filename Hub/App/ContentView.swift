@@ -20,56 +20,47 @@ struct ContentView: View {
   var body: some View {
     NavigationSplitView {
 #if os(macOS)
-      List(selection: $sideView) {
-        Text("Connections")
-          .id(SideView.cluster)
-        if let hub = hubs.selectedHub {
-          Section {
-            Text("Hub").badge(statusBadges.services)
-              .id(SideView.services)
-            Text("Launcher")
-              .id(SideView.launcher)
-            Text("Security").badge(statusBadges.security)
-              .badgeProminence(.increased)
-              .id(SideView.security)
-          }
-        }
-      }
+      List(selection: $sideView) { listContent }
 #else
-      List(SideView.allCases, id: \.rawValue) { item in
-        Section {
-          switch item {
-          case .services:
-            Text("Hub").badge(statusBadges.services)
-          case .launcher:
-            Text("Launcher")
-          case .cluster:
-            Text("Cluster")
-          case .security:
-            Text("Security").badge(statusBadges.security)
-              .badgeProminence(.increased)
-          }
-        }
-      }
+      List { listContent }
       #endif
     } detail: {
-      switch sideView {
-      case .services:
-        Services()
-      case .cluster:
-        Cluster()
-      case .launcher:
-        LauncherView()
-      case .security:
-        SecurityView()
-      }
-    }.task {
-      do {
-        for try await status: StatusBadges in hub.client.values("hub/status/badges") {
-          self.statusBadges = status
+      if let hub = hubs.selectedHub {
+        switch sideView {
+        case .services:
+          Services().environment(hub)
+        case .cluster:
+          Cluster().environment(hub)
+        case .launcher:
+          LauncherView().environment(hub)
+        case .security:
+          SecurityView().environment(hub)
         }
-      } catch {
-        print(error)
+      }
+    }
+  }
+  @ViewBuilder
+  var listContent: some View {
+    Text("Connections")
+      .id(SideView.cluster)
+    if let hub = hubs.selectedHub {
+      Section(hub.settings.name) {
+        Text("Hub").badge(statusBadges.services)
+          .id(SideView.services)
+        Text("Launcher")
+          .id(SideView.launcher)
+        Text("Security").badge(statusBadges.security)
+          .badgeProminence(.increased)
+          .id(SideView.security)
+      }.task(id: hub.id) {
+        do {
+          self.statusBadges = StatusBadges()
+          for try await status: StatusBadges in hub.client.values("hub/status/badges") {
+            self.statusBadges = status
+          }
+        } catch {
+          print(error)
+        }
       }
     }
   }

@@ -30,10 +30,10 @@ extension Hub {
 
 struct Cluster: View {
   @State var isCreating: Bool = false
-  let hubs = Hubs.main
+  @State var hubs = Hubs.main
   var body: some View {
     NavigationStack {
-      List {
+      List(selection: $hubs.selected) {
         if isCreating {
           Create(isCreating: $isCreating)
         } else if !hubs.hasLocal {
@@ -52,7 +52,7 @@ struct Cluster: View {
             Button("Remove") {
               hubs.remove(with: hub.settings)
             }
-          }
+          }.id(hub.id)
         }
       }.toolbar {
         Button("Connect", systemImage: "plus", role: isCreating ? .cancel : nil) {
