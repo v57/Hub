@@ -36,10 +36,6 @@ struct Cluster: View {
       List(selection: $hubs.selected) {
         if isCreating {
           Create(isCreating: $isCreating)
-        } else if !hubs.hasLocal {
-          Button("Add local") {
-            hubs.insert(with: Hub.Settings(name: "My Mac", address: HubClient.local))
-          }
         }
         ForEach(hubs.list) { (hub: Hub) in
           VStack(alignment: .leading, spacing: 0) {
@@ -55,6 +51,11 @@ struct Cluster: View {
           }.id(hub.id)
         }
       }.toolbar {
+        if !isCreating && hubs.list.isEmpty {
+          Button("Add Local") {
+            hubs.insert(with: Hub.Settings(name: "My Mac", address: HubClient.local))
+          }
+        }
         Button("Connect", systemImage: "plus", role: isCreating ? .cancel : nil) {
           isCreating.toggle()
         }.buttonBorderShape(.capsule)
