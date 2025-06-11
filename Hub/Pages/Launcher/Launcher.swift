@@ -181,7 +181,7 @@ screen -dmS v57launcher bun .
       status = .offline
     }
   }
-  func stop() async {
+  func stop(hub: Hub) async {
     do {
       status = .stopping
       _ = try await hub.client.send("launcher/stop") as Int?

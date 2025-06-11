@@ -61,7 +61,7 @@ struct LauncherView: View {
       CreateApp().padding().frame(maxWidth: 300)
     }.task(id: task) {
 #if PRO
-      if task {
+      if task.isConnected {
         launcher.status = .running
       } else {
         switch Launcher.main.status {
@@ -90,6 +90,7 @@ struct LauncherView: View {
       launcher.status
     }
     @State var updatesAvailable = false
+    @Environment(Hub.self) var hub
 #endif
     var body: some View {
       HStack {
@@ -117,7 +118,7 @@ struct LauncherView: View {
               case .installed, .offline:
                 await Launcher.main.launch()
               case .running:
-                await Launcher.main.stop()
+                await Launcher.main.stop(hub: hub)
               case .status, .stopping: break
               }
             }.help(buttonTitle)
