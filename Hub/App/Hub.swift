@@ -75,7 +75,6 @@ class Hubs {
     guard let selected else { return nil }
     return list.first(where: { $0.id == selected })
   }
-  var hasLocal: Bool { list.contains(where: { $0.settings.address.absoluteString.starts(with: "ws:") })}
   init() {
     guard let data = UserDefaults.standard.data(forKey: "hubs") else { return }
     do {

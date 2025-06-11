@@ -25,15 +25,19 @@ struct ContentView: View {
       List { listContent }
       #endif
     } detail: {
-      if let hub = hubs.selectedHub {
-        switch sideView {
-        case .services:
+      switch sideView {
+      case .services:
+        if let hub = hubs.selectedHub {
           Services().environment(hub)
-        case .cluster:
-          Cluster().environment(hub)
-        case .launcher:
+        }
+      case .cluster:
+        Cluster()
+      case .launcher:
+        if let hub = hubs.selectedHub {
           LauncherView().environment(hub)
-        case .security:
+        }
+      case .security:
+        if let hub = hubs.selectedHub {
           SecurityView().environment(hub)
         }
       }
