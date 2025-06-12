@@ -83,7 +83,7 @@ extension Hub {
       var crashes: Int
       var cpu: Double?
       var memory: Double?
-      var started: Date?
+//      var started: Date?
     }
     struct Create: Encodable {
       let name: String
