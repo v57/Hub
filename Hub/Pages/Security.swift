@@ -15,8 +15,7 @@ struct SecurityView: View {
       HStack {
         VStack(alignment: .leading) {
           Text(item.name)
-          Text(item.id).font(.caption2)
-            .foregroundStyle(.secondary)
+          Text(item.id).secondary()
             .textScale(.secondary)
             .fontDesign(.monospaced)
         }.lineLimit(2)

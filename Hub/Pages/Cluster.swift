@@ -43,7 +43,7 @@ struct Cluster: View {
               Text(hub.settings.name)
               hub.onlineStatus.view
             }
-            Text(hub.settings.address.description).font(.caption2).foregroundStyle(.secondary)
+            Text(hub.settings.address.description).secondary()
           }.contextMenu {
             Button("Remove") {
               hubs.remove(with: hub.settings)
@@ -77,8 +77,7 @@ struct Cluster: View {
     var providedName: String? { name.isEmpty ? url?.name : name }
     var body: some View {
       VStack(alignment: .leading) {
-        Text(url?.absoluteString ?? "Add connection")
-          .font(.caption2).foregroundStyle(.secondary)
+        Text(url?.absoluteString ?? "Add connection").secondary()
         TextField("Address", text: $address)
         TextField(url?.name ?? "Name", text: $name)
         if let url, let providedName {

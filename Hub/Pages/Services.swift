@@ -30,14 +30,9 @@ struct Services: View {
         }
       }
     }.navigationTitle("\(hub.status?.requests ?? 0) requests").toolbar {
-      Text(hub.isConnected ? "Connected" : "Disconnected")
-        .font(.caption2).foregroundStyle(.white)
-          .padding(.horizontal, 6).padding(.vertical, 2)
-          .background(.red, in: .capsule)
+      Text(hub.isConnected ? "Connected" : "Disconnected").badgeStyle()
       ForEach(hub.permissions.sorted(), id: \.self) { permission in
-        Text(permission).font(.caption2).foregroundStyle(.white)
-          .padding(.horizontal, 6).padding(.vertical, 2)
-          .background(.red, in: .capsule)
+        Text(permission).badgeStyle()
       }
       Button("Copy Key", systemImage: "key.fill") {
         KeyChain.main.publicKey().copyToClipboard()
@@ -63,8 +58,7 @@ struct Service: View {
         onlineStatus.view
       }
       if service.requests > 0 {
-        Text("\(service.requests) requests").font(.caption2)
-          .foregroundStyle(.secondary)
+        Text("\(service.requests) requests").secondary()
       }
     }
   }

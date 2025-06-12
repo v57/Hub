@@ -97,8 +97,7 @@ struct LauncherView: View {
         VStack(alignment: .leading) {
           Text("Launcher")
           #if PRO
-          Text(status.statusText).font(.caption2)
-            .foregroundStyle(.secondary)
+          Text(status.statusText).secondary()
           #endif
         }
         Spacer()
@@ -150,7 +149,7 @@ struct LauncherView: View {
         VStack(alignment: .leading) {
           Text(app.id)
           if let status {
-            status.font(.caption2).foregroundStyle(.secondary)
+            status.secondary()
           }
         }
         Spacer()
