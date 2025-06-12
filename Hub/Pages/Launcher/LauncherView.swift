@@ -183,9 +183,7 @@ struct LauncherView: View {
             }
           }
           HStack {
-            if let status {
-              status.secondary()
-            }
+            status
             if let date = app.status?.started {
               Text(date, style: .relative)
             }
