@@ -44,7 +44,7 @@ struct LauncherView: View {
   @Environment(Hub.self) var hub
   @State var manager = Manager()
   @State var creating = false
-  var updatedAvailable: Bool {
+  var updateAvailable: Bool {
     manager.apps.contains(where: { $0.info?.updateAvailable ?? false })
   }
   var isUpdating: Bool {
@@ -63,7 +63,7 @@ struct LauncherView: View {
         }.environment(manager)
       }
     }.toolbar {
-      if updatedAvailable && !isUpdating {
+      if updateAvailable && !isUpdating {
         AsyncButton("Update All", systemImage: "arrow.down.circle") {
           try await hub.launcher.updateAll()
         }

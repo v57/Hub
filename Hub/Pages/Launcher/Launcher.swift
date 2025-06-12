@@ -60,12 +60,12 @@ extension Hub {
       var name: String
       var active: Bool
       var restarts: Bool
-      var updateAvailable: Bool?
-      var canUpdate: Bool { updateAvailable ?? false }
+      var updateAvailable: Bool
       enum CodingKeys: CodingKey {
         case name
         case active
         case restarts
+        case updateAvailable
       }
       
       init(from decoder: any Decoder) throws {
@@ -73,6 +73,7 @@ extension Hub {
         self.name = try container.decode(String.self, forKey: .name)
         self.active = try container.decodeIfPresent(Bool.self, forKey: .active) ?? false
         self.restarts = try container.decodeIfPresent(Bool.self, forKey: .restarts) ?? false
+        self.updateAvailable = try container.decodeIfPresent(Bool.self, forKey: .updateAvailable) ?? false
       }
     }
     struct AppStatus: Decodable, Hashable {
