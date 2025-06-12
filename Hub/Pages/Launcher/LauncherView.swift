@@ -44,6 +44,15 @@ struct LauncherView: View {
   @Environment(Hub.self) var hub
   @State var manager = Manager()
   @State var creating = false
+  var updatedAvailable: Bool {
+    manager.apps.contains(where: { $0.info?.updateAvailable ?? false })
+  }
+  var isUpdating: Bool {
+    manager.apps.contains(where: { $0.status?.updating ?? false })
+  }
+  var isCheckingForUpdates: Bool {
+    manager.apps.contains(where: { $0.status?.checkingForUpdates ?? false })
+  }
   var body: some View {
     let task = TaskId(hub: hub.id, isConnected: hub.isLauncherConnected)
     List {
@@ -54,6 +63,16 @@ struct LauncherView: View {
         }.environment(manager)
       }
     }.toolbar {
+      if updatedAvailable && !isUpdating {
+        AsyncButton("Update All", systemImage: "arrow.down.circle") {
+          try await hub.launcher.updateAll()
+        }
+      }
+      if !isCheckingForUpdates {
+        AsyncButton("Check for Updates", systemImage: "arrow.trianglehead.2.clockwise.rotate.90") {
+          try await hub.launcher.checkForUpdates()
+        }
+      }
       Button("Create", systemImage: "plus") {
         creating.toggle()
       }.labelStyle(.iconOnly)
@@ -223,6 +242,6 @@ extension Launcher.Status {
 #endif
 
 #Preview {
-  LauncherView().frame(width: 300, height: 200)
+  LauncherView().frame(width: 500, height: 200)
     .environment(Hub.test)
 }
