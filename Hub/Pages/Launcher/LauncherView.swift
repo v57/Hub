@@ -182,9 +182,14 @@ struct LauncherView: View {
               Text(installationStatus).badgeStyle()
             }
           }
-          if let status {
-            status.secondary()
-          }
+          HStack {
+            if let status {
+              status.secondary()
+            }
+            if let date = app.status?.started {
+              Text(date, style: .relative)
+            }
+          }.secondary()
         }
         Spacer()
         if app.id == "Hub Lite" {
