@@ -162,11 +162,26 @@ struct LauncherView: View {
   struct AppView: View {
     @Environment(Hub.self) var hub
     @Environment(Manager.self) var manager
+    var installationStatus: LocalizedStringKey? {
+      guard let status = app.status else { return nil }
+      if status.updating ?? false {
+        return "Updating"
+      } else if status.checkingForUpdates ?? false {
+        return "Checking for updates"
+      } else {
+        return nil
+      }
+    }
     let app: App
     var body: some View {
       HStack {
         VStack(alignment: .leading) {
-          Text(app.id)
+          HStack {
+            Text(app.id)
+            if let installationStatus {
+              Text(installationStatus).badgeStyle()
+            }
+          }
           if let status {
             status.secondary()
           }
