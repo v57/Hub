@@ -168,6 +168,8 @@ struct LauncherView: View {
         return "Updating"
       } else if status.checkingForUpdates ?? false {
         return "Checking for updates"
+      } else if app.info?.updateAvailable ?? false {
+        return "Update available"
       } else {
         return nil
       }
