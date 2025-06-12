@@ -23,6 +23,12 @@ extension Hub {
     func create(_ create: Create) async throws {
       try await hub.client.send("launcher/app/create", create)
     }
+    func checkForUpdates() async throws {
+      try await hub.client.send("launcher/update/check/all")
+    }
+    func updateAll() async throws {
+      try await hub.client.send("launcher/update/all")
+    }
     func pro(_ key: String) async throws {
       try await hub.client.send("launcher/pro", key)
     }
@@ -54,6 +60,8 @@ extension Hub {
       var name: String
       var active: Bool
       var restarts: Bool
+      var updateAvailable: Bool?
+      var canUpdate: Bool { updateAvailable ?? false }
       enum CodingKeys: CodingKey {
         case name
         case active
@@ -70,6 +78,8 @@ extension Hub {
     struct AppStatus: Decodable, Hashable {
       var name: String
       var isRunning: Bool
+      var checkingForUpdates: Bool?
+      var updating: Bool?
       var crashes: Int
       var cpu: Double?
       var memory: Double?
