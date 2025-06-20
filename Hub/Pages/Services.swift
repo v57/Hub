@@ -45,7 +45,7 @@ struct Service: View {
   var onlineStatus: OnlineStatus {
     if service.services > 0 {
       OnlineStatus.online
-    } else if service.disabled > 0 {
+    } else if (service.disabled ?? 0) > 0 {
       OnlineStatus.unauthorized
     } else {
       OnlineStatus.offline

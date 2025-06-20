@@ -40,7 +40,9 @@ extension KeyChain {
       for try await status: Status in client.values("hub/status") {
         self.status = status
       }
-    } catch { }
+    } catch {
+      print(error)
+    }
   }
   struct Settings: Codable, Identifiable, Hashable {
     var id: URL { address }
@@ -55,7 +57,7 @@ struct Status: Decodable, Hashable {
   struct Service: Decodable, Hashable {
     let name: String
     let services: Int
-    let disabled: Int
+    let disabled: Int?
     let requests: Int
   }
 }

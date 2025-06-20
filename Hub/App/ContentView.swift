@@ -53,7 +53,7 @@ struct ContentView: View {
           .id(SideView.services)
         Text("Launcher")
           .id(SideView.launcher)
-        Text("Security").badge(statusBadges.security)
+        Text("Security").badge(statusBadges.security ?? 0)
           .badgeProminence(.increased)
           .id(SideView.security)
       }.task(id: hub.id) {
@@ -70,7 +70,7 @@ struct ContentView: View {
   }
   struct StatusBadges: Decodable {
     var services: Int = 0
-    var security: Int = 0
+    var security: Int?
   }
 }
 
