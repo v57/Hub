@@ -38,17 +38,7 @@ struct ConnectionsView: View {
           Create(isCreating: $isCreating)
         }
         ForEach(hubs.list) { (hub: Hub) in
-          VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-              Text(hub.settings.name)
-              hub.onlineStatus.view
-            }
-            Text(hub.settings.address.description).secondary()
-          }.contextMenu {
-            Button("Remove") {
-              hubs.remove(with: hub.settings)
-            }
-          }.id(hub.id)
+          ItemView(hub: hub, hubs: hubs).id(hub.id)
         }
       }.toolbar {
         if !isCreating && hubs.list.isEmpty {
@@ -60,6 +50,23 @@ struct ConnectionsView: View {
           isCreating.toggle()
         }.buttonBorderShape(.capsule)
       }.navigationTitle("Connections")
+    }
+  }
+  struct ItemView: View {
+    let hub: Hub
+    let hubs: Hubs
+    var body: some View {
+      VStack(alignment: .leading, spacing: 0) {
+        HStack(spacing: 6) {
+          Text(hub.settings.name)
+          hub.onlineStatus.view
+        }
+        Text(hub.settings.address.description).secondary()
+      }.contextMenu {
+        Button("Remove") {
+          hubs.remove(with: hub.settings)
+        }
+      }
     }
   }
   struct Create: View {
