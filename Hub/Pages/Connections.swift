@@ -206,13 +206,17 @@ private extension URL {
   }
   var name: String? {
     guard let host = host() else { return nil }
-    var name = host.secondDomain.capitalized
-    let pathName = path().components(separatedBy: "/")
-      .last!.components(separatedBy: "?")[0].capitalized
-    if !pathName.isEmpty {
-      name += " \(pathName)"
+    if let port, host.components(separatedBy: ".").count == 1, port != 1997 {
+      return port.description // localhost:1998 -> 1998
+    } else {
+      var name = host.secondDomain.capitalized
+      let pathName = path().components(separatedBy: "/")
+        .last!.components(separatedBy: "?")[0].capitalized
+      if !pathName.isEmpty {
+        name += " \(pathName)"
+      }
+      return name // apple.com -> Apple
     }
-    return name
   }
 }
 private extension String {
