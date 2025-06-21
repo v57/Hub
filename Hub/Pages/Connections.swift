@@ -39,6 +39,9 @@ struct ConnectionsView: View {
         }
         ForEach(hubs.list) { (hub: Hub) in
           ItemView(hub: hub, hubs: hubs).id(hub.id)
+        }.onMove { set, target in
+          hubs.list.move(fromOffsets: set, toOffset: target)
+          hubs.save()
         }
       }.toolbar {
         if !isCreating && hubs.list.isEmpty {
