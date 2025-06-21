@@ -31,6 +31,7 @@ extension Hub {
 struct ConnectionsView: View {
   @State var isCreating: Bool = false
   @State var hubs = Hubs.main
+  @State var merging: Hub?
   var body: some View {
     NavigationStack {
       List(selection: $hubs.selected) {
@@ -38,7 +39,8 @@ struct ConnectionsView: View {
           Create(isCreating: $isCreating)
         }
         ForEach(hubs.list) { (hub: Hub) in
-          ItemView(hub: hub, hubs: hubs).id(hub.id)
+          ItemView(hubs: hubs, merging: $merging).environment(hub)
+            .id(hub.id)
         }.onMove { set, target in
           hubs.list.move(fromOffsets: set, toOffset: target)
           hubs.save()
@@ -61,20 +63,45 @@ struct ConnectionsView: View {
     }
   }
   struct ItemView: View {
-    let hub: Hub
     let hubs: Hubs
+    @Binding var merging: Hub?
+    
+    @Environment(Hub.self) private var hub
+    @State private var status: [Hub.MergeStatus] = []
     var body: some View {
       let isOwner = hub.isConnected && hub.permissions.contains("owner")
-      VStack(alignment: .leading, spacing: 0) {
-        HStack(spacing: 6) {
-          Text(hub.settings.name)
-          if isOwner {
-            Text("owner").secondary()
+      HStack {
+        VStack(alignment: .leading, spacing: 0) {
+          HStack(spacing: 6) {
+            Text(hub.settings.name)
+            if isOwner {
+              Text("owner").secondary()
+            }
+            hub.onlineStatus.view
           }
-          hub.onlineStatus.view
+          Text(hub.settings.address.description).secondary()
+          ForEach(status, id: \.address) { status in
+            Text(status.address).secondary()
+          }
+        }.hubStream("hub/merge/status", to: $status)
+        if let merging {
+          Spacer()
+          if merging.id == hub.id {
+            Button("Stop merging") {
+              self.merging = nil
+            }
+          } else if isOwner {
+            AsyncButton("Join") {
+              try await merging.merge(other: hub)
+            }
+          }
         }
-        Text(hub.settings.address.description).secondary()
       }.contextMenu {
+        if isOwner && merging == nil {
+          Button("Merge") {
+            merging = hub
+          }
+        }
         Button("Remove") {
           hubs.remove(with: hub.settings)
         }
@@ -178,4 +205,25 @@ private extension String {
 
 #Preview {
   ConnectionsView()
+}
+
+extension Hub {
+  func merge(other: Hub) async throws {
+    let key: String = try await client.send("hub/key")
+    try await other.client.send("auth/keys/add", KeyAdd(key: key, type: .key, permissions: ["merge"]))
+    try await client.send("hub/merge/add", other.settings.address.absoluteString)
+  }
+  struct KeyAdd: Encodable {
+    enum KeyType: String, Encodable {
+      case key, hmac
+    }
+    let key: String
+    let type: KeyType
+    let permissions: [String]
+  }
+  struct MergeStatus: Decodable {
+    let address: String
+//    let error: String?
+//    let isConnected: Bool
+  }
 }
