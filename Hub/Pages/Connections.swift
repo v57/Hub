@@ -29,9 +29,10 @@ extension Hub {
 }
 
 struct ConnectionsView: View {
-  @State var isCreating: Bool = false
-  @State var hubs = Hubs.main
-  @State var merging: Hub?
+  @State private var isCreating: Bool = false
+  @State private var hubs = Hubs.main
+  @State private var merging: Hub?
+  @State private var mergingStatus: [Hub.MergeStatus] = []
   var body: some View {
     NavigationStack {
       List(selection: $hubs.selected) {
@@ -39,7 +40,7 @@ struct ConnectionsView: View {
           Create(isCreating: $isCreating)
         }
         ForEach(hubs.list) { (hub: Hub) in
-          ItemView(hubs: hubs, merging: $merging).environment(hub)
+          ItemView(hubs: hubs, merging: $merging, mergingStatus: $mergingStatus).environment(hub)
             .id(hub.id)
         }.onMove { set, target in
           hubs.list.move(fromOffsets: set, toOffset: target)
@@ -65,9 +66,15 @@ struct ConnectionsView: View {
   struct ItemView: View {
     let hubs: Hubs
     @Binding var merging: Hub?
+    @Binding var mergingStatus: [Hub.MergeStatus]
     
     @Environment(Hub.self) private var hub
     @State private var status: [Hub.MergeStatus] = []
+    var canBeMerged: Bool {
+      guard let merging = merging?.settings.address.absoluteString else { return false }
+      let address = hub.settings.address.absoluteString
+      return !mergingStatus.contains(where: { $0.address == address }) && !status.contains(where: { $0.address == merging })
+    }
     var body: some View {
       let isOwner = hub.isConnected && hub.permissions.contains("owner")
       HStack {
@@ -83,14 +90,20 @@ struct ConnectionsView: View {
           ForEach(status, id: \.address) { status in
             Text(status.address).secondary()
           }
-        }.hubStream("hub/merge/status", to: $status)
+        }.hubStream("hub/merge/status") { (status: [Hub.MergeStatus]) in
+          self.status = status
+          if merging?.id == hub.id {
+            mergingStatus = status
+          }
+        }
         if let merging {
           Spacer()
           if merging.id == hub.id {
             Button("Stop merging") {
               self.merging = nil
+              self.mergingStatus.removeAll()
             }
-          } else if isOwner {
+          } else if isOwner && canBeMerged {
             AsyncButton("Join") {
               try await merging.merge(other: hub)
             }
@@ -100,6 +113,7 @@ struct ConnectionsView: View {
         if isOwner && merging == nil {
           Button("Merge") {
             merging = hub
+            mergingStatus = status
           }
         }
         Button("Remove") {
@@ -221,9 +235,9 @@ extension Hub {
     let type: KeyType
     let permissions: [String]
   }
-  struct MergeStatus: Decodable {
+  struct MergeStatus: Decodable, Equatable {
     let address: String
-//    let error: String?
-//    let isConnected: Bool
+    let error: String?
+    let isConnected: Bool
   }
 }
