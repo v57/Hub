@@ -24,6 +24,7 @@ extension KeyChain {
   @ObservationIgnored
   var connectionTask: AnyCancellable?
   var permissions = Set<String>()
+  var merge: [Hub.MergeStatus] = []
   init(settings: Settings) {
     self.settings = settings
     self.client = HubClient(settings.address, keyChain: .main)

@@ -32,7 +32,6 @@ struct ConnectionsView: View {
   @State private var isCreating: Bool = false
   @State private var hubs = Hubs.main
   @State private var merging: Hub?
-  @State private var mergingStatus: [Hub.MergeStatus] = []
   var body: some View {
     NavigationStack {
       List(selection: $hubs.selected) {
@@ -40,7 +39,7 @@ struct ConnectionsView: View {
           Create(isCreating: $isCreating)
         }
         ForEach(hubs.list) { (hub: Hub) in
-          ItemView(hubs: hubs, merging: $merging, mergingStatus: $mergingStatus).environment(hub)
+          ItemView(hubs: hubs, merging: $merging).environment(hub)
             .id(hub.id)
         }.onMove { set, target in
           hubs.list.move(fromOffsets: set, toOffset: target)
@@ -55,7 +54,6 @@ struct ConnectionsView: View {
         if merging != nil {
           Button("Done") {
             self.merging = nil
-            self.mergingStatus.removeAll()
           }
         }
         if !isCreating && hubs.list.isEmpty {
@@ -72,18 +70,11 @@ struct ConnectionsView: View {
   struct ItemView: View {
     let hubs: Hubs
     @Binding var merging: Hub?
-    @Binding var mergingStatus: [Hub.MergeStatus]
     
     @Environment(Hub.self) private var hub
-    @State private var status: [Hub.MergeStatus] = []
     var canBeMerged: Bool {
-      guard let merging = merging?.settings.address.absoluteString else { return false }
-      let address = hub.settings.address.absoluteString
-      return !mergingStatus.contains(where: { $0.address == address }) && !status.contains(where: { $0.address == merging })
-    }
-    var isMerged: Bool {
-      let address = hub.settings.address.absoluteString
-      return mergingStatus.contains(where: { $0.address == address })
+      guard let merging else { return false }
+      return !merging.isMerged(to: hub) && hub.isMerged(to: merging)
     }
     var body: some View {
       let isOwner = hub.isConnected && hub.permissions.contains("owner")
@@ -97,18 +88,13 @@ struct ConnectionsView: View {
             hub.onlineStatus.view
           }
           Text(hub.settings.address.description).secondary()
-          ForEach(status, id: \.address) { status in
+          ForEach(hub.merge, id: \.address) { status in
             Text(status.address).secondary()
           }
-        }.hubStream("hub/merge/status") { (status: [Hub.MergeStatus]) in
-          self.status = status
-          if merging?.id == hub.id {
-            mergingStatus = status
-          }
-        }
+        }.hubStream("hub/merge/status") { hub.merge = $0 }
         if let merging, merging.id != hub.id && isOwner {
           Spacer()
-          if isMerged {
+          if merging.isMerged(to: hub) {
             AsyncButton("Leave") {
               try await merging.unmerge(other: hub)
             }
@@ -122,7 +108,6 @@ struct ConnectionsView: View {
         if isOwner && merging == nil {
           Button("Merge") {
             merging = hub
-            mergingStatus = status
           }
         }
         Button("Remove") {
@@ -241,6 +226,10 @@ private extension String {
 }
 
 extension Hub {
+  func isMerged(to hub: Hub) -> Bool {
+    let address = settings.address.absoluteString
+    return merge.contains(where: { $0.address == address })
+  }
   func merge(other: Hub) async throws {
     let key: String = try await client.send("hub/key")
     try await other.client.send("auth/keys/add", KeyAdd(key: key, type: .key, permissions: ["merge"]))
