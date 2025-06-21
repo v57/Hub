@@ -18,6 +18,13 @@ extension View {
       }
     }
   }
+  func hubStream<T: Decodable>(_ path: String, to: Binding<T?>, animation: Animation? = nil) -> some View {
+    hubStream(path) { (value: T) in
+      withAnimation(animation) {
+        to.wrappedValue = value
+      }
+    }
+  }
 }
 
 private struct HubStreamModifier<T: Decodable>: ViewModifier {
