@@ -75,6 +75,10 @@ struct ConnectionsView: View {
       let address = hub.settings.address.absoluteString
       return !mergingStatus.contains(where: { $0.address == address }) && !status.contains(where: { $0.address == merging })
     }
+    var isMerged: Bool {
+      let address = hub.settings.address.absoluteString
+      return mergingStatus.contains(where: { $0.address == address })
+    }
     var body: some View {
       let isOwner = hub.isConnected && hub.permissions.contains("owner")
       HStack {
@@ -103,9 +107,15 @@ struct ConnectionsView: View {
               self.merging = nil
               self.mergingStatus.removeAll()
             }
-          } else if isOwner && canBeMerged {
-            AsyncButton("Join") {
-              try await merging.merge(other: hub)
+          } else if isOwner {
+            if isMerged {
+              AsyncButton("Leave") {
+                try await merging.unmerge(other: hub)
+              }
+            } else if canBeMerged {
+              AsyncButton("Join") {
+                try await merging.merge(other: hub)
+              }
             }
           }
         }
@@ -226,6 +236,11 @@ extension Hub {
     let key: String = try await client.send("hub/key")
     try await other.client.send("auth/keys/add", KeyAdd(key: key, type: .key, permissions: ["merge"]))
     try await client.send("hub/merge/add", other.settings.address.absoluteString)
+  }
+  func unmerge(other: Hub) async throws {
+    let key: String = try await client.send("hub/key")
+    try await other.client.send("auth/keys/remove", key)
+    try await client.send("hub/merge/remove", other.settings.address.absoluteString)
   }
   struct KeyAdd: Encodable {
     enum KeyType: String, Encodable {
