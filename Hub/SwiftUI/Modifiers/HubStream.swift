@@ -35,7 +35,7 @@ private struct HubStreamModifier<T: Decodable>: ViewModifier {
     content.task(id: hub.taskId) {
       guard hub.isConnected else { return }
       do {
-        for try await value: T in hub.client.values("launcher/status") {
+        for try await value: T in hub.client.values(path) {
           action(value)
         }
       } catch {
