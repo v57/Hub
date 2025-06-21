@@ -22,7 +22,11 @@ struct AsyncButton<Label: View>: View {
       isRunning = true
       Task {
         defer { isRunning = false }
-        try await action()
+        do {
+          try await action()
+        } catch {
+          print(error)
+        }
       }
     } label: { label }.disabled(isRunning)
   }
