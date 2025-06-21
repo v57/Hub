@@ -56,9 +56,13 @@ struct ConnectionsView: View {
     let hub: Hub
     let hubs: Hubs
     var body: some View {
+      let isOwner = hub.permissions.contains("owner")
       VStack(alignment: .leading, spacing: 0) {
         HStack(spacing: 6) {
           Text(hub.settings.name)
+          if isOwner {
+            Text("owner").secondary()
+          }
           hub.onlineStatus.view
         }
         Text(hub.settings.address.description).secondary()
