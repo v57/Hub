@@ -42,6 +42,11 @@ struct ConnectionsView: View {
         }.onMove { set, target in
           hubs.list.move(fromOffsets: set, toOffset: target)
           hubs.save()
+        }.onDelete { index in
+          let deleted = index.map { hubs.list[$0] }
+          deleted.forEach { hub in
+            hubs.remove(with: hub.settings)
+          }
         }
       }.toolbar {
         if !isCreating && hubs.list.isEmpty {
