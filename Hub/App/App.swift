@@ -49,7 +49,7 @@ struct ContentView: View {
       .id(SideView.cluster)
     if let hub = hubs.selectedHub {
       Section(hub.settings.name) {
-        Text("Hub").badge(statusBadges.services)
+        Text("Services").badge(statusBadges.services)
           .id(SideView.services)
         Text("Launcher")
           .id(SideView.launcher)

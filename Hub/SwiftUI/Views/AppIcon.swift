@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+#if DEBUG
 extension View {
   func modifier<Content: View>(@ViewBuilder _ modifiy: (Self) -> Content) -> Content {
     modifiy(self)
@@ -111,3 +112,4 @@ extension CGImage {
 //      .frame(width: 256, height: 256)
   }
 }
+#endif
