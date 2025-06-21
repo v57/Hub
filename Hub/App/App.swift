@@ -31,7 +31,7 @@ struct ContentView: View {
           Services().environment(hub)
         }
       case .cluster:
-        Cluster()
+        ConnectionsView()
       case .launcher:
         if let hub = hubs.selectedHub {
           LauncherView().environment(hub)

@@ -28,7 +28,7 @@ extension Hub {
   }
 }
 
-struct Cluster: View {
+struct ConnectionsView: View {
   @State var isCreating: Bool = false
   @State var hubs = Hubs.main
   var body: some View {
@@ -158,5 +158,5 @@ private extension String {
 }
 
 #Preview {
-  Cluster()
+  ConnectionsView()
 }
