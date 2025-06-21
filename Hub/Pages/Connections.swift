@@ -174,7 +174,13 @@ private extension URLComponents {
           components.removeFirst()
         }
       } else {
-        host = components.removeFirst()
+        let host = components.removeFirst()
+        if let port = Int(host) {
+          self.port = port
+          self.host = "localhost"
+        } else {
+          self.host = host
+        }
       }
       if components.filter({ !$0.isEmpty }).count > 0 {
         path = "/" + components.joined(separator: "/")
