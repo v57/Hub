@@ -74,7 +74,7 @@ struct ConnectionsView: View {
     @Environment(Hub.self) private var hub
     var canBeMerged: Bool {
       guard let merging else { return false }
-      return !merging.isMerged(to: hub) && hub.isMerged(to: merging)
+      return !merging.isMerged(to: hub) && !hub.isMerged(to: merging)
     }
     var body: some View {
       let isOwner = hub.isConnected && hub.permissions.contains("owner")
@@ -234,8 +234,18 @@ private extension String {
 
 extension Hub {
   func isMerged(to hub: Hub) -> Bool {
-    let address = settings.address.absoluteString
-    return merge.contains(where: { $0.address == address })
+    var addresses = Set<String>()
+    return isMerged(address: settings.address.absoluteString, addresses: &addresses)
+  }
+  private func isMerged(address: String, addresses: inout Set<String>) -> Bool {
+    for status in merge {
+      guard addresses.insert(status.address).inserted else { continue }
+      guard let hub = Hubs.main.list.first(where: { $0.settings.address.absoluteString == status.address })
+      else { continue }
+      guard hub.isMerged(address: address, addresses: &addresses) else { continue }
+      return true
+    }
+    return false
   }
   func merge(other: Hub) async throws {
     let key: String = try await client.send("hub/key")
