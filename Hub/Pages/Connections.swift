@@ -52,6 +52,12 @@ struct ConnectionsView: View {
           }
         }
       }.toolbar {
+        if merging != nil {
+          Button("Done") {
+            self.merging = nil
+            self.mergingStatus.removeAll()
+          }
+        }
         if !isCreating && hubs.list.isEmpty {
           Button("Add Local") {
             hubs.insert(with: Hub.Settings(name: "My Mac", address: HubClient.local))
@@ -100,22 +106,15 @@ struct ConnectionsView: View {
             mergingStatus = status
           }
         }
-        if let merging {
+        if let merging, merging.id != hub.id && isOwner {
           Spacer()
-          if merging.id == hub.id {
-            Button("Stop merging") {
-              self.merging = nil
-              self.mergingStatus.removeAll()
+          if isMerged {
+            AsyncButton("Leave") {
+              try await merging.unmerge(other: hub)
             }
-          } else if isOwner {
-            if isMerged {
-              AsyncButton("Leave") {
-                try await merging.unmerge(other: hub)
-              }
-            } else if canBeMerged {
-              AsyncButton("Join") {
-                try await merging.merge(other: hub)
-              }
+          } else if canBeMerged {
+            AsyncButton("Join") {
+              try await merging.merge(other: hub)
             }
           }
         }
