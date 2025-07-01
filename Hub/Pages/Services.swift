@@ -60,17 +60,25 @@ struct Service: View {
       }
       if service.requests > 0 {
         HStack {
-          Text("\(service.requests) requests")
+          Label("\(service.requests)", systemImage: "number")
           if service.balancerType != .counter {
             Image(systemName: service.balancerType.icon).secondary()
           }
           if let running = service.running, running > 0 {
-            Text("\(running) running")
+            Label("\(running)", systemImage: "clock.arrow.2.circlepath")
           }
           if let pending = service.pending, pending > 0 {
-            Text("\(pending) pending")
+            Label("\(pending)", systemImage: "tray.full")
           }
-        }.secondary()
+        }.secondary().labelStyle(BadgeLabelStyle())
+      }
+    }
+  }
+  struct BadgeLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+      HStack(spacing: 4) {
+        configuration.icon
+        configuration.title
       }
     }
   }
