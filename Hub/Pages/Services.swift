@@ -61,6 +61,9 @@ struct Service: View {
       if service.requests > 0 {
         HStack {
           Text("\(service.requests) requests")
+          if let running = service.running, running > 0 {
+            Text("\(running) running")
+          }
           if let pending = service.pending, pending > 0 {
             Text("\(pending) pending")
           }

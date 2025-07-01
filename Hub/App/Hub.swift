@@ -55,6 +55,7 @@ struct Status: Decodable, Hashable {
       return BalancerType(rawValue: balancer) ?? .unknown
     }
     let pending: Int?
+    let running: Int?
   }
   enum BalancerType: String {
     case random, counter, first, available, unknown
