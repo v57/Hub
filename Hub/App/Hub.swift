@@ -49,6 +49,15 @@ struct Status: Decodable, Hashable {
     let services: Int
     let disabled: Int?
     let requests: Int
+    let balancer: String?
+    var balancerType: BalancerType {
+      guard let balancer else { return .counter }
+      return BalancerType(rawValue: balancer) ?? .unknown
+    }
+    let pending: Int?
+  }
+  enum BalancerType: String {
+    case random, counter, first, available, unknown
   }
 }
 
