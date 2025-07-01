@@ -59,7 +59,12 @@ struct Service: View {
         onlineStatus.view
       }
       if service.requests > 0 {
-        Text("\(service.requests) requests").secondary()
+        HStack {
+          Text("\(service.requests) requests")
+          if let pending = service.pending, pending > 0 {
+            Text("\(pending) pending")
+          }
+        }.secondary()
       }
     }
   }
