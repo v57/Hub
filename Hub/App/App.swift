@@ -56,16 +56,7 @@ struct ContentView: View {
         Text("Security").badge(statusBadges.security ?? 0)
           .badgeProminence(.increased)
           .id(SideView.security)
-      }.task(id: hub.id) {
-        do {
-          self.statusBadges = StatusBadges()
-          for try await status: StatusBadges in hub.client.values("hub/status/badges") {
-            self.statusBadges = status
-          }
-        } catch {
-          print(error)
-        }
-      }
+      }.hubStream("hub/status/badges", to: $statusBadges).environment(hub)
     }
   }
   struct StatusBadges: Decodable {
