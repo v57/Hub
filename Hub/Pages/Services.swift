@@ -61,6 +61,9 @@ struct Service: View {
       if service.requests > 0 {
         HStack {
           Text("\(service.requests) requests")
+          if service.balancerType != .counter {
+            Image(systemName: service.balancerType.icon).secondary()
+          }
           if let running = service.running, running > 0 {
             Text("\(running) running")
           }
@@ -69,6 +72,18 @@ struct Service: View {
           }
         }.secondary()
       }
+    }
+  }
+}
+
+extension Status.BalancerType {
+  var icon: String {
+    switch self {
+    case .random: "dice"
+    case .counter: "arrow.triangle.2.circlepath"
+    case .first: "line.3.horizontal.decrease"
+    case .available: "arrow.clockwise.circle"
+    case .unknown: "Unknown"
     }
   }
 }
