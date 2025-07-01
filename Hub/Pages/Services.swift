@@ -22,14 +22,15 @@ extension String {
 
 struct Services: View {
   @Environment(Hub.self) var hub
+  @State var status: Status?
   var body: some View {
     List {
-      if let status = hub.status {
+      if let status {
         ForEach(status.services, id: \.name) { service in
           Service(service: service)
         }
       }
-    }.navigationTitle("\(hub.status?.requests ?? 0) requests").toolbar {
+    }.navigationTitle("\(status?.requests ?? 0) requests").toolbar {
       Text(hub.isConnected ? "Connected" : "Disconnected").badgeStyle()
       ForEach(hub.permissions.sorted(), id: \.self) { permission in
         Text(permission).badgeStyle()
@@ -37,7 +38,7 @@ struct Services: View {
       Button("Copy Key", systemImage: "key.fill") {
         KeyChain.main.publicKey().copyToClipboard()
       }
-    }
+    }.hubStream("hub/status", to: $status)
   }
 }
 struct Service: View {

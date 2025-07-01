@@ -43,6 +43,7 @@ struct LauncherView: View {
 #endif
   @Environment(Hub.self) var hub
   @State var manager = Manager()
+  @State var hasLauncher: Bool = false
   @State var creating = false
   var updateAvailable: Bool {
     manager.apps.contains(where: { $0.info?.updateAvailable ?? false })
@@ -54,7 +55,7 @@ struct LauncherView: View {
     manager.apps.contains(where: { $0.status?.checkingForUpdates ?? false })
   }
   var body: some View {
-    let task = TaskId(hub: hub.id, isConnected: hub.isLauncherConnected)
+    let task = TaskId(hub: hub.id, isConnected: hub.isConnected && hasLauncher)
     List {
       LauncherCell()
       if task.isConnected {
@@ -96,6 +97,10 @@ struct LauncherView: View {
     }.task(id: task) {
       guard task.isConnected else { return }
       await manager.syncApps(hub: hub)
+    }.hubStream("hub/status") { (status: Status) in
+      hasLauncher = status.services.contains(where: {
+        $0.name.starts(with: "launcher/")
+      })
     }
   }
   struct TaskId: Hashable {

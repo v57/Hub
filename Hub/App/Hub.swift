@@ -19,7 +19,6 @@ extension KeyChain {
   var id: Settings.ID { settings.id }
   var settings: Settings
   let client: HubClient
-  var status: Status?
   var isConnected: Bool = false
   @ObservationIgnored
   var connectionTask: AnyCancellable?
@@ -28,21 +27,11 @@ extension KeyChain {
   init(settings: Settings) {
     self.settings = settings
     self.client = HubClient(settings.address, keyChain: .main)
-    Task { try await keepUpdating() }
     connectionTask = client.isConnected.sink { [unowned self] isConnected in
       self.isConnected = isConnected
       if isConnected {
         Task { permissions = try await client.send("hub/permissions") }
       }
-    }
-  }
-  func keepUpdating() async throws {
-    do {
-      for try await status: Status in client.values("hub/status") {
-        self.status = status
-      }
-    } catch {
-      print(error)
     }
   }
   struct Settings: Codable, Identifiable, Hashable {

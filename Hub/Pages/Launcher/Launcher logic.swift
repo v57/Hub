@@ -9,11 +9,6 @@ import SwiftUI
 
 // Launcher api
 extension Hub {
-  var isLauncherConnected: Bool {
-    isConnected && (status?.services.contains(where: {
-      $0.name.starts(with: "launcher/")
-    }) ?? false)
-  }
   var launcher: Launcher { Launcher(hub: self) }
   struct Launcher {
     let hub: Hub
