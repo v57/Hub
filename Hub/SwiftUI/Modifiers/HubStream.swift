@@ -38,6 +38,8 @@ private struct HubStreamModifier<T: Decodable>: ViewModifier {
         for try await value: T in hub.client.values(path) {
           action(value)
         }
+      } catch is CancellationError {
+        
       } catch {
         print("\(path):", error)
       }
