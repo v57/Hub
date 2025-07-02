@@ -56,7 +56,8 @@ struct ContentView: View {
         Text("Security").badge(statusBadges.security ?? 0)
           .badgeProminence(.increased)
           .id(SideView.security)
-      }.hubStream("hub/status/badges", to: $statusBadges).environment(hub)
+      }.hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges)
+        .environment(hub)
     }
   }
   struct StatusBadges: Decodable {

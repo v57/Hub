@@ -38,7 +38,7 @@ struct Services: View {
       Button("Copy Key", systemImage: "key.fill") {
         KeyChain.main.publicKey().copyToClipboard()
       }
-    }.hubStream("hub/status", to: $status)
+    }.hubStream("hub/status", initial: Status(requests: 0, services: []), to: $status)
   }
 }
 struct Service: View {
