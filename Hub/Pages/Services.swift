@@ -58,20 +58,20 @@ struct Service: View {
         Text(service.name)
         onlineStatus.view
       }
-      if service.requests > 0 {
-        HStack {
+      HStack {
+        if service.requests > 0 {
           Label("\(service.requests)", systemImage: "number")
-          if service.balancerType != .counter {
-            Image(systemName: service.balancerType.icon).secondary()
-          }
-          if let running = service.running, running > 0 {
-            Label("\(running)", systemImage: "clock.arrow.2.circlepath")
-          }
-          if let pending = service.pending, pending > 0 {
-            Label("\(pending)", systemImage: "tray.full")
-          }
-        }.secondary().labelStyle(BadgeLabelStyle())
-      }
+        }
+        if service.balancerType != .counter {
+          Image(systemName: service.balancerType.icon).secondary()
+        }
+        if let running = service.running, running > 0 {
+          Label("\(running)", systemImage: "clock.arrow.2.circlepath")
+        }
+        if let pending = service.pending, pending > 0 {
+          Label("\(pending)", systemImage: "tray.full")
+        }
+      }.secondary().labelStyle(BadgeLabelStyle())
     }
   }
   struct BadgeLabelStyle: LabelStyle {
