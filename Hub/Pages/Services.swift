@@ -42,6 +42,8 @@ struct Services: View {
   }
 }
 struct Service: View {
+  typealias Balancer = Status.BalancerType
+  @Environment(Hub.self) private var hub
   let service: Status.Service
   var onlineStatus: OnlineStatus {
     if service.services > 0 {
@@ -72,7 +74,22 @@ struct Service: View {
           Label("\(pending)", systemImage: "tray.full")
         }
       }.secondary().labelStyle(BadgeLabelStyle())
+    }.contextMenu {
+      Section("Load balancer") {
+        ForEach(Balancer.all, id: \.rawValue) { balancer in
+          AsyncButton(balancer.name, systemImage: balancer.icon) {
+            try await update(balancer: balancer)
+          }
+        }
+      }
     }
+  }
+  func update(balancer: Balancer) async throws {
+    try await hub.client.send("hub/balancer/set", UpdateBalancer(path: service.name, type: balancer.rawValue))
+  }
+  private struct UpdateBalancer: Codable {
+    let path: String
+    let type: String
   }
   struct BadgeLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -91,6 +108,15 @@ extension Status.BalancerType {
     case .counter: "arrow.triangle.2.circlepath"
     case .first: "line.3.horizontal.decrease"
     case .available: "arrow.clockwise.circle"
+    case .unknown: "Unknown"
+    }
+  }
+  var name: LocalizedStringKey {
+    switch self {
+    case .random: "Random"
+    case .counter: "Round-robin"
+    case .first: "Queued Non Distributed"
+    case .available: "Queued Distributed"
     case .unknown: "Unknown"
     }
   }

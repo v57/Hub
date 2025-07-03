@@ -59,6 +59,7 @@ struct Status: Decodable, Hashable {
   }
   enum BalancerType: String {
     case random, counter, first, available, unknown
+    static var all: [BalancerType] { [.random, .counter, .first, .available] }
   }
 }
 
