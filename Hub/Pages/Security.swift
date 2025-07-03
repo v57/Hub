@@ -24,15 +24,7 @@ struct SecurityView: View {
           try await hub.client.send("hub/permissions/add", Allow(services: item.pending, permission: item.id))
         }
       }
-    }.navigationTitle("Security").task {
-      do {
-        for try await array: [PendingAuthorization] in hub.client.values("hub/permissions/pending") {
-          self.pending = array
-        }
-      } catch {
-        print(error)
-      }
-    }
+    }.navigationTitle("Security").hubStream("hub/permissions/pending", initial: [], to: $pending)
   }
   struct Allow: Encodable {
     let services: [String]

@@ -20,6 +20,8 @@ struct LauncherView: View {
             App(id: $0.name, info: $0)
           }
         }
+      } catch is CancellationError {
+        
       } catch {
         print("syncApps", error)
       }
@@ -32,6 +34,8 @@ struct LauncherView: View {
             self.apps[index].status = status
           }
         }
+      } catch is CancellationError {
+        
       } catch {
         print("syncStatus", error)
       }
