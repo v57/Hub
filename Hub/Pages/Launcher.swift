@@ -184,6 +184,8 @@ struct LauncherView: View {
       }
     }
     let app: App
+    @State var instances: Int = 0
+    @State var showsInstances = false
     var body: some View {
       HStack {
         VStack(alignment: .leading) {
@@ -205,6 +207,14 @@ struct LauncherView: View {
           }.secondary()
         }
         Spacer()
+        if showsInstances || (app.info?.instances ?? 0) > 1 {
+          HStack {
+            Text("\(instances)")
+            Stepper("Instances", value: $instances)
+              .labelsHidden()
+              .task(id: instances) { try? await updateInstances() }
+          }
+        }
         if app.id == "Hub Lite" {
           AsyncButton("Upgrade to Pro") {
             try await hub.launcher.pro(KeyChain.main.publicKey())
@@ -213,6 +223,11 @@ struct LauncherView: View {
       }.contextMenu {
         if let status = app.status {
           if status.isRunning {
+            if let info = app.info, info.instances == 1 {
+              Button("Cluster", systemImage: "list.number") {
+                showsInstances = true
+              }
+            }
             AsyncButton("Stop", systemImage: "stop.fill") {
               try await hub.launcher.app(id: app.id).stop()
             }
@@ -225,7 +240,10 @@ struct LauncherView: View {
             }
           }
         }
-      }.labelStyle(.titleAndIcon)
+      }.labelStyle(.titleAndIcon).task(id: app.info?.instances) {
+        guard let info = app.info else { return }
+        instances = info.instances
+      }
     }
     func status(process: Hub.Launcher.ProcessStatus) -> Text? {
       if let status = app.status {
@@ -238,6 +256,20 @@ struct LauncherView: View {
         }
       }
       return Text("Not running")
+    }
+    func updateInstances() async throws {
+      guard instances > 0 else { return }
+      guard let info = app.info else { return }
+      guard instances != info.instances else { return }
+      guard instances <= 1024 else { return }
+      if !showsInstances {
+        showsInstances = true
+      }
+      try await hub.client.send("launcher/app/cluster", SetInstances(name: info.name, count: instances))
+    }
+    struct SetInstances: Encodable {
+      let name: String
+      let count: Int
     }
   }
 }
