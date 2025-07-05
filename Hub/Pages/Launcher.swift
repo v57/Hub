@@ -193,9 +193,11 @@ struct LauncherView: View {
               Text(installationStatus).badgeStyle()
             }
           }
-          HStack {
-            ForEach(app.status?.processes ?? []) { process in
-              status(process: process)
+          HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading) {
+              ForEach(app.status?.processes ?? []) { process in
+                status(process: process)
+              }
             }
             if let date = app.status?.started {
               Text(date, style: .relative)
