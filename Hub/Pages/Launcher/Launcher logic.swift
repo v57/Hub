@@ -77,9 +77,14 @@ extension Hub {
       var checkingForUpdates: Bool?
       var updating: Bool?
       var crashes: Int
+      var processes: [ProcessStatus]?
+      var started: Date?
+    }
+    struct ProcessStatus: Decodable, Hashable, Identifiable {
+      var id: Int { pid }
+      var pid: Int
       var cpu: Double?
       var memory: Double?
-      var started: Date?
     }
     struct Create: Encodable {
       let name: String

@@ -194,7 +194,9 @@ struct LauncherView: View {
             }
           }
           HStack {
-            status
+            ForEach(app.status?.processes ?? []) { process in
+              status(process: process)
+            }
             if let date = app.status?.started {
               Text(date, style: .relative)
             }
@@ -223,10 +225,10 @@ struct LauncherView: View {
         }
       }.labelStyle(.titleAndIcon)
     }
-    var status: Text? {
+    func status(process: Hub.Launcher.ProcessStatus) -> Text? {
       if let status = app.status {
-        if status.isRunning, let mem = status.memory {
-          if let cpu = status.cpu {
+        if status.isRunning, let mem = process.memory {
+          if let cpu = process.cpu {
             return Text("\(Int(cpu))% \(mem.description)MB")
           } else {
             return Text("\(mem.description)MB")
