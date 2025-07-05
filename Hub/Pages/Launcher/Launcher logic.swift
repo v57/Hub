@@ -76,7 +76,6 @@ extension Hub {
     }
     struct AppStatus: Decodable, Hashable {
       var name: String
-      var isRunning: Bool
       var checkingForUpdates: Bool?
       var updating: Bool?
       var crashes: Int

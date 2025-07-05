@@ -221,8 +221,8 @@ struct LauncherView: View {
           }.buttonStyle(.borderedProminent)
         }
       }.contextMenu {
-        if let status = app.status {
-          if status.isRunning {
+        if let info = app.info {
+          if info.active {
             if let info = app.info, info.instances == 1 {
               Button("Cluster", systemImage: "list.number") {
                 showsInstances = true
@@ -246,16 +246,15 @@ struct LauncherView: View {
       }
     }
     func status(process: Hub.Launcher.ProcessStatus) -> Text? {
-      if let status = app.status {
-        if status.isRunning, let mem = process.memory {
-          if let cpu = process.cpu {
-            return Text("\(Int(cpu))% \(mem.description)MB")
-          } else {
-            return Text("\(mem.description)MB")
-          }
+      if let mem = process.memory {
+        if let cpu = process.cpu {
+          return Text("\(Int(cpu))% \(mem.description)MB")
+        } else {
+          return Text("\(mem.description)MB")
         }
+      } else {
+        return Text("Not running")
       }
-      return Text("Not running")
     }
     func updateInstances() async throws {
       guard instances > 0 else { return }
