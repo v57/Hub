@@ -193,7 +193,7 @@ struct LauncherView: View {
     @State var instances: Int = 0
     @State var showsInstances = false
     var body: some View {
-      HStack {
+      HStack(alignment: .top) {
         VStack(alignment: .leading) {
           HStack {
             Text(app.id)
@@ -215,7 +215,7 @@ struct LauncherView: View {
         Spacer()
         if showsInstances || (app.info?.instances ?? 0) > 1 {
           HStack {
-            Text("\(instances)")
+            Text("\(instances)").secondary()
             Stepper("Instances", value: $instances)
               .labelsHidden()
               .task(id: instances) { try? await updateInstances() }
