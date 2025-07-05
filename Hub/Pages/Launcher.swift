@@ -207,8 +207,10 @@ struct LauncherView: View {
                 status(process: process)
               }
             }
-            if let date = app.status?.started {
-              Text(date, style: .relative)
+            if (app.status?.processes?.count ?? 0) > 0 {
+              if let date = app.status?.started {
+                Text(date, style: .relative)
+              }
             }
           }.secondary()
         }
