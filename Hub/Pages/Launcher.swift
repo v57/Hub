@@ -16,8 +16,14 @@ struct LauncherView: View {
     func syncApps(hub: Hub) async {
       do {
         for try await apps: Hub.Launcher.Apps in hub.client.values("launcher/info") {
-          self.apps = apps.apps.map {
-            App(id: $0.name, info: $0)
+          let active = Set(apps.apps.map(\.name))
+          self.apps.removeAll(where: { !active.contains($0.id) })
+          apps.apps.forEach { info in
+            if let index = self.apps.firstIndex(where: { $0.id == info.name }) {
+              self.apps[index].info = info
+            } else {
+              self.apps.append(.init(id: info.name, info: info))
+            }
           }
         }
       } catch is CancellationError {
