@@ -127,7 +127,9 @@ struct StoreView: View {
       } else if isInstalled {
         
       } else if let setup = item.setup {
-        isInstalling = true
+        withAnimation {
+          isInstalling = true
+        }
         defer { isInstalling = false }
         try await hub.launcher.create(.init(name: item.name, active: true, restarts: true, setup: setup))
         isInstalled = true
