@@ -13,12 +13,13 @@ struct Icon: Codable, Hashable {
   struct SFSymbolIcon: Codable, Hashable {
     var name: String
     var colors: IconColors?
-    func body(cornerRadius: CGFloat, dark: Bool) -> some View {
+    fileprivate func body(dark: Bool) -> some View {
       GeometryReader { view in
         if let color = colors?.background(dark: dark)?.color {
-          RoundedRectangle(cornerRadius: cornerRadius).fill(RadialGradient(colors: [color.opacity(0.6), color], center: .topTrailing, startRadius: 0, endRadius: view.size.height))
+          Color.white
+          RadialGradient(colors: [color.opacity(0.6), color], center: .topTrailing, startRadius: 0, endRadius: view.size.height)
         } else {
-          RoundedRectangle(cornerRadius: cornerRadius).fill(Color.gray.opacity(0.2))
+          Color.gray.opacity(0.2)
         }
         Image(systemName: name)
           .font(.system(size: view.size.height * 0.5, weight: .medium))
@@ -29,12 +30,13 @@ struct Icon: Codable, Hashable {
   struct TextIcon: Codable, Hashable {
     var name: String
     var colors: IconColors?
-    func body(cornerRadius: CGFloat, dark: Bool) -> some View {
+    fileprivate func body(dark: Bool) -> some View {
       GeometryReader { view in
         if let color = colors?.background(dark: dark)?.color {
-          RoundedRectangle(cornerRadius: cornerRadius).fill(RadialGradient(colors: [color.opacity(0.6), color], center: .topTrailing, startRadius: 0, endRadius: view.size.height))
+          Color.white
+          RadialGradient(colors: [color, color.opacity(0.6)], center: .bottomLeading, startRadius: 0, endRadius: view.size.height * 2)
         } else {
-          RoundedRectangle(cornerRadius: cornerRadius).fill(Color.gray.opacity(0.2))
+          Color.gray.opacity(0.2)
         }
         Text(name)
           .font(.system(size: view.size.height * 0.5, weight: .bold, design: .rounded))
@@ -45,12 +47,12 @@ struct Icon: Codable, Hashable {
       }
     }
   }
-  func body(cornerRadius: CGFloat, dark: Bool) -> some View {
+  func body(dark: Bool) -> some View {
     ZStack {
       if let symbol {
-        symbol.body(cornerRadius: cornerRadius, dark: dark)
+        symbol.body(dark: dark)
       } else if let text {
-        text.body(cornerRadius: cornerRadius, dark: dark)
+        text.body(dark: dark)
       }
     }.aspectRatio(1, contentMode: .fit)
   }
@@ -69,10 +71,11 @@ struct IconColors: Codable, Hashable {
 }
 struct IconView: View {
   let icon: Icon
-  var cornerRadius: CGFloat = 0
+  var cornerRadius: CGFloat = 8
   @Environment(\.colorScheme) var colorScheme
   var body: some View {
     icon.body(cornerRadius: cornerRadius, dark: colorScheme == .dark)
+      .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
   }
 }
 
