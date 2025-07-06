@@ -18,12 +18,22 @@ struct LauncherView: View {
       do {
         for try await apps: Hub.Launcher.Apps in hub.client.values("launcher/info") {
           active = Set(apps.apps.map(\.name))
-          self.apps.removeAll(where: { !active.contains($0.id) })
+          var array = self.apps.filter { active.contains($0.id) }
+          var isChanged = array.count != self.apps.count
           apps.apps.forEach { info in
-            if let index = self.apps.firstIndex(where: { $0.id == info.name }) {
-              self.apps[index].info = info
+            if let index = array.firstIndex(where: { $0.id == info.name }) {
+              if array[index].info != info {
+                isChanged = true
+                array[index].info = info
+              }
             } else {
-              self.apps.append(.init(id: info.name, info: info))
+              isChanged = true
+              array.append(.init(id: info.name, info: info))
+            }
+          }
+          if isChanged {
+            withAnimation {
+              self.apps = array
             }
           }
         }
@@ -36,9 +46,18 @@ struct LauncherView: View {
     func syncStatus(hub: Hub) async {
       do {
         for try await apps: Hub.Launcher.Status in hub.client.values("launcher/status") {
+          var array = self.apps
+          var isChanged = false
           apps.apps.forEach { status in
-            guard let index = self.apps.firstIndex(where: { $0.id == status.name }) else { return }
-            self.apps[index].status = status
+            guard let index = array.firstIndex(where: { $0.id == status.name }) else { return }
+            guard array[index].status != status else { return }
+            isChanged = true
+            array[index].status = status
+          }
+          if isChanged {
+            withAnimation {
+              self.apps = array
+            }
           }
         }
       } catch is CancellationError {
@@ -57,25 +76,15 @@ struct LauncherView: View {
   @State var hasLauncher: Bool = false
   @State var creating = false
   @State var openStore = false
-  var updateAvailable: Bool {
-    manager.apps.contains(where: { $0.info?.updateAvailable ?? false })
-  }
-  var isUpdating: Bool {
-    manager.apps.contains(where: { $0.status?.updating ?? false })
-  }
-  var isCheckingForUpdates: Bool {
-    manager.apps.contains(where: { $0.status?.checkingForUpdates ?? false })
-  }
   var body: some View {
+    let _ = Self._printChanges()
     let task = TaskId(hub: hub.id, isConnected: hub.isConnected && hasLauncher)
     List {
       LauncherCell()
       if task.isConnected {
-        ForEach(manager.apps) { app in
-          AppView(app: app)
-        }.environment(manager)
+        ListView()
         if openStore {
-          StoreView().environment(manager)
+          StoreView()
         } else {
           Button("Get More", systemImage: "arrow.down.circle.fill") {
             withAnimation {
@@ -85,19 +94,7 @@ struct LauncherView: View {
         }
       }
     }.toolbar {
-      if updateAvailable && !isUpdating {
-        AsyncButton("Update All", systemImage: "arrow.down.circle") {
-          try await hub.launcher.updateAll()
-        }
-      }
-      if !isCheckingForUpdates {
-        AsyncButton("Check for Updates", systemImage: "arrow.trianglehead.2.clockwise.rotate.90") {
-          try await hub.launcher.checkForUpdates()
-        }
-      }
-      Button("Create", systemImage: "plus") {
-        creating.toggle()
-      }.labelStyle(.iconOnly)
+      ToolbarView(creating: $creating)
     }.sheet(isPresented: $creating) {
       CreateApp().padding().frame(maxWidth: 300)
     }.task(id: task) {
@@ -122,6 +119,43 @@ struct LauncherView: View {
       hasLauncher = status.services.contains(where: {
         $0.name.starts(with: "launcher/")
       })
+    }.environment(manager)
+  }
+  struct ListView: View {
+    @Environment(LauncherView.Manager.self) var manager
+    var body: some View {
+      ForEach(manager.apps) { app in
+        AppView(app: app)
+      }
+    }
+  }
+  struct ToolbarView: View {
+    @Environment(Hub.self) var hub
+    @Environment(LauncherView.Manager.self) var manager
+    @Binding var creating: Bool
+    var updateAvailable: Bool {
+      manager.apps.contains(where: { $0.info?.updateAvailable ?? false })
+    }
+    var isUpdating: Bool {
+      manager.apps.contains(where: { $0.status?.updating ?? false })
+    }
+    var isCheckingForUpdates: Bool {
+      manager.apps.contains(where: { $0.status?.checkingForUpdates ?? false })
+    }
+    var body: some View {
+      if updateAvailable && !isUpdating {
+        AsyncButton("Update All", systemImage: "arrow.down.circle") {
+          try await hub.launcher.updateAll()
+        }
+      }
+      if !isCheckingForUpdates {
+        AsyncButton("Check for Updates", systemImage: "arrow.trianglehead.2.clockwise.rotate.90") {
+          try await hub.launcher.checkForUpdates()
+        }
+      }
+      Button("Create", systemImage: "plus") {
+        creating.toggle()
+      }.labelStyle(.iconOnly)
     }
   }
   struct TaskId: Hashable {
