@@ -18,6 +18,16 @@ extension View {
   }
 }
 
+struct ActionButtonStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label.foregroundStyle(.blue)
+      .fontWeight(.medium)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 4)
+      .frame(minWidth: 60)
+      .background(.blue.opacity(0.15), in: .capsule)
+  }
+}
 struct DownloadButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
     configuration.label.foregroundStyle(.blue)
