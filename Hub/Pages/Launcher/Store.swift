@@ -9,7 +9,7 @@ import SwiftUI
 
 struct StoreItem: Identifiable, Codable {
   var id = UUID()
-  var icon: String?
+  var icon: Icon
   var name: String
   var shortDescription: String
   var type: ServiceType
@@ -27,14 +27,14 @@ enum ServiceType: String, Codable, CaseIterable {
 
 struct StoreView: View {
   var allItems: [StoreItem] = [
-    StoreItem(icon: "app.badge.fill", name: "Apple Push Notifications", shortDescription: "Service for sending push notifications to Apple devices", type: .api),
-    StoreItem(icon: "apple.logo", name: "Login with Apple", shortDescription: "Adds apple authorization to your app", type: .api),
-    StoreItem(name: "Login with Google", shortDescription: "Adds google authorization to your app", type: .api),
-    StoreItem(icon: "apple.intelligence", name: "Ollama", shortDescription: "Api for running ollama models", type: .api),
-    StoreItem(icon: "leaf.fill", name: "MongoDB", shortDescription: "MongoDB NoSql database", type: .server),
-    StoreItem(icon: "server.rack", name: "Redis", shortDescription: "Memory key value storage", type: .server),
-    StoreItem(icon: "server.rack", name: "Postgres SQL", shortDescription: "SQL Database", type: .server),
-    StoreItem(icon: "network", name: "NginX config", shortDescription: "Setup your NginX", type: .app),
+    StoreItem(icon: Icon(symbol: .init(name: "app.badge.fill")), name: "Apple Push Notifications", shortDescription: "Service for sending push notifications to Apple devices", type: .api),
+    StoreItem(icon: Icon(symbol: .init(name: "apple.logo")), name: "Login with Apple", shortDescription: "Adds apple authorization to your app", type: .api),
+    StoreItem(icon: Icon(text: .init(name: "G")), name: "Login with Google", shortDescription: "Adds google authorization to your app", type: .api),
+    StoreItem(icon: Icon(symbol: .init(name: "apple.intelligence")), name: "Ollama", shortDescription: "Api for running ollama models", type: .api),
+    StoreItem(icon: Icon(symbol: .init(name: "leaf.fill")), name: "MongoDB", shortDescription: "MongoDB NoSql database", type: .server),
+    StoreItem(icon: Icon(symbol: .init(name: "server.rack")), name: "Redis", shortDescription: "Memory key value storage", type: .server),
+    StoreItem(icon: Icon(symbol: .init(name: "server.rack")), name: "Postgres SQL", shortDescription: "SQL Database", type: .server),
+    StoreItem(icon: Icon(symbol: .init(name: "network")), name: "NginX config", shortDescription: "Setup your NginX", type: .app),
   ]
   @State var filter: ServiceType?
   var items: [StoreItem] {
@@ -58,11 +58,7 @@ struct StoreView: View {
     }
     ForEach(items) { item in
       HStack {
-        ZStack {
-          if let icon = item.icon {
-            Image(systemName: icon).font(.title2)
-          }
-        }.frame(width: 44, height: 44).background(Color.gray.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
+        IconView(icon: item.icon).frame(width: 44, height: 44)
         VStack(alignment: .leading) {
           Text(item.name)
           Text(item.shortDescription).secondary()

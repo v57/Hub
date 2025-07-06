@@ -22,7 +22,7 @@ struct Icon: Codable, Hashable {
           Color.gray.opacity(0.2)
         }
         Image(systemName: name)
-          .font(.system(size: view.size.height * 0.5, weight: .medium))
+          .font(.system(size: view.size.height * 0.4, weight: .medium))
           .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
     }
@@ -39,7 +39,7 @@ struct Icon: Codable, Hashable {
           Color.gray.opacity(0.2)
         }
         Text(name)
-          .font(.system(size: view.size.height * 0.5, weight: .bold, design: .rounded))
+          .font(.system(size: view.size.height * 0.4, weight: .bold, design: .rounded))
           .foregroundStyle(colors?.foreground(dark: dark)?.color ?? .primary)
           .minimumScaleFactor(0.01)
           .padding(.horizontal, 4)
@@ -71,10 +71,10 @@ struct IconColors: Codable, Hashable {
 }
 struct IconView: View {
   let icon: Icon
-  var cornerRadius: CGFloat = 8
+  var cornerRadius: CGFloat = 12
   @Environment(\.colorScheme) var colorScheme
   var body: some View {
-    icon.body(cornerRadius: cornerRadius, dark: colorScheme == .dark)
+    icon.body(dark: colorScheme == .dark)
       .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
   }
 }
