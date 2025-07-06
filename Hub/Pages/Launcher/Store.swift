@@ -36,6 +36,12 @@ enum ServiceType: String, Codable, CaseIterable {
   }
 }
 
+extension URL {
+  static var hubStore: URL {
+    URL(string: "https://raw.githubusercontent.com/v57/hub-store/refs/heads/main/apps.json")!
+  }
+}
+
 struct StoreView: View {
   @State var allItems: [StoreItem] = []
   @State var filter: ServiceType?
@@ -46,11 +52,16 @@ struct StoreView: View {
       allItems
     }
   }
+  @State var url = URL.hubStore
   @State var attempt = 0
   @State var fetchStatus: FetchStatus = .loading
+  @State var customLink = false
   var body: some View {
     @State var isLoading = false
     List {
+      if customLink {
+        CustomURL(url: $url, attempt: $attempt, allItems: $allItems)
+      }
       ForEach(items) { item in
         ItemView(item: item).transition(.blurReplace)
       }
@@ -61,7 +72,7 @@ struct StoreView: View {
             .transition(.blurReplace)
         } else if fetchStatus == .failed {
           VStack {
-            Label("Failed to fetch from GitHub", systemImage: "exclamationmark.octagon.fill")
+            Label("Failed to fetch store", systemImage: "exclamationmark.octagon.fill")
               .foregroundStyle(.red)
             Button("Retry") {
               attempt += 1
@@ -79,34 +90,66 @@ struct StoreView: View {
         guard self.allItems.isEmpty else { return }
         do {
           fetchStatus = .loading
-          let allItems = try await StoreView.fetch()
+          allItems = try await StoreView.fetch(url: url)
           fetchStatus = .loaded
         } catch {
           fetchStatus = .failed
         }
+      }
+      if !customLink {
+        Button("Change Store", systemImage: "storefront.fill") {
+          customLink = true
+        }.buttonStyle(.borderedProminent)
       }
     }.animation(.smooth, value: fetchStatus)
   }
   enum FetchStatus {
     case loading, loaded, failed
   }
-  static var task: Task<[StoreItem], Error>?
-  static func fetch() async throws -> [StoreItem] {
-    if let task {
+  static var tasks = [URL: Task<[StoreItem], Error>]()
+  static func fetch(url: URL) async throws -> [StoreItem] {
+    if let task = tasks[url] {
       return try await task.value
     } else {
       let t = Task<[StoreItem], Error> {
-        let url = URL(string: "https://raw.githubusercontent.com/v57/hub-store/refs/heads/main/apps.json")!
         do {
           let (data, _) = try await URLSession.shared.data(from: url)
           return try JSONDecoder().decode([StoreItem].self, from: data)
         } catch {
-          task = nil
+          tasks[url] = nil
           throw error
         }
       }
-      task = t
+      tasks[url] = t
       return try await t.value
+    }
+  }
+  struct CustomURL: View {
+    @Binding var url: URL
+    @Binding var attempt: Int
+    @Binding var allItems: [StoreItem]
+    @State var text = ""
+    @FocusState var isFocused
+    var body: some View {
+      HStack {
+        TextField("Store URL", text: $text)
+          .focused($isFocused)
+        if let url = URL(string: text) {
+          Button("Open") {
+            select(url: url)
+          }
+        } else if text.isEmpty && url != .hubStore {
+          Button("Go to Main Store") {
+            select(url: .hubStore)
+          }
+        }
+      }
+    }
+    func select(url: URL) {
+      isFocused = false
+      self.url = url
+      allItems = []
+      attempt += 1
     }
   }
   struct ItemView: View {
