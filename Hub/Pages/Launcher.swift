@@ -77,26 +77,23 @@ struct LauncherView: View {
   @State var creating = false
   @State var openStore = false
   var body: some View {
-    let _ = Self._printChanges()
     let task = TaskId(hub: hub.id, isConnected: hub.isConnected && hasLauncher)
     List {
       LauncherCell()
       if task.isConnected {
         ListView()
-        if openStore {
-          StoreView()
-        } else {
-          Button("Get More", systemImage: "arrow.down.circle.fill") {
-            withAnimation {
-              openStore = true
-            }
-          }.buttonStyle(ActionButtonStyle())
-        }
+        Button("Get More", systemImage: "arrow.down.circle.fill") {
+          withAnimation {
+            openStore = true
+          }
+        }.buttonStyle(ActionButtonStyle())
       }
     }.toolbar {
       ToolbarView(creating: $creating)
     }.sheet(isPresented: $creating) {
       CreateApp().padding().frame(maxWidth: 300)
+    }.navigationDestination(isPresented: $openStore) {
+      StoreView().environment(manager).environment(hub)
     }.task(id: task) {
 #if PRO
       if task.isConnected {

@@ -66,22 +66,17 @@ struct StoreView: View {
     }
   }
   var body: some View {
-    Section {
+    List {
       ForEach(items) { item in
         ItemView(item: item)
       }
-    } header: {
-      HStack {
-        Text("Store").font(.title).fontWeight(.bold)
-        Spacer()
-        Picker("Filter", selection: $filter) {
-          Text("All").tag(Optional<ServiceType>.none)
-          ForEach(ServiceType.allCases, id: \.rawValue) { type in
-            Text(type.name).tag(type)
-          }
-        }.pickerStyle(.palette).labelsHidden()
-          .frame(maxWidth: 200)
-      }
+    }.navigationTitle("Store").toolbar {
+      Picker("Filter", selection: $filter) {
+        Text("All").tag(Optional<ServiceType>.none)
+        ForEach(ServiceType.allCases, id: \.rawValue) { type in
+          Text(type.name).tag(type)
+        }
+      }.pickerStyle(.palette).labelsHidden()
     }
   }
   struct ItemView: View {
@@ -139,7 +134,6 @@ struct StoreView: View {
 }
 
 #Preview {
-  List {
-    StoreView()
-  }.environment(Hub.test).environment(LauncherView.Manager())
+  StoreView()
+    .environment(Hub.test).environment(LauncherView.Manager())
 }
