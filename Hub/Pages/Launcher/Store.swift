@@ -46,7 +46,7 @@ struct StoreView: View {
   }
   var body: some View {
     HStack {
-      Text("Get more").font(.title).fontWeight(.bold)
+      Text("Store").font(.title).fontWeight(.bold)
       Spacer()
       Picker("Filter", selection: $filter) {
         Text("All").tag(Optional<ServiceType>.none)

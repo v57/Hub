@@ -55,6 +55,7 @@ struct LauncherView: View {
   @State var manager = Manager()
   @State var hasLauncher: Bool = false
   @State var creating = false
+  @State var openStore = false
   var updateAvailable: Bool {
     manager.apps.contains(where: { $0.info?.updateAvailable ?? false })
   }
@@ -72,6 +73,15 @@ struct LauncherView: View {
         ForEach(manager.apps) { app in
           AppView(app: app)
         }.environment(manager)
+        if openStore {
+          StoreView()
+        } else {
+          Button("Get More", systemImage: "arrow.down.circle.fill") {
+            withAnimation {
+              openStore = true
+            }
+          }.buttonStyle(ActionButtonStyle())
+        }
       }
     }.toolbar {
       if updateAvailable && !isUpdating {
