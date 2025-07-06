@@ -99,7 +99,12 @@ extension Hub {
       private enum CodingKeys: CodingKey {
         case name, active, restarts
       }
-      
+      init(name: String, active: Bool, restarts: Bool, setup: Setup) {
+        self.name = name
+        self.active = active
+        self.restarts = restarts
+        self.setup = setup
+      }
       init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = try container.decode(String.self, forKey: .name)
