@@ -8,36 +8,49 @@
 import Foundation
 
 enum ElementType: String {
-  case text, textField, button, list
+  case text, textField, button
+//  , list
 }
 
 protocol ElementProtocol {
   var type: ElementType { get }
+  var id: String { get }
 }
 
-enum Element {
+enum Element: Identifiable {
+  var id: String {
+    switch self {
+    case .text(let a): a.id
+    case .textField(let a): a.id
+    case .button(let a): a.id
+    }
+  }
   case text(Text)
   case textField(TextField)
   case button(Button)
-  case list(List)
-  struct Text: ElementProtocol {
+//  case list(List)
+  struct Text: ElementProtocol, Identifiable {
     var type: ElementType { .text }
+    var id: String
     var value: String
   }
-  struct TextField: ElementProtocol {
+  struct TextField: ElementProtocol, Identifiable {
     var type: ElementType { .textField }
+    var id: String
     var value: String
     var placeholder: String
   }
-  struct Button: ElementProtocol {
+  struct Button: ElementProtocol, Identifiable {
     var type: ElementType { .button }
+    var id: String
     var title: String
     var action: Action
   }
-  struct List: ElementProtocol {
-    var type: ElementType { .list }
-    var elements: [Element]
-  }
+//  struct List: ElementProtocol, Identifiable {
+//    var type: ElementType { .list }
+//    var id: String
+//    var elements: [Element]
+//  }
   struct Action {
     var path: String
     var context: [String: String]
