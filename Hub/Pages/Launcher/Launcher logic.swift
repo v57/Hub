@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+struct UnknownValueError: Error { }
+
 // Launcher api
 extension Hub {
   var launcher: Launcher { Launcher(hub: self) }
@@ -88,16 +90,22 @@ extension Hub {
       var cpu: Double?
       var memory: Double?
     }
-    struct Create: Encodable {
+    struct Create: Codable {
       let name: String
       let active: Bool
       let restarts: Bool
       let setup: Setup
       
       private enum CodingKeys: CodingKey {
-        case name
-        case active
-        case restarts
+        case name, active, restarts
+      }
+      
+      init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        active = try container.decode(Bool.self, forKey: .active)
+        restarts = try container.decode(Bool.self, forKey: .restarts)
+        setup = try Setup(from: decoder)
       }
       
       func encode(to encoder: any Encoder) throws {
@@ -108,15 +116,15 @@ extension Hub {
         try setup.encode(to: encoder)
       }
     }
-    enum Setup: Encodable {
+    enum Setup: Codable {
       case bun(Bun)
-      struct Bun: Encodable {
+      struct Bun: Codable {
         let repo: String
         let commit: String?
         let command: String?
       }
       case sh(Sh)
-      struct Sh: Encodable {
+      struct Sh: Codable {
         let directory: String?
         let install: [String]?
         let uninstall: [String]?
@@ -125,6 +133,17 @@ extension Hub {
       
       private enum CodingKeys: CodingKey {
         case type
+      }
+      init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+        switch type {
+        case "bun":
+          self = try .bun(.init(from: decoder))
+        case "sh":
+          self = try .sh(.init(from: decoder))
+        default: throw UnknownValueError()
+        }
       }
       
       func encode(to encoder: any Encoder) throws {
