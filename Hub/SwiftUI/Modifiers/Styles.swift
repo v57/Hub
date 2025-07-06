@@ -17,3 +17,24 @@ extension View {
       .background(.red, in: .capsule)
   }
 }
+
+struct DownloadButtonStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label.foregroundStyle(.white)
+      .fontWeight(.medium)
+      .padding(.horizontal, 4)
+      .padding(.vertical, 4)
+      .frame(minWidth: 60)
+      .background(.blue, in: .capsule)
+  }
+}
+struct TabButtonStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    configuration.label.foregroundStyle(.white)
+      .fontWeight(.medium)
+      .padding(.horizontal, 4)
+      .padding(.vertical, 4)
+      .frame(minWidth: 60)
+      .background(.blue, in: .capsule)
+  }
+}
