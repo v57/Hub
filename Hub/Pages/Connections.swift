@@ -32,39 +32,39 @@ struct ConnectionsView: View {
   @State private var isCreating: Bool = false
   @State private var hubs = Hubs.main
   @State private var merging: Hub?
+  @State var selected: Hub.ID?
   var body: some View {
-    NavigationStack {
-      List(selection: $hubs.selected) {
-        if isCreating {
-          Create(isCreating: $isCreating)
+    List(selection: $selected) {
+      if isCreating {
+        Create(isCreating: $isCreating)
+      }
+      ForEach(hubs.list) { (hub: Hub) in
+        ItemView(hubs: hubs, merging: $merging).environment(hub)
+          .id(hub.id)
+      }.onMove { set, target in
+        hubs.list.move(fromOffsets: set, toOffset: target)
+        hubs.save()
+      }.onDelete { index in
+        let deleted = index.map { hubs.list[$0] }
+        deleted.forEach { hub in
+          hubs.remove(with: hub.settings)
         }
-        ForEach(hubs.list) { (hub: Hub) in
-          ItemView(hubs: hubs, merging: $merging).environment(hub)
-            .id(hub.id)
-        }.onMove { set, target in
-          hubs.list.move(fromOffsets: set, toOffset: target)
-          hubs.save()
-        }.onDelete { index in
-          let deleted = index.map { hubs.list[$0] }
-          deleted.forEach { hub in
-            hubs.remove(with: hub.settings)
-          }
+      }
+    }.toolbar {
+      if merging != nil {
+        Button("Done") {
+          self.merging = nil
         }
-      }.toolbar {
-        if merging != nil {
-          Button("Done") {
-            self.merging = nil
-          }
+      }
+      if !isCreating && hubs.list.isEmpty {
+        Button("Add Local") {
+          hubs.insert(with: Hub.Settings(name: "My Mac", address: HubClient.local))
         }
-        if !isCreating && hubs.list.isEmpty {
-          Button("Add Local") {
-            hubs.insert(with: Hub.Settings(name: "My Mac", address: HubClient.local))
-          }
-        }
-        Button("Connect", systemImage: "plus", role: isCreating ? .cancel : nil) {
-          isCreating.toggle()
-        }.buttonBorderShape(.capsule)
-      }.navigationTitle("Connections")
+      }
+      Button("Connect", systemImage: "plus", role: isCreating ? .cancel : nil) {
+        isCreating.toggle()
+      }.buttonBorderShape(.capsule)
+        .navigationTitle("Connections")
     }
   }
   struct ItemView: View {
