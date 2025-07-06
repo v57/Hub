@@ -20,12 +20,12 @@ extension View {
 
 struct DownloadButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
-    configuration.label.foregroundStyle(.white)
+    configuration.label.foregroundStyle(.blue)
       .fontWeight(.medium)
       .padding(.horizontal, 4)
       .padding(.vertical, 4)
       .frame(minWidth: 60)
-      .background(.blue, in: .capsule)
+      .background(.blue.opacity(0.15), in: .capsule)
   }
 }
 struct TabButtonStyle: ButtonStyle {
