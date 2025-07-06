@@ -8,12 +8,22 @@
 import SwiftUI
 
 struct StoreItem: Identifiable, Codable {
-  var id = UUID()
+  var id: String
   var icon: Icon
   var name: String
   var shortDescription: String
   var type: ServiceType
   var setup: Hub.Launcher.Setup?
+#if DEBUG
+  init(icon: Icon, name: String, shortDescription: String, type: ServiceType, setup: Hub.Launcher.Setup? = nil) {
+    self.id = UUID().uuidString
+    self.icon = icon
+    self.name = name
+    self.shortDescription = shortDescription
+    self.type = type
+    self.setup = setup
+  }
+#endif
 }
 enum ServiceType: String, Codable, CaseIterable {
   case app, api, server
@@ -27,36 +37,7 @@ enum ServiceType: String, Codable, CaseIterable {
 }
 
 struct StoreView: View {
-  var allItems: [StoreItem] = [
-    StoreItem(icon: Icon(symbol: .init(name: "app.badge.fill")),
-              name: "Apple Push Notifications",
-              shortDescription: "Service for sending push notifications to Apple devices", type: .api,
-              setup: .bun(.init(repo: "v57/hub-apns", commit: nil, command: nil))),
-    StoreItem(icon: Icon(symbol: .init(name: "apple.logo")),
-              name: "Login with Apple",
-              shortDescription: "Adds apple authorization to your app", type: .api,
-              setup: .bun(.init(repo: "v57/hub-apple", commit: nil, command: nil))),
-    StoreItem(icon: Icon(text: .init(name: "G")),
-              name: "Login with Google",
-              shortDescription: "Adds google authorization to your app", type: .api,
-              setup: .bun(.init(repo: "v57/hub-google", commit: nil, command: nil))),
-    StoreItem(icon: Icon(symbol: .init(name: "apple.intelligence")),
-              name: "Ollama",
-              shortDescription: "Api for running ollama models", type: .api,
-              setup: .bun(.init(repo: "v57/hub-ollama", commit: nil, command: nil))),
-    StoreItem(icon: Icon(symbol: .init(name: "leaf.fill")),
-              name: "MongoDB",
-              shortDescription: "MongoDB NoSql database", type: .server),
-    StoreItem(icon: Icon(symbol: .init(name: "server.rack")),
-              name: "Redis",
-              shortDescription: "Memory key value storage", type: .server),
-    StoreItem(icon: Icon(symbol: .init(name: "server.rack")),
-              name: "Postgres SQL",
-              shortDescription: "SQL Database", type: .server),
-    StoreItem(icon: Icon(symbol: .init(name: "network")),
-              name: "NginX config",
-              shortDescription: "Setup your NginX", type: .app),
-  ]
+  @State var allItems: [StoreItem] = []
   @State var filter: ServiceType?
   var items: [StoreItem] {
     if let filter {
@@ -65,10 +46,28 @@ struct StoreView: View {
       allItems
     }
   }
+  @State var attempt = 0
+  @State var fetchStatus: FetchStatus = .loading
   var body: some View {
+    @State var isLoading = false
     List {
       ForEach(items) { item in
-        ItemView(item: item)
+        ItemView(item: item).transition(.blurReplace)
+      }
+    }.overlay {
+      if allItems.isEmpty {
+        if fetchStatus == .loading {
+          ProgressView().progressViewStyle(.circular)
+            .transition(.blurReplace)
+        } else if fetchStatus == .failed {
+          VStack {
+            Label("Failed to fetch from GitHub", systemImage: "exclamationmark.octagon.fill")
+              .foregroundStyle(.red)
+            Button("Retry") {
+              attempt += 1
+            }
+          }.transition(.blurReplace)
+        }
       }
     }.navigationTitle("Store").toolbar {
       Picker("Filter", selection: $filter) {
@@ -76,7 +75,38 @@ struct StoreView: View {
         ForEach(ServiceType.allCases, id: \.rawValue) { type in
           Text(type.name).tag(type)
         }
-      }.pickerStyle(.palette).labelsHidden()
+      }.pickerStyle(.palette).labelsHidden().task(id: attempt) {
+        guard self.allItems.isEmpty else { return }
+        do {
+          fetchStatus = .loading
+          let allItems = try await StoreView.fetch()
+          fetchStatus = .loaded
+        } catch {
+          fetchStatus = .failed
+        }
+      }
+    }.animation(.smooth, value: fetchStatus)
+  }
+  enum FetchStatus {
+    case loading, loaded, failed
+  }
+  static var task: Task<[StoreItem], Error>?
+  static func fetch() async throws -> [StoreItem] {
+    if let task {
+      return try await task.value
+    } else {
+      let t = Task<[StoreItem], Error> {
+        let url = URL(string: "https://raw.githubusercontent.com/v57/hub-store/refs/heads/main/apps.json")!
+        do {
+          let (data, _) = try await URLSession.shared.data(from: url)
+          return try JSONDecoder().decode([StoreItem].self, from: data)
+        } catch {
+          task = nil
+          throw error
+        }
+      }
+      task = t
+      return try await t.value
     }
   }
   struct ItemView: View {
@@ -133,7 +163,38 @@ struct StoreView: View {
   }
 }
 
+#if DEBUG
 #Preview {
-  StoreView()
+  StoreView(allItems: [
+    StoreItem(icon: Icon(symbol: .init(name: "app.badge.fill")),
+              name: "Apple Push Notifications",
+              shortDescription: "Service for sending push notifications to Apple devices", type: .api,
+              setup: .bun(.init(repo: "v57/hub-apns", commit: nil, command: nil))),
+    StoreItem(icon: Icon(symbol: .init(name: "apple.logo")),
+              name: "Login with Apple",
+              shortDescription: "Adds apple authorization to your app", type: .api,
+              setup: .bun(.init(repo: "v57/hub-apple", commit: nil, command: nil))),
+    StoreItem(icon: Icon(text: .init(name: "G")),
+              name: "Login with Google",
+              shortDescription: "Adds google authorization to your app", type: .api,
+              setup: .bun(.init(repo: "v57/hub-google", commit: nil, command: nil))),
+    StoreItem(icon: Icon(symbol: .init(name: "apple.intelligence")),
+              name: "Ollama",
+              shortDescription: "Api for running ollama models", type: .api,
+              setup: .bun(.init(repo: "v57/hub-ollama", commit: nil, command: nil))),
+    StoreItem(icon: Icon(symbol: .init(name: "leaf.fill")),
+              name: "MongoDB",
+              shortDescription: "MongoDB NoSql database", type: .server),
+    StoreItem(icon: Icon(symbol: .init(name: "server.rack")),
+              name: "Redis",
+              shortDescription: "Memory key value storage", type: .server),
+    StoreItem(icon: Icon(symbol: .init(name: "server.rack")),
+              name: "Postgres SQL",
+              shortDescription: "SQL Database", type: .server),
+    StoreItem(icon: Icon(symbol: .init(name: "network")),
+              name: "NginX config",
+              shortDescription: "Setup your NginX", type: .app),
+  ])
     .environment(Hub.test).environment(LauncherView.Manager())
 }
+#endif
