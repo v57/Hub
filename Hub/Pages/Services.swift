@@ -30,15 +30,31 @@ struct Services: View {
           Service(service: service)
         }
       }
-    }.navigationTitle("\(status?.requests ?? 0) requests").toolbar {
-      Text(hub.isConnected ? "Connected" : "Disconnected").badgeStyle()
-      ForEach(hub.permissions.sorted(), id: \.self) { permission in
-        Text(permission).badgeStyle()
+    }.navigationTitle(hub.isConnected ? "\(status?.requests ?? 0) requests" : "Disconnected").toolbar {
+      if hub.isConnected {
+        ForEach(hub.permissions.sorted(), id: \.self) { permission in
+          PermissionView(permission: permission)
+        }
       }
       Button("Copy Key", systemImage: "key.fill") {
         KeyChain.main.publicKey().copyToClipboard()
       }
     }.hubStream("hub/status", initial: Status(requests: 0, services: []), to: $status)
+  }
+  struct PermissionView: View {
+    let permission: String
+    var body: some View {
+      switch permission {
+      case "owner":
+        Button {
+          
+        } label: {
+          Image(systemName: "macbook.badge.shield.checkmark")
+        }.accessibilityHint("Owner")
+      default:
+        Text(permission.prefix(8)).padding(.horizontal)
+      }
+    }
   }
 }
 struct Service: View {

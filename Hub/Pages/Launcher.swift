@@ -32,9 +32,7 @@ struct LauncherView: View {
             }
           }
           if isChanged {
-            withAnimation {
-              self.apps = array
-            }
+            self.apps = array
           }
         }
       } catch is CancellationError {
@@ -55,9 +53,7 @@ struct LauncherView: View {
             array[index].status = status
           }
           if isChanged {
-            withAnimation {
-              self.apps = array
-            }
+            self.apps = array
           }
         }
       } catch is CancellationError {
@@ -89,7 +85,9 @@ struct LauncherView: View {
         }.buttonStyle(ActionButtonStyle())
       }
     }.toolbar {
-      ToolbarView(creating: $creating)
+      if task.isConnected {
+        ToolbarView(creating: $creating)
+      }
     }.sheet(isPresented: $creating) {
       CreateApp().padding().frame(maxWidth: 300)
     }.navigationDestination(isPresented: $openStore) {
