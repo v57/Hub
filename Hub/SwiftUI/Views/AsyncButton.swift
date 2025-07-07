@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AsyncButton<Label: View>: View {
+struct AsyncButton<Label: View & SendableMetatype>: View {
   let action: @MainActor () async throws -> Void
   let label: Label
   var role: ButtonRole?
