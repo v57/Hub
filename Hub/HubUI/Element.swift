@@ -31,18 +31,18 @@ enum Element: Identifiable {
 //  case list(List)
   struct Text: ElementProtocol, Identifiable {
     var type: ElementType { .text }
-    var id: String
+    var id: String = UUID().uuidString
     var value: String
   }
   struct TextField: ElementProtocol, Identifiable {
     var type: ElementType { .textField }
-    var id: String
+    var id: String = UUID().uuidString
     var value: String
     var placeholder: String
   }
   struct Button: ElementProtocol, Identifiable {
     var type: ElementType { .button }
-    var id: String
+    var id: String = UUID().uuidString
     var title: String
     var action: Action
   }

@@ -19,10 +19,12 @@ class InterfaceManager: EnvironmentKey {
   var string = [String: PVar<String>]()
   init() {
     elements = [
-      Element.text(.init(id: "text", value: "Hello World")),
-      Element.textField(.init(id: "textField", value: "", placeholder: "Example text field")),
-      Element.button(.init(id: "button", title: "Button", action: .init(path: "", context: [:]))),
+      Element.text(.init(value: "Title")),
+      Element.text(.init(value: "$text")),
+      Element.textField(.init(value: "$text", placeholder: "Example text field")),
+      Element.button(.init(title: "Button", action: .init(path: "", context: [:]))),
     ]
+    string["$text"] = PVar("Hello World")
   }
 }
 extension EnvironmentValues {
@@ -43,8 +45,10 @@ extension Element: View {
   }
   struct TextView: View {
     let value: Text
+    @State var text: String = ""
     var body: some View {
-      SwiftUI.Text(value.value)
+      SwiftUI.Text(value.value.starts(with: "$") ? text : value.value)
+        .sync(id: value.value, value: $text)
     }
   }
   struct TextFieldView: View {
@@ -52,6 +56,7 @@ extension Element: View {
     @State var text: String = ""
     var body: some View {
       SwiftUI.TextField(value.placeholder, text: $text)
+        .sync(id: value.value, value: $text, editable: true)
     }
   }
   struct ButtonView: View {
@@ -64,9 +69,41 @@ extension Element: View {
   }
 }
 
-#Preview {
-  let interface = InterfaceManager()
-  ForEach(interface.elements) { element in
-    element
+extension View {
+  func sync(id: String, value: Binding<String>, editable: Bool = false) -> some View {
+    modifier(StringSync(id: id, value: value, editable: editable))
   }
+}
+
+struct StringSync: ViewModifier {
+  @Environment(\.interface) var interface
+  let id: String
+  @Binding var value: String
+  let editable: Bool
+  func body(content: Content) -> some View {
+    if id.starts(with: "$"), let publisher = interface.string[id] {
+      if editable {
+        content.onReceive(publisher) {
+          value = $0
+        }.onChange(of: value) {
+          publisher.send(value)
+        }
+      } else {
+        content.onReceive(publisher) {
+          value = $0
+        }
+      }
+    } else {
+      content
+    }
+  }
+}
+
+#Preview {
+  @Previewable @State var interface = InterfaceManager()
+  VStack {
+    ForEach(interface.elements) { element in
+      element
+    }
+  }.environment(\.interface, interface).padding().frame(width: 400, height: 400)
 }
