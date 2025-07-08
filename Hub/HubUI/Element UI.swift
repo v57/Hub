@@ -15,7 +15,7 @@ struct InterfaceData {
 typealias PVar<T> = CurrentValueSubject<T, Never>
 @Observable
 class InterfaceManager {
-  var elements: [Element] = []
+  var header: InterfaceHeader?
   var string = [String: String]()
   var lists = [String: [NestedList]]()
   struct List: Identifiable {
@@ -23,22 +23,28 @@ class InterfaceManager {
     var string: [String: String]
   }
   init() {
-    elements = [
-      Element.text(.init(value: "$Title")),
-      Element.text(.init(value: "text")),
-      Element.textField(.init(value: "text", placeholder: "Example text field")),
-      Element.button(.init(title: "Button", action: .init(path: "", context: [:]))),
-      Element.list(.init(data: "list", elements: [
-        Element.text(.init(value: "text")),
-        Element.textField(.init(value: "text", placeholder: "Example text field")),
-      ])),
-    ]
-    string["text"] = "Hello World"
-    lists["list"] = [
-      NestedList(string: ["text": "Element text"]),
-      NestedList(string: ["text": "Another text"]),
-    ]
+    
   }
+  @MainActor
+  func sync(hub: Hub, path: String) async {
+    do {
+      print("syncing", path)
+      for try await event: InterfaceEvent in hub.client.values(path) {
+        if let header = event.header {
+          self.header = header
+        }
+      }
+    } catch {
+      print(error)
+    }
+  }
+}
+struct InterfaceEvent: Decodable {
+  let header: InterfaceHeader?
+}
+struct InterfaceHeader: Decodable {
+  let title: String
+  let body: [Element]
 }
 
 extension Element: View {
@@ -125,40 +131,25 @@ class NestedList: Identifiable {
   }
 }
 
-//extension View {
-//  func sync(id: String, value: Binding<String>, editable: Bool = false) -> some View {
-//    modifier(StringSync(id: id, value: value, editable: editable))
-//  }
-//}
-//
-//struct StringSync: ViewModifier {
-//  @Environment var interface: InterfaceManager
-//  let id: String
-//  @Binding var value: String
-//  func body(content: Content) -> some View {
-//    if !id.starts(with: "$"), let publisher = interface.string[id] {
-//      if editable {
-//        content.onReceive(publisher) {
-//          value = $0
-//        }.onChange(of: value) {
-//          publisher.send(value)
-//        }
-//      } else {
-//        content.onReceive(publisher) {
-//          value = $0
-//        }
-//      }
-//    } else {
-//      content
-//    }
-//  }
-//}
+struct ExampleUI: View {
+  @Environment(Hub.self) var hub
+  @State private var interface = InterfaceManager()
+  let path = "hasher/ui"
+  var body: some View {
+    ZStack {
+      if let header = interface.header {
+        VStack {
+          ForEach(header.body) { element in
+            element
+          }
+        }.navigationTitle(header.title)
+      }
+    }
+      .environment(interface).padding().frame(width: 400, height: 400)
+      .task { await interface.sync(hub: hub, path: path) }
+  }
+}
 
 #Preview {
-  @Previewable @State var interface = InterfaceManager()
-  VStack {
-    ForEach(interface.elements) { element in
-      element
-    }
-  }.environment(interface).padding().frame(width: 400, height: 400)
+  ExampleUI().environment(Hub.test)
 }

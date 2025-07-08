@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ElementType: String {
+enum ElementType: String, Codable {
   case text, textField, button, list
 }
 
@@ -16,7 +16,7 @@ protocol ElementProtocol {
   var id: String { get }
 }
 
-enum Element: Identifiable {
+enum Element: Identifiable, Decodable {
   var id: String {
     switch self {
     case .text(let a): a.id
@@ -29,32 +29,102 @@ enum Element: Identifiable {
   case textField(TextField)
   case button(Button)
   case list(List)
-  struct Text: ElementProtocol, Identifiable {
+  enum CodingKeys: CodingKey {
+    case type
+  }
+  
+  init(from decoder: any Decoder) throws {
+    do {
+      let value = try decoder.singleValueContainer().decode(String.self)
+      self = .text(Text(value: value))
+    } catch {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      let type = try container.decode(ElementType.self, forKey: .type)
+      switch type {
+      case .text:
+        self = try .text(Text(from: decoder))
+      case .textField:
+        self = try .textField(TextField(from: decoder))
+      case .button:
+        self = try .button(Button(from: decoder))
+      case .list:
+        self = try .list(List(from: decoder))
+      }
+    }
+  }
+  struct Text: ElementProtocol, Identifiable, Decodable {
     var type: ElementType { .text }
     var id: String = UUID().uuidString
     var value: String
   }
-  struct TextField: ElementProtocol, Identifiable {
+  struct TextField: ElementProtocol, Identifiable, Decodable {
     var type: ElementType { .textField }
     var id: String = UUID().uuidString
     var value: String
     var placeholder: String
+    enum CodingKeys: CodingKey {
+      case value
+      case placeholder
+    }
+    
+    init(from decoder: any Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.value = try container.decode(String.self, forKey: .value)
+      self.placeholder = try container.decode(String.self, forKey: .placeholder)
+    }
   }
-  struct Button: ElementProtocol, Identifiable {
+  struct Button: ElementProtocol, Identifiable, Decodable {
     var type: ElementType { .button }
     var id: String = UUID().uuidString
     var title: String
     var action: Action
+    enum CodingKeys: CodingKey {
+      case title
+      case action
+    }
+    
+    init(from decoder: any Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.title = try container.decode(String.self, forKey: CodingKeys.title)
+      self.action = try container.decode(Element.Action.self, forKey: CodingKeys.action)
+    }
   }
-  struct List: ElementProtocol, Identifiable {
+  struct List: ElementProtocol, Identifiable, Decodable {
     var type: ElementType { .list }
     var id: String = UUID().uuidString
     var data: String
     var elements: [Element]
+    enum CodingKeys: CodingKey {
+      case data
+      case elements
+    }
+    
+    init(from decoder: any Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.data = try container.decode(String.self, forKey: CodingKeys.data)
+      self.elements = try container.decode([Element].self, forKey: CodingKeys.elements)
+    }
   }
-  struct Action {
+  struct Action: Decodable {
     var path: String
-    var context: [String: String]
+    var body: ActionBody
+  }
+  enum ActionBody: Decodable {
+    case single(String)
+    case multiple([String: String])
+    enum CodingKeys: CodingKey {
+      case single
+      case multiple
+    }
+    
+    init(from decoder: any Decoder) throws {
+      let container = try decoder.singleValueContainer()
+      do {
+        self = try .single(container.decode(String.self))
+      } catch {
+        self = try .multiple(container.decode([String: String].self))
+      }
+    }
   }
 }
 
