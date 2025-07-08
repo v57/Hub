@@ -13,24 +13,31 @@ struct InterfaceData {
 }
 
 typealias PVar<T> = CurrentValueSubject<T, Never>
-class InterfaceManager: EnvironmentKey {
-  static var defaultValue: InterfaceManager { InterfaceManager() }
+@Observable
+class InterfaceManager {
   var elements: [Element] = []
-  var string = [String: PVar<String>]()
+  var string = [String: String]()
+  var lists = [String: [NestedList]]()
+  struct List: Identifiable {
+    var id: String
+    var string: [String: String]
+  }
   init() {
     elements = [
-      Element.text(.init(value: "Title")),
-      Element.text(.init(value: "$text")),
-      Element.textField(.init(value: "$text", placeholder: "Example text field")),
+      Element.text(.init(value: "$Title")),
+      Element.text(.init(value: "text")),
+      Element.textField(.init(value: "text", placeholder: "Example text field")),
       Element.button(.init(title: "Button", action: .init(path: "", context: [:]))),
+      Element.list(.init(data: "list", elements: [
+        Element.text(.init(value: "text")),
+        Element.textField(.init(value: "text", placeholder: "Example text field")),
+      ])),
     ]
-    string["$text"] = PVar("Hello World")
-  }
-}
-extension EnvironmentValues {
-  var interface: InterfaceManager {
-    get { self[InterfaceManager.self] }
-    set { self[InterfaceManager.self] = newValue }
+    string["text"] = "Hello World"
+    lists["list"] = [
+      NestedList(string: ["text": "Element text"]),
+      NestedList(string: ["text": "Another text"]),
+    ]
   }
 }
 
@@ -41,22 +48,43 @@ extension Element: View {
     case .text(let a): TextView(value: a)
     case .textField(let a): TextFieldView(value: a)
     case .button(let a): ButtonView(value: a)
+    case .list(let a): ListView(value: a)
     }
   }
   struct TextView: View {
     let value: Text
-    @State var text: String = ""
+    @Environment(InterfaceManager.self) var interface
+    @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
-      SwiftUI.Text(value.value.starts(with: "$") ? text : value.value)
-        .sync(id: value.value, value: $text)
+      if let text = value.value.staticText {
+        SwiftUI.Text(text)
+      } else if let text = nested?.string?[value.value] ?? interface.string[value.value] {
+        SwiftUI.Text(text)
+      }
     }
   }
   struct TextFieldView: View {
     let value: TextField
     @State var text: String = ""
+    @Environment(InterfaceManager.self) var interface
+    @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
+      let text = nested?.string?[value.value] ?? interface.string[value.value]
       SwiftUI.TextField(value.placeholder, text: $text)
-        .sync(id: value.value, value: $text, editable: true)
+        .task(id: text) {
+          if let text {
+            self.text = text
+          }
+        }
+        .onChange(of: self.text) {
+          if let nested {
+            if nested.string?[value.value] != self.text {
+              nested.string?[value.value] = self.text
+            }
+          } else if interface.string[value.value] != self.text {
+            interface.string[value.value] = self.text
+          }
+        }
     }
   }
   struct ButtonView: View {
@@ -67,37 +95,64 @@ extension Element: View {
       }
     }
   }
-}
-
-extension View {
-  func sync(id: String, value: Binding<String>, editable: Bool = false) -> some View {
-    modifier(StringSync(id: id, value: value, editable: editable))
-  }
-}
-
-struct StringSync: ViewModifier {
-  @Environment(\.interface) var interface
-  let id: String
-  @Binding var value: String
-  let editable: Bool
-  func body(content: Content) -> some View {
-    if id.starts(with: "$"), let publisher = interface.string[id] {
-      if editable {
-        content.onReceive(publisher) {
-          value = $0
-        }.onChange(of: value) {
-          publisher.send(value)
-        }
-      } else {
-        content.onReceive(publisher) {
-          value = $0
+  struct ListView: View {
+    let value: List
+    @Environment(InterfaceManager.self) var interface
+    var body: some View {
+      if let list = interface.lists[value.data] {
+        SwiftUI.List(list) { data in
+          HStack {
+            ForEach(value.elements) { element in
+              element
+            }
+          }.environment(data)
         }
       }
-    } else {
-      content
     }
   }
 }
+extension String {
+  var staticText: String? {
+    starts(with: "$") ? String(dropFirst()) : nil
+  }
+}
+
+@Observable
+class NestedList: Identifiable {
+  var string: [String: String]?
+  init(string: [String : String]? = nil) {
+    self.string = string
+  }
+}
+
+//extension View {
+//  func sync(id: String, value: Binding<String>, editable: Bool = false) -> some View {
+//    modifier(StringSync(id: id, value: value, editable: editable))
+//  }
+//}
+//
+//struct StringSync: ViewModifier {
+//  @Environment var interface: InterfaceManager
+//  let id: String
+//  @Binding var value: String
+//  func body(content: Content) -> some View {
+//    if !id.starts(with: "$"), let publisher = interface.string[id] {
+//      if editable {
+//        content.onReceive(publisher) {
+//          value = $0
+//        }.onChange(of: value) {
+//          publisher.send(value)
+//        }
+//      } else {
+//        content.onReceive(publisher) {
+//          value = $0
+//        }
+//      }
+//    } else {
+//      content
+//    }
+//  }
+//}
 
 #Preview {
   @Previewable @State var interface = InterfaceManager()
@@ -105,5 +160,5 @@ struct StringSync: ViewModifier {
     ForEach(interface.elements) { element in
       element
     }
-  }.environment(\.interface, interface).padding().frame(width: 400, height: 400)
+  }.environment(interface).padding().frame(width: 400, height: 400)
 }

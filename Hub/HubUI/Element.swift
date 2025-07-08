@@ -8,8 +8,7 @@
 import Foundation
 
 enum ElementType: String {
-  case text, textField, button
-//  , list
+  case text, textField, button, list
 }
 
 protocol ElementProtocol {
@@ -23,12 +22,13 @@ enum Element: Identifiable {
     case .text(let a): a.id
     case .textField(let a): a.id
     case .button(let a): a.id
+    case .list(let a): a.id
     }
   }
   case text(Text)
   case textField(TextField)
   case button(Button)
-//  case list(List)
+  case list(List)
   struct Text: ElementProtocol, Identifiable {
     var type: ElementType { .text }
     var id: String = UUID().uuidString
@@ -46,11 +46,12 @@ enum Element: Identifiable {
     var title: String
     var action: Action
   }
-//  struct List: ElementProtocol, Identifiable {
-//    var type: ElementType { .list }
-//    var id: String
-//    var elements: [Element]
-//  }
+  struct List: ElementProtocol, Identifiable {
+    var type: ElementType { .list }
+    var id: String = UUID().uuidString
+    var data: String
+    var elements: [Element]
+  }
   struct Action {
     var path: String
     var context: [String: String]
