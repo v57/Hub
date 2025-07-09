@@ -64,6 +64,7 @@ extension Element: View {
     case .textField(let a): TextFieldView(value: a)
     case .button(let a): ButtonView(value: a)
     case .list(let a): ListView(value: a)
+    case .picker(let a): PickerView(value: a)
     }
   }
   struct TextView: View {
@@ -98,6 +99,35 @@ extension Element: View {
             }
           } else if interface.string[value.value] != self.text {
             interface.string[value.value] = self.text
+          }
+        }
+    }
+  }
+  struct PickerView: View {
+    let value: Picker
+    @State var selected: String = ""
+    @Environment(InterfaceManager.self) var interface
+    @Environment(NestedList.self) var nested: NestedList?
+    var body: some View {
+      let selected = nested?.string?[value.selected] ?? interface.string[value.selected]
+      SwiftUI.Picker("", selection: $selected) {
+        ForEach(value.options, id: \.self) { value in
+          SwiftUI.Text(value).tag(value)
+        }
+      }.task(id: selected) {
+          if let selected {
+            self.selected = selected
+          } else if let selected = value.options.first {
+            self.selected = selected
+          }
+        }
+        .onChange(of: self.selected) {
+          if let nested {
+            if nested.string?[value.selected] != self.selected {
+              nested.string?[value.selected] = self.selected
+            }
+          } else if interface.string[value.selected] != self.selected {
+            interface.string[value.selected] = self.selected
           }
         }
     }

@@ -8,7 +8,7 @@
 import Foundation
 
 enum ElementType: String, Codable {
-  case text, textField, button, list
+  case text, textField, button, list, picker
 }
 
 protocol ElementProtocol {
@@ -23,12 +23,14 @@ enum Element: Identifiable, Decodable {
     case .textField(let a): a.id
     case .button(let a): a.id
     case .list(let a): a.id
+    case .picker(let a): a.id
     }
   }
   case text(Text)
   case textField(TextField)
   case button(Button)
   case list(List)
+  case picker(Picker)
   enum CodingKeys: CodingKey {
     case type
   }
@@ -49,6 +51,8 @@ enum Element: Identifiable, Decodable {
         self = try .button(Button(from: decoder))
       case .list:
         self = try .list(List(from: decoder))
+      case .picker:
+        self = try .picker(Picker(from: decoder))
       }
     }
   }
@@ -103,6 +107,21 @@ enum Element: Identifiable, Decodable {
       let container = try decoder.container(keyedBy: CodingKeys.self)
       self.data = try container.decode(String.self, forKey: .data)
       self.elements = try container.decode(LossyArray<Element>.self, forKey: .elements).value
+    }
+  }
+  struct Picker: ElementProtocol, Identifiable, Decodable {
+    var type: ElementType { .list }
+    var id: String = UUID().uuidString
+    var options: [String]
+    var selected: String
+    enum CodingKeys: CodingKey {
+      case options, selected
+    }
+    
+    init(from decoder: any Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.options = try container.decode([String].self, forKey: .options)
+      self.selected = try container.decode(String.self, forKey: .selected)
     }
   }
   struct Action: Decodable {
