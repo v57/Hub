@@ -60,6 +60,20 @@ enum Element: Identifiable, Decodable {
     var type: ElementType { .text }
     var id: String = UUID().uuidString
     var value: String
+    var secondary: Bool
+    enum CodingKeys: CodingKey {
+      case value
+      case secondary
+    }
+    init(value: String) {
+      self.value = value
+      self.secondary = false
+    }
+    init(from decoder: any Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.value = try container.decode(String.self, forKey: .value)
+      self.secondary = try container.decodeIfPresent(Bool.self, forKey: .secondary) ?? false
+    }
   }
   struct TextField: ElementProtocol, Identifiable, Decodable {
     var type: ElementType { .textField }

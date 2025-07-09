@@ -73,9 +73,17 @@ extension Element: View {
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
       if let text = value.value.staticText {
-        SwiftUI.Text(text).textSelection(.enabled)
+        if value.secondary {
+          SwiftUI.Text(text).textSelection(.enabled).secondary()
+        } else {
+          SwiftUI.Text(text).textSelection(.enabled)
+        }
       } else if let text = nested?.string?[value.value] ?? interface.string[value.value] {
-        SwiftUI.Text(text).textSelection(.enabled)
+        if value.secondary {
+          SwiftUI.Text(text).textSelection(.enabled).secondary()
+        } else {
+          SwiftUI.Text(text).textSelection(.enabled)
+        }
       }
     }
   }
