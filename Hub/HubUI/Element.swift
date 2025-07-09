@@ -84,15 +84,16 @@ enum Element: Identifiable, Decodable {
     var id: String = UUID().uuidString
     var value: String
     var placeholder: String
+    var action: Action?
     enum CodingKeys: CodingKey {
-      case value
-      case placeholder
+      case value, placeholder, action
     }
     
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
       self.value = try container.decode(String.self, forKey: .value)
       self.placeholder = try container.decode(String.self, forKey: .placeholder)
+      self.action = try container.decode(Action.self, forKey: .action)
     }
   }
   struct Button: ElementProtocol, Identifiable, Decodable {
@@ -107,8 +108,8 @@ enum Element: Identifiable, Decodable {
     
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.title = try container.decode(String.self, forKey: CodingKeys.title)
-      self.action = try container.decode(Element.Action.self, forKey: CodingKeys.action)
+      self.title = try container.decode(String.self, forKey: .title)
+      self.action = try container.decode(Action.self, forKey: .action)
     }
   }
   struct List: ElementProtocol, Identifiable, Decodable {
@@ -172,6 +173,11 @@ enum Element: Identifiable, Decodable {
       self.path = try container.decode(String.self, forKey: CodingKeys.path)
       self.body = try container.decode(ActionBody.self, forKey: CodingKeys.body)
       self.output = try container.decode(ActionBody.self, forKey: CodingKeys.output)
+    }
+    func perform(hub: Hub, interface: InterfaceManager, nested: NestedList?) async throws {
+      let body = body.resolve(interface: interface, nested: nested)
+      let result: ActionBody = try await hub.client.send(path, body)
+      result.update(interface: interface, nested: nested, output: output)
     }
   }
   enum ActionBody: Codable {

@@ -91,6 +91,7 @@ extension Element: View {
   struct TextFieldView: View {
     let value: TextField
     @State var text: String = ""
+    @Environment(Hub.self) var hub
     @Environment(InterfaceManager.self) var interface
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
@@ -109,6 +110,8 @@ extension Element: View {
           } else if interface.string[value.value] != self.text {
             interface.string[value.value] = self.text
           }
+        }.task(id: self.text) {
+          try? await value.action?.perform(hub: hub, interface: interface, nested: nested)
         }
     }
   }
@@ -148,9 +151,7 @@ extension Element: View {
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
       AsyncButton(value.title) {
-        let body = value.action.body.resolve(interface: interface, nested: nested)
-        let result: ActionBody = try await hub.client.send(value.action.path, body)
-        result.update(interface: interface, nested: nested, output: value.action.output)
+        try await value.action.perform(hub: hub, interface: interface, nested: nested)
       }
     }
   }
