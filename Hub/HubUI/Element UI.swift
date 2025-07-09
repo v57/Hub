@@ -63,9 +63,9 @@ extension Element: View {
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
       if let text = value.value.staticText {
-        SwiftUI.Text(text)
+        SwiftUI.Text(text).textSelection(.enabled)
       } else if let text = nested?.string?[value.value] ?? interface.string[value.value] {
-        SwiftUI.Text(text)
+        SwiftUI.Text(text).textSelection(.enabled)
       }
     }
   }
@@ -95,9 +95,14 @@ extension Element: View {
   }
   struct ButtonView: View {
     let value: Button
+    @Environment(Hub.self) var hub
+    @Environment(InterfaceManager.self) var interface
+    @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
-      SwiftUI.Button(value.title) {
-        
+      AsyncButton(value.title) {
+        let body = value.action.body.resolve(interface: interface, nested: nested)
+        let result: ActionBody = try await hub.client.send(value.action.path, body)
+        result.update(interface: interface, nested: nested, output: value.action.output)
       }
     }
   }
