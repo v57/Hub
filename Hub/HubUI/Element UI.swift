@@ -45,6 +45,15 @@ struct InterfaceEvent: Decodable {
 struct InterfaceHeader: Decodable {
   let title: String
   let body: [Element]
+  enum CodingKeys: CodingKey {
+    case title, body
+  }
+  
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    self.title = try container.decode(String.self, forKey: .title)
+    body = try container.decode(LossyArray<Element>.self, forKey: .body).value
+  }
 }
 
 extension Element: View {

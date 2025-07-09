@@ -101,8 +101,8 @@ enum Element: Identifiable, Decodable {
     
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.data = try container.decode(String.self, forKey: CodingKeys.data)
-      self.elements = try container.decode([Element].self, forKey: CodingKeys.elements)
+      self.data = try container.decode(String.self, forKey: .data)
+      self.elements = try container.decode(LossyArray<Element>.self, forKey: .elements).value
     }
   }
   struct Action: Decodable {
@@ -198,6 +198,26 @@ extension Dictionary {
   mutating func insert(contentsOf dictionary: Dictionary) {
     dictionary.forEach { key, value in
       self[key] = value
+    }
+  }
+}
+
+struct Lossy<T: Decodable>: Decodable {
+  let value: T?
+  init(from decoder: any Decoder) throws {
+    value = try? decoder.singleValueContainer()
+      .decode(T.self)
+  }
+}
+struct LossyArray<Element: Decodable>: Decodable {
+  let value: [Element]
+  init(from decoder: any Decoder) throws {
+    do {
+      let elements: [Lossy<Element>] = try decoder
+        .singleValueContainer().decode([Lossy<Element>].self)
+      value = elements.compactMap { $0.value }
+    } catch {
+      value = []
     }
   }
 }
