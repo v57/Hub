@@ -92,7 +92,7 @@ enum Element: Identifiable, Decodable {
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
       self.value = try container.decode(String.self, forKey: .value)
-      self.placeholder = try container.decode(String.self, forKey: .placeholder)
+      self.placeholder = try container.decodeIfPresent(String.self, forKey: .placeholder) ?? ""
       self.action = try container.decode(Action.self, forKey: .action)
     }
   }
@@ -112,11 +112,11 @@ enum Element: Identifiable, Decodable {
       self.action = try container.decode(Action.self, forKey: .action)
     }
   }
-  struct List: ElementProtocol, Identifiable, Decodable {
+  final class List: ElementProtocol, Identifiable, Decodable {
     var type: ElementType { .list }
     var id: String = UUID().uuidString
     var data: String
-    var elements: [Element]
+    var element: Element
     enum CodingKeys: CodingKey {
       case data
       case elements
@@ -125,7 +125,7 @@ enum Element: Identifiable, Decodable {
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
       self.data = try container.decode(String.self, forKey: .data)
-      self.elements = try container.decode(LossyArray<Element>.self, forKey: .elements).value
+      self.element = try container.decode(Element.self, forKey: .elements)
     }
   }
   struct Picker: ElementProtocol, Identifiable, Decodable {
@@ -143,19 +143,19 @@ enum Element: Identifiable, Decodable {
       self.selected = try container.decode(String.self, forKey: .selected)
     }
   }
-  class Cell: ElementProtocol, Identifiable, Decodable {
+  final class Cell: ElementProtocol, Identifiable, Decodable {
     var type: ElementType { .cell }
     var id: String = UUID().uuidString
-    var title: Element
-    var body: Element
+    var title: Element?
+    var subtitle: Element?
     enum CodingKeys: CodingKey {
-      case title, body
+      case title, subtitle
     }
     
-    required init(from decoder: any Decoder) throws {
+    init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.title = try container.decode(Element.self, forKey: .title)
-      self.body = try container.decode(Element.self, forKey: .body)
+      self.title = try container.decodeIfPresent(Element.self, forKey: .title)
+      self.subtitle = try container.decodeIfPresent(Element.self, forKey: .subtitle)
     }
   }
   struct Action: Decodable {

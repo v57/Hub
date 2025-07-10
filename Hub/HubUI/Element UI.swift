@@ -160,11 +160,9 @@ extension Element: View {
     @Environment(InterfaceManager.self) var interface
     var body: some View {
       if let list = interface.lists[value.data] {
-        SwiftUI.List(list) { data in
+        SwiftUI.ForEach(list) { data in
           HStack {
-            ForEach(value.elements) { element in
-              element
-            }
+            value.element
           }.environment(data)
         }
       }
@@ -175,8 +173,8 @@ extension Element: View {
     @Environment(InterfaceManager.self) var interface
     var body: some View {
       VStack(alignment: .leading) {
-        value.title.secondary()
-        value.body
+        value.title?.secondary()
+        value.subtitle
       }
     }
   }
