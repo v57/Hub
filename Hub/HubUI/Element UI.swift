@@ -12,7 +12,6 @@ struct InterfaceData {
   var string: [String: String]
 }
 
-typealias PVar<T> = CurrentValueSubject<T, Never>
 @Observable
 class InterfaceManager {
   var app = AppInterface()
@@ -220,40 +219,4 @@ struct ExampleUI: View {
 
 #Preview {
   ExampleUI().environment(Hub.test)
-}
-
-import CryptoKit
-#Preview {
-  @Previewable @State var text: String = ""
-  List {
-    VStack(alignment: .leading) {
-      TextField("Generate Hash", text: $text)
-      Text("SHA256").secondary()
-      Text(text.sha256)
-      Text("SHA512").secondary()
-      Text(text.sha512)
-      Text("SHA512/256").secondary()
-      Text(text.sha512_256)
-    }
-  }.padding().frame(width: 400, height: 400)
-}
-extension String {
-  var sha256: String {
-    var sha = SHA256()
-    sha.update(data: data(using: .utf8)!)
-    return Data(sha.finalize()).base64EncodedString()
-  }
-  var sha512: String {
-    var sha = SHA512()
-    sha.update(data: data(using: .utf8)!)
-    return Data(sha.finalize()).base64EncodedString()
-  }
-  var sha512_256: String {
-    var sha = SHA512()
-    sha.update(data: data(using: .utf8)!)
-    let data: Data = Data(sha.finalize())
-    var sha256 = SHA256()
-    sha256.update(data: data)
-    return Data(sha256.finalize()).base64EncodedString()
-  }
 }
