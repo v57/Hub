@@ -15,7 +15,7 @@ struct InterfaceData {
 typealias PVar<T> = CurrentValueSubject<T, Never>
 @Observable
 class InterfaceManager {
-  var header: InterfaceHeader?
+  var app = AppInterface()
   var string = [String: String]()
   var lists = [String: [NestedList]]()
   struct List: Identifiable {
@@ -29,9 +29,12 @@ class InterfaceManager {
   func sync(hub: Hub, path: String) async {
     do {
       print("syncing", path)
-      for try await event: InterfaceEvent in hub.client.values(path) {
+      for try await event: AppInterface in hub.client.values(path) {
         if let header = event.header {
-          self.header = header
+          self.app.header = header
+        }
+        if let body = event.body {
+          self.app.body = body
         }
       }
     } catch {
@@ -39,20 +42,23 @@ class InterfaceManager {
     }
   }
 }
-struct InterfaceEvent: Decodable {
-  let header: InterfaceHeader?
-}
-struct InterfaceHeader: Decodable {
-  let title: String
-  let body: [Element]
+struct AppInterface: Decodable {
+  struct Header: Decodable {
+    var name: String
+  }
+  var header: Header?
+  var body: [Element]?
   enum CodingKeys: CodingKey {
-    case title, body
+    case header, body
   }
   
   init(from decoder: any Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    self.title = try container.decode(String.self, forKey: .title)
-    body = try container.decode(LossyArray<Element>.self, forKey: .body).value
+    header = try? container.decodeIfPresent(Header.self, forKey: .header)
+    body = try? container.decodeIfPresent(LossyArray<Element>.self, forKey: .body)?.value
+  }
+  init() {
+    
   }
 }
 
@@ -199,13 +205,13 @@ struct ExampleUI: View {
   let path = "hasher/ui"
   var body: some View {
     ZStack {
-      if let header = interface.header {
-        List {
-          ForEach(header.body) { element in
+      List {
+        if let body = interface.app.body {
+          ForEach(body) { element in
             element
           }
-        }.navigationTitle(header.title)
-      }
+        }
+      }.navigationTitle(interface.app.header?.name ?? "Loading")
     }
       .environment(interface).padding().frame(width: 400, height: 400)
       .task { await interface.sync(hub: hub, path: path) }
