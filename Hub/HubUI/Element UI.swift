@@ -96,27 +96,33 @@ extension Element: View {
   struct TextFieldView: View {
     let value: TextField
     @State var text: String = ""
+    @State var disableUpdates = true
     @Environment(Hub.self) var hub
     @Environment(InterfaceManager.self) var interface
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
-      let text = nested?.string?[value.value] ?? interface.string[value.value]
+      let state = nested?.string?[value.value] ?? interface.string[value.value]
       SwiftUI.TextField(value.placeholder, text: $text)
-        .task(id: text) {
-          if let text {
-            self.text = text
+        .task(id: state) {
+          if let state {
+            disableUpdates = true
+            text = state
           }
         }
         .onChange(of: self.text) {
           if let nested {
-            if nested.string?[value.value] != self.text {
-              nested.string?[value.value] = self.text
+            if nested.string?[value.value] != text {
+              nested.string?[value.value] = text
             }
-          } else if interface.string[value.value] != self.text {
-            interface.string[value.value] = self.text
+          } else if interface.string[value.value] != text {
+            interface.string[value.value] = text
           }
-        }.task(id: self.text) {
-          try? await value.action?.perform(hub: hub, interface: interface, nested: nested)
+        }.task(id: text) {
+          if !disableUpdates {
+            try? await value.action?.perform(hub: hub, interface: interface, nested: nested)
+          } else {
+            disableUpdates = false
+          }
         }
     }
   }
