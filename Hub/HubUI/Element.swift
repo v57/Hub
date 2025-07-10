@@ -161,7 +161,7 @@ enum Element: Identifiable, Decodable {
   struct Action: Decodable {
     var path: String
     var body: ActionBody
-    var output: ActionBody
+    var output: ActionBody?
     enum CodingKeys: CodingKey {
       case path
       case body
@@ -169,10 +169,10 @@ enum Element: Identifiable, Decodable {
     }
     
     init(from decoder: any Decoder) throws {
-      let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(keyedBy: CodingKeys.self)
-      self.path = try container.decode(String.self, forKey: CodingKeys.path)
-      self.body = try container.decode(ActionBody.self, forKey: CodingKeys.body)
-      self.output = try container.decode(ActionBody.self, forKey: CodingKeys.output)
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.path = try container.decode(String.self, forKey: .path)
+      self.body = try container.decode(ActionBody.self, forKey: .body)
+      self.output = try container.decodeIfPresent(ActionBody.self, forKey: .output)
     }
     func perform(hub: Hub, interface: InterfaceManager, nested: NestedList?) async throws {
       let body = body.resolve(interface: interface, nested: nested)
@@ -227,21 +227,25 @@ enum Element: Identifiable, Decodable {
         return ActionBody.void
       }
     }
-    func map(_ output: ActionBody) -> [String: String] {
-      switch (self, output) {
-      case (.single(let value), .single(let key)):
-        return [key: value]
-      case (.multiple(let values), .multiple(let keys)):
-        var data = [String: String]()
-        values.forEach { key, value in
-          data[keys[key] ?? key] = value
+    func map(_ output: ActionBody?) -> [String: String] {
+      let map = output?.resolved() ?? [:]
+      var result = resolved()
+      for (key, value) in result {
+        if let mapped = map[key] {
+          result[key] = nil
+          result[mapped] = value
         }
-        return data
-      default:
-        return [:]
+      }
+      return result
+    }
+    func resolved() -> [String: String] {
+      switch self {
+      case .void: [:]
+      case .single(let string): [string: string]
+      case .multiple(let dictionary): dictionary
       }
     }
-    func update(interface: InterfaceManager, nested: NestedList?, output: ActionBody) {
+    func update(interface: InterfaceManager, nested: NestedList?, output: ActionBody?) {
       let data = map(output)
       if let nested, nested.string != nil {
         nested.string?.insert(contentsOf: data)
