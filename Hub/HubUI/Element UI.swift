@@ -214,7 +214,7 @@ struct ServiceView: View {
         }
       }
     }.navigationTitle(interface.app.header?.name ?? header.name)
-      .environment(interface).padding().frame(width: 400, height: 400)
+      .environment(interface)
       .task(id: header.path) { await interface.sync(hub: hub, path: header.path) }
   }
 }
