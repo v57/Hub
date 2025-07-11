@@ -104,21 +104,19 @@ extension Element: View {
       let state = nested?.string?[value.value] ?? interface.string[value.value]
       SwiftUI.TextField(value.placeholder, text: $text)
         .task(id: state) {
-          if let state {
+          if let state, state != text {
             disableUpdates = true
             text = state
           }
-        }
-        .onChange(of: self.text) {
-          if let nested {
-            if nested.string?[value.value] != text {
-              nested.string?[value.value] = text
-            }
-          } else if interface.string[value.value] != text {
-            interface.string[value.value] = text
-          }
         }.task(id: text) {
           if !disableUpdates {
+            if let nested {
+              if nested.string?[value.value] != text {
+                nested.string?[value.value] = text
+              }
+            } else if interface.string[value.value] != text {
+              interface.string[value.value] = text
+            }
             try? await value.action?.perform(hub: hub, interface: interface, nested: nested)
           } else {
             disableUpdates = false
