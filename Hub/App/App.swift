@@ -8,11 +8,12 @@
 import SwiftUI
 
 struct ContentView: View {
-  enum SideView: Int, CaseIterable {
+  enum SideView: Hashable {
     case services
     case launcher
     case cluster
     case security
+    case app(AppHeader)
   }
   @State var sideView: SideView = .cluster
   @State var statusBadges = StatusBadges()
@@ -41,6 +42,11 @@ struct ContentView: View {
           if let hub = hubs.selectedHub {
             SecurityView().environment(hub)
           }
+        case .app(let header):
+          if let hub = hubs.selectedHub {
+            ServiceView(header: header)
+              .environment(hub)
+          }
         }
       }
     }
@@ -60,11 +66,20 @@ struct ContentView: View {
           .id(SideView.security)
       }.hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges)
         .environment(hub)
+      
+      if let apps = statusBadges.apps, !apps.isEmpty {
+        Section("Apps") {
+          ForEach(apps) { app in
+            Text(app.name).id(SideView.app(app))
+          }
+        }
+      }
     }
   }
   struct StatusBadges: Decodable {
     var services: Int = 0
     var security: Int?
+    var apps: [AppHeader]?
   }
 }
 struct AppHeader: Identifiable, Hashable, Decodable {
