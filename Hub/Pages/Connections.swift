@@ -65,6 +65,8 @@ struct ConnectionsView: View {
         isCreating.toggle()
       }.buttonBorderShape(.capsule)
         .navigationTitle("Connections")
+        .task { selected = hubs.selected }
+        .task(id: selected) { hubs.selected = selected }
     }
   }
   struct ItemView: View {
