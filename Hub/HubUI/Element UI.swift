@@ -204,25 +204,23 @@ class NestedList: Identifiable {
   }
 }
 
-struct ExampleUI: View {
+struct ServiceView: View {
   @Environment(Hub.self) var hub
   @State private var interface = InterfaceManager()
-  let path = "hasher/ui"
+  let header: AppHeader
   var body: some View {
-    ZStack {
-      List {
-        if let body = interface.app.body {
-          ForEach(body) { element in
-            element
-          }
+    List {
+      if let body = interface.app.body {
+        ForEach(body) { element in
+          element
         }
-      }.navigationTitle(interface.app.header?.name ?? "Loading")
-    }
+      }
+    }.navigationTitle(interface.app.header?.name ?? header.name)
       .environment(interface).padding().frame(width: 400, height: 400)
-      .task { await interface.sync(hub: hub, path: path) }
+      .task(id: header.path) { await interface.sync(hub: hub, path: header.path) }
   }
 }
 
 #Preview {
-  ExampleUI().environment(Hub.test)
+  ServiceView(header: AppHeader(name: "Hasher", path: "hasher/ui")).environment(Hub.test)
 }

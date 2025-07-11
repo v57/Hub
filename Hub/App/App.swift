@@ -67,6 +67,11 @@ struct ContentView: View {
     var security: Int?
   }
 }
+struct AppHeader: Identifiable, Hashable, Decodable {
+  var id: String { path }
+  var name: String
+  var path: String
+}
 
 #Preview {
   ContentView()
