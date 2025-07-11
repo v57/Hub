@@ -71,6 +71,7 @@ struct ContentView: View {
         Section("Apps") {
           ForEach(apps) { app in
             Text(app.name).id(SideView.app(app))
+              .foregroundStyle(app.isOnline ? .primary : .tertiary)
           }
         }
       }
@@ -86,6 +87,8 @@ struct AppHeader: Identifiable, Hashable, Decodable {
   var id: String { path }
   var name: String
   var path: String
+  var services: Int?
+  var isOnline: Bool { (services ?? 1) != 0 }
 }
 
 #Preview {
