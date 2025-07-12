@@ -169,7 +169,7 @@ extension Hub {
 #if PRO
 @Observable
 class Launcher {
-  static var main = Launcher()
+  static let main = Launcher()
   var isInstalled: Bool = false
   var status: Status
   enum Status {

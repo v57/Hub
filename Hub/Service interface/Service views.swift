@@ -13,7 +13,7 @@ struct InterfaceData {
 }
 
 @Observable
-class InterfaceManager {
+class ServiceApp {
   var app = AppInterface()
   var string = [String: String]()
   var lists = [String: [NestedList]]()
@@ -75,7 +75,7 @@ extension Element: View {
   }
   struct TextView: View {
     let value: Text
-    @Environment(InterfaceManager.self) var interface
+    @Environment(ServiceApp.self) var app
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
       if let text = value.value.staticText {
@@ -84,7 +84,7 @@ extension Element: View {
         } else {
           SwiftUI.Text(text).textSelection(.enabled)
         }
-      } else if let text = nested?.string?[value.value] ?? interface.string[value.value] {
+      } else if let text = nested?.string?[value.value] ?? app.string[value.value] {
         if value.secondary {
           SwiftUI.Text(text).textSelection(.enabled).secondary()
         } else {
@@ -98,10 +98,10 @@ extension Element: View {
     @State var text: String = ""
     @State var disableUpdates = true
     @Environment(Hub.self) var hub
-    @Environment(InterfaceManager.self) var interface
+    @Environment(ServiceApp.self) var app
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
-      let state = nested?.string?[value.value] ?? interface.string[value.value]
+      let state = nested?.string?[value.value] ?? app.string[value.value]
       SwiftUI.TextField(value.placeholder, text: $text)
         .task(id: state) {
           if let state, state != text {
@@ -114,10 +114,10 @@ extension Element: View {
               if nested.string?[value.value] != text {
                 nested.string?[value.value] = text
               }
-            } else if interface.string[value.value] != text {
-              interface.string[value.value] = text
+            } else if app.string[value.value] != text {
+              app.string[value.value] = text
             }
-            try? await value.action?.perform(hub: hub, interface: interface, nested: nested)
+            try? await value.action?.perform(hub: hub, app: app, nested: nested)
           } else {
             disableUpdates = false
           }
@@ -127,10 +127,10 @@ extension Element: View {
   struct PickerView: View {
     let value: Picker
     @State var selected: String = ""
-    @Environment(InterfaceManager.self) var interface
+    @Environment(ServiceApp.self) var app
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
-      let selected = nested?.string?[value.selected] ?? interface.string[value.selected]
+      let selected = nested?.string?[value.selected] ?? app.string[value.selected]
       SwiftUI.Picker("", selection: $selected) {
         ForEach(value.options, id: \.self) { value in
           SwiftUI.Text(value).tag(value)
@@ -147,8 +147,8 @@ extension Element: View {
             if nested.string?[value.selected] != self.selected {
               nested.string?[value.selected] = self.selected
             }
-          } else if interface.string[value.selected] != self.selected {
-            interface.string[value.selected] = self.selected
+          } else if app.string[value.selected] != self.selected {
+            app.string[value.selected] = self.selected
           }
         }
     }
@@ -156,19 +156,19 @@ extension Element: View {
   struct ButtonView: View {
     let value: Button
     @Environment(Hub.self) var hub
-    @Environment(InterfaceManager.self) var interface
+    @Environment(ServiceApp.self) var app
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
       AsyncButton(value.title) {
-        try await value.action.perform(hub: hub, interface: interface, nested: nested)
+        try await value.action.perform(hub: hub, app: app, nested: nested)
       }
     }
   }
   struct ListView: View {
     let value: List
-    @Environment(InterfaceManager.self) var interface
+    @Environment(ServiceApp.self) var app
     var body: some View {
-      if let list = interface.lists[value.data] {
+      if let list = app.lists[value.data] {
         SwiftUI.ForEach(list) { data in
           HStack {
             value.element
@@ -179,7 +179,7 @@ extension Element: View {
   }
   struct CellView: View {
     let value: Cell
-    @Environment(InterfaceManager.self) var interface
+    @Environment(ServiceApp.self) var app
     var body: some View {
       VStack(alignment: .leading) {
         value.title?.secondary()
@@ -204,18 +204,18 @@ class NestedList: Identifiable {
 
 struct ServiceView: View {
   @Environment(Hub.self) var hub
-  @State private var interface = InterfaceManager()
+  @State private var app = ServiceApp()
   let header: AppHeader
   var body: some View {
     List {
-      if let body = interface.app.body {
+      if let body = app.app.body {
         ForEach(body) { element in
           element
         }
       }
-    }.navigationTitle(interface.app.header?.name ?? header.name)
-      .environment(interface)
-      .task(id: header.path) { await interface.sync(hub: hub, path: header.path) }
+    }.navigationTitle(app.app.header?.name ?? header.name)
+      .environment(app)
+      .task(id: header.path) { await app.sync(hub: hub, path: header.path) }
   }
 }
 

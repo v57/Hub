@@ -174,10 +174,10 @@ enum Element: Identifiable, Decodable {
       self.body = try container.decode(ActionBody.self, forKey: .body)
       self.output = try container.decodeIfPresent(ActionBody.self, forKey: .output)
     }
-    func perform(hub: Hub, interface: InterfaceManager, nested: NestedList?) async throws {
-      let body = body.resolve(interface: interface, nested: nested)
+    func perform(hub: Hub, app: ServiceApp, nested: NestedList?) async throws {
+      let body = body.resolve(app: app, nested: nested)
       let result: ActionBody = try await hub.client.send(path, body)
-      result.update(interface: interface, nested: nested, output: output)
+      result.update(app: app, nested: nested, output: output)
     }
   }
   enum ActionBody: Codable {
@@ -212,14 +212,14 @@ enum Element: Identifiable, Decodable {
       case .void: break
       }
     }
-    func resolve(interface: InterfaceManager, nested: NestedList?) -> ActionBody? {
+    func resolve(app: ServiceApp, nested: NestedList?) -> ActionBody? {
       switch self {
       case .single(let string):
-        guard let string = nested?.string?[string] ?? interface.string[string] else { return nil }
+        guard let string = nested?.string?[string] ?? app.string[string] else { return nil }
         return .single(string)
       case .multiple(let dictionary):
         let data = dictionary.compactMapValues { (string: String) -> String? in
-          guard let string = nested?.string?[string] ?? interface.string[string] else { return nil }
+          guard let string = nested?.string?[string] ?? app.string[string] else { return nil }
           return string
         }
         return .multiple(data)
@@ -245,12 +245,12 @@ enum Element: Identifiable, Decodable {
       case .multiple(let dictionary): dictionary
       }
     }
-    func update(interface: InterfaceManager, nested: NestedList?, output: ActionBody?) {
+    func update(app: ServiceApp, nested: NestedList?, output: ActionBody?) {
       let data = map(output)
       if let nested, nested.string != nil {
         nested.string?.insert(contentsOf: data)
       } else {
-        interface.string.insert(contentsOf: data)
+        app.string.insert(contentsOf: data)
       }
     }
   }
