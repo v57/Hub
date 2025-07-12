@@ -39,11 +39,11 @@ enum Element: Identifiable, Decodable {
   
   init(from decoder: any Decoder) throws {
     do {
-      let value = try decoder.singleValueContainer().decode(String.self)
+      let value: String = try decoder.decode()
       self = .text(Text(value: value))
     } catch {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      let type = try container.decode(ElementType.self, forKey: .type)
+      let type: ElementType = try container.decode(.type)
       switch type {
       case .text:
         self = try .text(Text(from: decoder))
@@ -75,8 +75,8 @@ enum Element: Identifiable, Decodable {
     }
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.value = try container.decode(String.self, forKey: .value)
-      self.secondary = try container.decodeIfPresent(Bool.self, forKey: .secondary) ?? false
+      self.value = try container.decode(.value)
+      self.secondary = container.decodeIfPresent(.secondary, false)
     }
   }
   struct TextField: ElementProtocol, Identifiable, Decodable {
@@ -91,9 +91,9 @@ enum Element: Identifiable, Decodable {
     
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.value = try container.decode(String.self, forKey: .value)
-      self.placeholder = try container.decodeIfPresent(String.self, forKey: .placeholder) ?? ""
-      self.action = try container.decode(Action.self, forKey: .action)
+      self.value = try container.decode(.value)
+      self.placeholder = container.decodeIfPresent(.placeholder, "")
+      self.action = try container.decode(.action)
     }
   }
   struct Button: ElementProtocol, Identifiable, Decodable {
@@ -108,8 +108,8 @@ enum Element: Identifiable, Decodable {
     
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.title = try container.decode(String.self, forKey: .title)
-      self.action = try container.decode(Action.self, forKey: .action)
+      title = try container.decode(.title)
+      action = try container.decode(.action)
     }
   }
   final class List: ElementProtocol, Identifiable, Decodable {
@@ -124,8 +124,8 @@ enum Element: Identifiable, Decodable {
     
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.data = try container.decode(String.self, forKey: .data)
-      self.element = try container.decode(Element.self, forKey: .elements)
+      data = try container.decode(.data)
+      element = try container.decode(.elements)
     }
   }
   struct Picker: ElementProtocol, Identifiable, Decodable {
@@ -139,8 +139,8 @@ enum Element: Identifiable, Decodable {
     
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.options = try container.decode([String].self, forKey: .options)
-      self.selected = try container.decode(String.self, forKey: .selected)
+      options = try container.decode(.options)
+      selected = try container.decode(.selected)
     }
   }
   final class Cell: ElementProtocol, Identifiable, Decodable {
@@ -170,9 +170,9 @@ enum Element: Identifiable, Decodable {
     
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.path = try container.decode(String.self, forKey: .path)
-      self.body = try container.decode(ActionBody.self, forKey: .body)
-      self.output = try container.decodeIfPresent(ActionBody.self, forKey: .output)
+      self.path = try container.decode(.path)
+      self.body = try container.decode(.body)
+      self.output = try container.decodeIfPresent(.output)
     }
     func perform(hub: Hub, app: ServiceApp, nested: NestedList?) async throws {
       let body = body.resolve(app: app, nested: nested)
@@ -191,11 +191,10 @@ enum Element: Identifiable, Decodable {
     
     init(from decoder: any Decoder) throws {
       do {
-        let container = try decoder.singleValueContainer()
         do {
-          self = try .single(container.decode(String.self))
+          self = try .single(decoder.decode())
         } catch {
-          self = try .multiple(container.decode([String: String].self))
+          self = try .multiple(decoder.decode())
         }
       } catch {
         self = .void
@@ -260,26 +259,6 @@ extension Dictionary {
   mutating func insert(contentsOf dictionary: Dictionary) {
     dictionary.forEach { key, value in
       self[key] = value
-    }
-  }
-}
-
-struct Lossy<T: Decodable>: Decodable {
-  let value: T?
-  init(from decoder: any Decoder) throws {
-    value = try? decoder.singleValueContainer()
-      .decode(T.self)
-  }
-}
-struct LossyArray<Element: Decodable>: Decodable {
-  let value: [Element]
-  init(from decoder: any Decoder) throws {
-    do {
-      let elements: [Lossy<Element>] = try decoder
-        .singleValueContainer().decode([Lossy<Element>].self)
-      value = elements.compactMap { $0.value }
-    } catch {
-      value = []
     }
   }
 }

@@ -53,8 +53,8 @@ struct AppInterface: Decodable {
   
   init(from decoder: any Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    header = try? container.decodeIfPresent(Header.self, forKey: .header)
-    body = try? container.decodeIfPresent(LossyArray<Element>.self, forKey: .body)?.value
+    header = try? container.decodeIfPresent(.header)
+    body = try? container.decodeLossy(.body)
   }
   init() {
     

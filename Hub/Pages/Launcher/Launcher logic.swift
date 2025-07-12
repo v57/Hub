@@ -69,11 +69,11 @@ extension Hub {
       
       init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.name = try container.decode(String.self, forKey: .name)
-        self.active = try container.decodeIfPresent(Bool.self, forKey: .active) ?? false
-        self.restarts = try container.decodeIfPresent(Bool.self, forKey: .restarts) ?? false
-        self.updateAvailable = try container.decodeIfPresent(Bool.self, forKey: .updateAvailable) ?? false
-        self.instances = try container.decodeIfPresent(Int.self, forKey: .instances) ?? 1
+        name = try container.decode(.name)
+        active = container.decodeIfPresent(.active, false)
+        restarts = container.decodeIfPresent(.restarts, false)
+        updateAvailable = container.decodeIfPresent(.updateAvailable, false)
+        instances = container.decodeIfPresent(.instances, 1)
       }
     }
     struct AppStatus: Decodable, Hashable {
@@ -107,9 +107,9 @@ extension Hub {
       }
       init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        name = try container.decode(String.self, forKey: .name)
-        active = try container.decode(Bool.self, forKey: .active)
-        restarts = try container.decode(Bool.self, forKey: .restarts)
+        name = try container.decode(.name)
+        active = try container.decode(.active)
+        restarts = try container.decode(.restarts)
         setup = try Setup(from: decoder)
       }
       
@@ -135,19 +135,21 @@ extension Hub {
         let uninstall: [String]?
         let run: String
       }
+      enum SetupType: String, Decodable {
+        case bun, sh
+      }
       
       private enum CodingKeys: CodingKey {
         case type
       }
       init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(String.self, forKey: .type)
+        let type: SetupType = try container.decode(.type)
         switch type {
-        case "bun":
+        case .bun:
           self = try .bun(.init(from: decoder))
-        case "sh":
+        case .sh:
           self = try .sh(.init(from: decoder))
-        default: throw UnknownValueError()
         }
       }
       
