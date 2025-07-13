@@ -14,10 +14,8 @@ struct StorageView: View {
   var content: [FileInfo] { list.files }
   @State var selected: Set<String> = []
   var body: some View {
-    Table(list.files, selection: $selected) {
-      TableColumn("Name") { file in
-        Text(file.name)
-      }
+    Table(of: FileInfo.self, selection: $selected) {
+      TableColumn("Name", value: \.name)
       TableColumn("Size") { file in
         Text(formatBytes(file.size))
           .foregroundStyle(.secondary)
@@ -25,6 +23,24 @@ struct StorageView: View {
       TableColumn("Last Modified") { file in
         Text(file.lastModified, format: .dateTime)
           .foregroundStyle(.secondary)
+      }
+    } rows: {
+      ForEach(list.files) { file in
+        TableRow(file).contextMenu {
+          Button("Delete", role: .destructive) {
+            Task {
+              try await remove(files: [file.name])
+            }
+          }
+        }
+      }
+    }.toolbar {
+      if selected.count > 0 {
+        Button("Delete Selected", systemImage: "trash", role: .destructive) {
+          Task {
+            try await remove(files: Array(selected))
+          }
+        }.keyboardShortcut(.delete)
       }
     }.dropDestination { (files: [URL], point: CGPoint) -> Bool in
       Task { try await add(files: files) }
@@ -41,6 +57,16 @@ struct StorageView: View {
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         _ = try await URLSession.shared.upload(for: request, fromFile: file)
+        try await hub.client.send("s3/updated")
+      }
+    } catch {
+      print(error)
+    }
+  }
+  func remove(files: [String]) async throws {
+    do {
+      for file in files {
+        try await hub.client.send("s3/delete", file)
         try await hub.client.send("s3/updated")
       }
     } catch {
