@@ -45,7 +45,7 @@ struct ContentView: View {
           }
         case .app(let header):
           if let hub = hubs.selectedHub {
-            ServiceView(header: header).environment(hubs.selectedHub)
+            ServiceView(header: header).environment(hub)
           }
         case .storage:
           if let hub = hubs.selectedHub {
