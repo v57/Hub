@@ -59,12 +59,14 @@ extension Hub {
       var restarts: Bool
       var updateAvailable: Bool
       var instances: Int
+      var settings: AppSettings?
       enum CodingKeys: CodingKey {
         case name
         case active
         case restarts
         case updateAvailable
         case instances
+        case settings
       }
       
       init(from decoder: any Decoder) throws {
@@ -74,6 +76,15 @@ extension Hub {
         restarts = container.decodeIfPresent(.restarts, false)
         updateAvailable = container.decodeIfPresent(.updateAvailable, false)
         instances = container.decodeIfPresent(.instances, 1)
+        settings = try container.decodeIfPresent(.settings)
+      }
+    }
+    struct AppSettings: Codable, Hashable {
+      var env: [String: String]?
+      var secrets: [String: String]?
+      init(env: [String : String]?, secrets: [String : String]?) {
+        self.env = env
+        self.secrets = secrets
       }
     }
     struct AppStatus: Decodable, Hashable {

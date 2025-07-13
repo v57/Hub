@@ -9,7 +9,8 @@ import SwiftUI
 
 struct EditApp: View {
   let app: Hub.Launcher.AppInfo
-  @State var envs: [Env] = [
+  @Environment(Hub.self) var hub
+  @State var env: [Env] = [
     Env(),
   ]
   @State var secrets: [Env] = [
@@ -18,7 +19,7 @@ struct EditApp: View {
   var body: some View {
     List {
       Section("Environment values") {
-        ForEach($envs) { $env in
+        ForEach($env) { $env in
           EnvView(env: $env)
         }
       }
@@ -27,20 +28,58 @@ struct EditApp: View {
           SecretView(env: $secret)
         }
       }
-    }.task(id: envs) {
-      if !envs.contains(where: { $0.isEmpty }) {
-        envs.append(.init())
+    }.toolbar {
+      if hasChanges {
+        AsyncButton("Save", systemImage: "checkmark") {
+          try await save()
+        }
+      }
+    }.task(id: env) {
+      if !env.contains(where: { $0.isEmpty }) {
+        env.append(.init())
       }
     }.task(id: secrets) {
       if !secrets.contains(where: { $0.isEmpty }) {
         secrets.append(.init())
       }
+    }.navigationTitle(app.name).task(id: app.settings) {
+      if let env = app.settings?.env {
+        self.env = env.map { key, value in
+          Env(key: key, value: value)
+        }
+      }
     }
+  }
+  func save() async throws {
+    struct UpdateSettings: Encodable {
+      let app: String
+      let settings: Hub.Launcher.AppSettings
+    }
+    if let settings {
+      try await hub.client.send("launcher/app/settings", UpdateSettings(app: app.name, settings: settings))
+    }
+  }
+  var hasChanges: Bool { settings != nil }
+  var settings: Hub.Launcher.AppSettings? {
+    var env = [String: String]()
+    self.env.forEach { e in
+      guard !e.key.isEmpty && !e.value.isEmpty else { return }
+      env[e.key] = e.value
+    }
+    let envChanged = env != (app.settings?.env ?? [:])
+    var secrets = [String: String]()
+    self.env.forEach { e in
+      guard !e.key.isEmpty && !e.value.isEmpty else { return }
+      secrets[e.key] = e.value
+    }
+    let oldValue = app.settings ?? Hub.Launcher.AppSettings(env: nil, secrets: nil)
+    let settings = Hub.Launcher.AppSettings(env: envChanged ? env : nil, secrets: secrets.isEmpty ? nil : secrets)
+    guard oldValue != settings else { return nil }
+    return settings
   }
   struct EnvView: View {
     @Binding var env: Env
     var body: some View {
-      let _ = Self._printChanges()
       HStack {
         TextField("Key", text: $env.key)
           .frame(width: 80)
@@ -71,7 +110,7 @@ struct TestEditApp: View {
   @State var apps: Hub.Launcher.Apps?
   var body: some View {
     ZStack {
-      if let app = apps?.apps.first {
+      if let app = apps?.apps.last {
         EditApp(app: app)
       } else {
         Text("Loading")
@@ -82,6 +121,6 @@ struct TestEditApp: View {
 }
 
 #Preview {
-  TestEditApp().frame(width: 300, height: 300)
+  TestEditApp().frame(width: 400, height: 300)
 }
 
