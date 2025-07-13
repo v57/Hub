@@ -114,9 +114,12 @@ struct LauncherView: View {
       guard task.isConnected else { return }
       await manager.syncApps(hub: hub)
     }.hubStream("hub/status") { (status: Status) in
-      hasLauncher = status.services.contains(where: {
+      let launcher = status.services.first(where: {
         $0.name.starts(with: "launcher/")
       })
+      let disabled = launcher?.disabled ?? 0
+      let services = launcher?.services ?? 0
+      hasLauncher = disabled + services > 0
     }.environment(manager)
   }
   struct ListView: View {
