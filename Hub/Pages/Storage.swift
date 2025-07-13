@@ -52,16 +52,32 @@ struct StorageView: View {
   func add(files: [URL]) async throws {
     do {
       for file in files {
-        let fileName = file.lastPathComponent
-        let url: URL = try await hub.client.send("s3/write", fileName)
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        _ = try await URLSession.shared.upload(for: request, fromFile: file)
-        try await hub.client.send("s3/updated")
+        if file.hasDirectoryPath {
+          var content = [URL]()
+          try file.contents(array: &content)
+          let prefix = file.absoluteString.count - file.lastPathComponent.count - 1
+          let uploading = content.map { url in
+            let name = url.absoluteString
+            return UploadingFile(target: String(name.suffix(name.count - prefix)), content: url)
+          }
+          for file in uploading {
+            try await upload(file: file)
+          }
+        } else {
+          try await upload(file: UploadingFile(target: file.lastPathComponent, content: file))
+        }
       }
     } catch {
       print(error)
     }
+  }
+  func upload(file: UploadingFile) async throws {
+    print("Uploading", file.target)
+    let url: URL = try await hub.client.send("s3/write", file.target)
+    var request = URLRequest(url: url)
+    request.httpMethod = "PUT"
+    _ = try await URLSession.shared.upload(for: request, fromFile: file.content)
+    try await hub.client.send("s3/updated")
   }
   func remove(files: [String]) async throws {
     do {
@@ -77,6 +93,23 @@ struct StorageView: View {
     let formatter = ByteCountFormatter()
     formatter.countStyle = .file
     return formatter.string(fromByteCount: Int64(bytes))
+  }
+}
+
+struct UploadingFile {
+  let target: String
+  let content: URL
+}
+extension URL {
+  func contents(array: inout [URL]) throws {
+    if hasDirectoryPath {
+      let content = try FileManager.default.contentsOfDirectory(at: self, includingPropertiesForKeys: nil)
+      for url in content {
+        try url.contents(array: &array)
+      }
+    } else {
+      array.append(self)
+    }
   }
 }
 
