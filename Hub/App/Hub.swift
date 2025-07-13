@@ -10,7 +10,7 @@ import HubClient
 import Combine
 
 extension KeyChain {
-  static let main = KeyChain(keyChain: "me.v57.hub")
+  static let main = KeyChain(keyChain: "dev.v57.hub")
 }
 
 @MainActor
