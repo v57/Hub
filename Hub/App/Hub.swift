@@ -61,6 +61,14 @@ struct Status: Decodable, Hashable {
     case random, counter, first, available, unknown
     static var all: [BalancerType] { [.random, .counter, .first, .available] }
   }
+  func contains(service: String) -> Bool {
+    let launcher = services.first(where: {
+      $0.name.starts(with: "\(service)/")
+    })
+    let disabled = launcher?.disabled ?? 0
+    let services = launcher?.services ?? 0
+    return disabled + services > 0
+  }
 }
 
 @MainActor
