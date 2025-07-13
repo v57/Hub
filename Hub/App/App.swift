@@ -13,9 +13,10 @@ struct ContentView: View {
     case launcher
     case cluster
     case security
+    case storage
     case app(AppHeader)
   }
-  @State var sideView: SideView = .cluster
+  @State var sideView: SideView = .storage
   @State var statusBadges = StatusBadges()
   let hubs = Hubs.main
   var body: some View {
@@ -44,8 +45,11 @@ struct ContentView: View {
           }
         case .app(let header):
           if let hub = hubs.selectedHub {
-            ServiceView(header: header)
-              .environment(hub)
+            ServiceView(header: header).environment(hubs.selectedHub)
+          }
+        case .storage:
+          if let hub = hubs.selectedHub {
+            StorageView().environment(hub)
           }
         }
       }
@@ -64,6 +68,9 @@ struct ContentView: View {
         Text("Security").badge(statusBadges.security ?? 0)
           .badgeProminence(.increased)
           .id(SideView.security)
+        Text("Storage").badge(statusBadges.security ?? 0)
+          .badgeProminence(.increased)
+          .id(SideView.storage)
       }.hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges)
         .environment(hub)
       
