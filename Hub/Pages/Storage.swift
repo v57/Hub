@@ -10,15 +10,13 @@ import SwiftUI
 struct StorageView: View {
   @State var hasService: Bool = false
   @Environment(Hub.self) var hub
-  @State var files = FileList(name: "", keyCount: 0, contents: [
-    
-  ])
-  var content: [FileList.FileInfo] { files.contents }
+  @State var list = FileList(count: 0, files: [])
+  var content: [FileInfo] { list.files }
   @State var selected: Set<String> = []
   var body: some View {
-    Table(files.contents, selection: $selected) {
+    Table(list.files, selection: $selected) {
       TableColumn("Name") { file in
-        Text(file.key)
+        Text(file.name)
       }
       TableColumn("Size") { file in
         Text(formatBytes(file.size))
@@ -33,11 +31,7 @@ struct StorageView: View {
       return true
     }.navigationTitle("Storage").hubStream("hub/status") { (status: Status) in
       hasService = status.contains(service: "s3")
-    }.task {
-      do {
-        files = try await hub.client.send("s3/list")
-      } catch {}
-    }
+    }.hubStream("s3/list", to: $list)
   }
   func add(files: [URL]) async throws {
     do {
@@ -47,6 +41,7 @@ struct StorageView: View {
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         _ = try await URLSession.shared.upload(for: request, fromFile: file)
+        try await hub.client.send("s3/updated")
       }
     } catch {
       print(error)
@@ -60,15 +55,14 @@ struct StorageView: View {
 }
 
 struct FileList: Decodable {
+  let count: Int
+  let files: [FileInfo]
+}
+struct FileInfo: Identifiable, Hashable, Decodable {
+  var id: String { name }
   let name: String
-  let keyCount: Int
-  let contents: [FileInfo]
-  struct FileInfo: Identifiable, Hashable, Decodable {
-    var id: String { key }
-    let key: String
-    let size: Int
-    let lastModified: Date
-  }
+  let size: Int
+  let lastModified: Date
 }
 
 #Preview {
