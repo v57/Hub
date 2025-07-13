@@ -10,24 +10,23 @@ import SwiftUI
 struct StorageView: View {
   @State var hasService: Bool = false
   @Environment(Hub.self) var hub
-  @State var files = FileList(name: "", keyCount: 0, contents: [])
+  @State var files = FileList(name: "", keyCount: 0, contents: [
+    
+  ])
+  var content: [FileList.FileInfo] { files.contents }
+  @State var selected: Set<String> = []
   var body: some View {
-    List {
-      if hasService {
-        ForEach(files.contents) { file in
-          HStack {
-            VStack(alignment: .leading) {
-              Text(file.key)
-              HStack {
-                Text(formatBytes(file.size))
-                Spacer()
-                Text(file.lastModified, format: .dateTime)
-              }.secondary()
-            }
-          }
-        }
-      } else {
-        Text("No storage")
+    Table(files.contents, selection: $selected) {
+      TableColumn("Name") { file in
+        Text(file.key)
+      }
+      TableColumn("Size") { file in
+        Text(formatBytes(file.size))
+          .foregroundStyle(.secondary)
+      }
+      TableColumn("Last Modified") { file in
+        Text(file.lastModified, format: .dateTime)
+          .foregroundStyle(.secondary)
       }
     }.dropDestination { (files: [URL], point: CGPoint) -> Bool in
       Task { try await add(files: files) }
@@ -63,11 +62,15 @@ struct StorageView: View {
 struct FileList: Decodable {
   let name: String
   let keyCount: Int
-  let contents: [Content]
-  struct Content: Identifiable, Decodable {
+  let contents: [FileInfo]
+  struct FileInfo: Identifiable, Hashable, Decodable {
     var id: String { key }
     let key: String
     let size: Int
     let lastModified: Date
   }
+}
+
+#Preview {
+  StorageView().environment(Hub.test)
 }
