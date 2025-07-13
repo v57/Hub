@@ -211,11 +211,11 @@ bun i
       status = .status("Launching")
       try await sh("""
 source .zshrc
-if screen -ls | grep v57launcher >/dev/null; then
-  screen -X -S v57launcher quit
+if screen -ls | grep hub >/dev/null; then
+  screen -X -S hub quit
 fi
 cd hub-launcher
-screen -dmS v57launcher bun .
+screen -dmS hub bun .
 """)
     } catch {
       status = .offline
