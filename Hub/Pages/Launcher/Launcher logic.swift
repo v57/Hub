@@ -53,7 +53,8 @@ extension Hub {
     struct Status: Decodable, Hashable {
       var apps: [AppStatus]
     }
-    struct AppInfo: Decodable, Hashable {
+    struct AppInfo: Identifiable, Decodable, Hashable {
+      var id: String { name }
       var name: String
       var active: Bool
       var restarts: Bool

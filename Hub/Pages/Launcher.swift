@@ -68,6 +68,7 @@ struct LauncherView: View {
   var launcher: Launcher { .main }
 #endif
   @Environment(Hub.self) var hub
+  @State var editing: Hub.Launcher.AppInfo?
   @State var manager = Manager()
   @State var hasLauncher: Bool = false
   @State var creating = false
@@ -77,7 +78,7 @@ struct LauncherView: View {
     List {
       LauncherCell()
       if task.isConnected {
-        ListView()
+        ListView(editing: $editing)
         Button("Get More", systemImage: "arrow.down.circle.fill") {
           withAnimation {
             openStore = true
@@ -90,6 +91,8 @@ struct LauncherView: View {
       }
     }.sheet(isPresented: $creating) {
       CreateApp().padding().frame(maxWidth: 300)
+    }.sheet(item: $editing) {
+      EditApp(app: $0).environment(hub).frame(minHeight: 300)
     }.navigationDestination(isPresented: $openStore) {
       StoreView().environment(manager).environment(hub)
     }.task(id: task) {
@@ -118,9 +121,10 @@ struct LauncherView: View {
   }
   struct ListView: View {
     @Environment(LauncherView.Manager.self) var manager
+    @Binding var editing: Hub.Launcher.AppInfo?
     var body: some View {
       ForEach(manager.apps) { app in
-        AppView(app: app)
+        AppView(app: app, editing: $editing)
       }
     }
   }
@@ -230,6 +234,7 @@ struct LauncherView: View {
       }
     }
     let app: App
+    @Binding var editing: Hub.Launcher.AppInfo?
     @State var instances: Int = 0
     @State var showsInstances = false
     var body: some View {
@@ -274,6 +279,11 @@ struct LauncherView: View {
             if let info = app.info, info.instances == 1 {
               Button("Cluster", systemImage: "list.number") {
                 showsInstances = true
+              }
+            }
+            if let app = app.info {
+              Button("Edit", systemImage: "gear") {
+                editing = app
               }
             }
             AsyncButton("Stop", systemImage: "stop.fill") {

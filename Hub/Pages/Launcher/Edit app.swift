@@ -9,6 +9,7 @@ import SwiftUI
 
 struct EditApp: View {
   let app: Hub.Launcher.AppInfo
+  @Environment(\.dismiss) var dismiss
   @Environment(Hub.self) var hub
   @State var env: [Env] = [
     Env(),
@@ -29,10 +30,14 @@ struct EditApp: View {
         }
       }
     }.toolbar {
+      Button("Cancel", role: .cancel) {
+        dismiss()
+      }
       if hasChanges {
-        AsyncButton("Save", systemImage: "checkmark") {
+        AsyncButton("Save") {
           try await save()
-        }
+          dismiss()
+        }.buttonStyle(.borderedProminent)
       }
     }.task(id: env) {
       if !env.contains(where: { $0.isEmpty }) {
