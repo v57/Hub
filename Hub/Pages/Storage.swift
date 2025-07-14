@@ -10,21 +10,35 @@ import SwiftUI
 struct StorageView: View {
   @State var hasService: Bool = false
   @Environment(Hub.self) var hub
-  @State var list = FileList(count: 0, files: [])
+  @State var list = FileList(count: 0, files: [], directories: [])
   var content: [FileInfo] { list.files }
   @State var selected: Set<String> = []
   var body: some View {
     Table(of: FileInfo.self, selection: $selected) {
-      TableColumn("Name", value: \.name)
+      TableColumn("Name") { file in
+        FileView(file: file)
+      }
       TableColumn("Size") { file in
         Text(formatBytes(file.size))
           .foregroundStyle(.secondary)
       }
       TableColumn("Last Modified") { file in
-        Text(file.lastModified, format: .dateTime)
-          .foregroundStyle(.secondary)
+        if let date = file.lastModified {
+          Text(date, format: .dateTime).foregroundStyle(.secondary)
+        } else {
+          Text("")
+        }
       }
     } rows: {
+      ForEach(list.directories, id: \.self) { file in
+        TableRow(FileInfo(name: file, size: 0, lastModified: nil)).contextMenu {
+          Button("Delete", role: .destructive) {
+            Task {
+              try await remove(files: [file])
+            }
+          }
+        }
+      }
       ForEach(list.files) { file in
         TableRow(file).contextMenu {
           Button("Delete", role: .destructive) {
@@ -90,9 +104,26 @@ struct StorageView: View {
     }
   }
   func formatBytes(_ bytes: Int) -> String {
+    guard bytes > 0 else { return "" }
     let formatter = ByteCountFormatter()
     formatter.countStyle = .file
     return formatter.string(fromByteCount: Int64(bytes))
+  }
+  struct FileView: View {
+    let file: FileInfo
+    var isDirectory: Bool { file.name.last == "/" }
+    var body: some View {
+      HStack {
+        Image(systemName: icon).foregroundStyle(.blue)
+        Text(name)
+      }
+    }
+    var icon: String {
+      isDirectory ? "folder.fill" : "document.fill"
+    }
+    var name: String {
+      isDirectory ? String(file.name.dropLast(1)) : file.name
+    }
   }
 }
 
@@ -116,12 +147,13 @@ extension URL {
 struct FileList: Decodable {
   let count: Int
   let files: [FileInfo]
+  let directories: [String]
 }
 struct FileInfo: Identifiable, Hashable, Decodable {
   var id: String { name }
   let name: String
   let size: Int
-  let lastModified: Date
+  let lastModified: Date?
 }
 
 #Preview {
