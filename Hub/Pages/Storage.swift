@@ -21,14 +21,14 @@ struct StorageView: View {
       TableColumn("Size") { file in
         Text(formatBytes(file.size))
           .foregroundStyle(.secondary)
-      }
+      }.width(60)
       TableColumn("Last Modified") { file in
         if let date = file.lastModified {
           Text(date, format: .dateTime).foregroundStyle(.secondary)
         } else {
           Text("")
         }
-      }
+      }.width(110)
     } rows: {
       ForEach(list.directories, id: \.self) { file in
         TableRow(FileInfo(name: file, size: 0, lastModified: nil)).contextMenu {
@@ -199,7 +199,7 @@ struct FileInfo: Identifiable, Hashable, Decodable {
 }
 
 #Preview {
-  StorageView().environment(Hub.test)
+  StorageView().environment(Hub.test).frame(width: 400)
 }
 
 extension View {
