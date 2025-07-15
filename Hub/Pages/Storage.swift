@@ -40,7 +40,7 @@ struct StorageView: View {
         TableRow(FileInfo(name: file, size: 0, lastModified: nil)).contextMenu {
           Button("Delete", role: .destructive) {
             Task {
-              try await remove(files: [file])
+              await remove(files: [file])
             }
           }
         }
@@ -49,7 +49,7 @@ struct StorageView: View {
         TableRow(file).contextMenu {
           Button("Delete", role: .destructive) {
             Task {
-              try await remove(files: [file.name])
+              await remove(files: [file.name])
             }
           }
         }
@@ -58,7 +58,7 @@ struct StorageView: View {
       if selected.count > 0 {
         Button("Delete Selected", systemImage: "trash", role: .destructive) {
           Task {
-            try await remove(files: Array(selected))
+            await remove(files: Array(selected))
           }
         }.keyboardShortcut(.delete)
       }
@@ -73,28 +73,9 @@ struct StorageView: View {
     
   }
   func add(files: [URL]) async throws {
-    do {
-      for file in files {
-        if file.hasDirectoryPath {
-          var content = [URL]()
-          try file.contents(array: &content)
-          let prefix = file.absoluteString.count - file.lastPathComponent.count - 1
-          let uploading = content.map { url in
-            let name = url.absoluteString
-            return UploadingFile(target: String(name.suffix(name.count - prefix)), content: url)
-          }
-          for file in uploading {
-            try await uploadManager.upload(hub: hub, file: file)
-          }
-        } else {
-          try await uploadManager.upload(hub: hub, file: UploadingFile(target: file.lastPathComponent, content: file))
-        }
-      }
-    } catch {
-      print(error)
-    }
+    try await uploadManager.upload(files: files, hub: hub)
   }
-  func remove(files: [String]) async throws {
+  func remove(files: [String]) async {
     do {
       for file in files {
         try await hub.client.send("s3/delete", file)
@@ -143,6 +124,7 @@ struct StorageView: View {
 }
 
 @Observable
+@MainActor
 class UploadManager {
   enum TaskType: CustomStringConvertible {
     case task(UploadTask)
@@ -287,13 +269,40 @@ class UploadManager {
     var iterator = components.makeIterator()
     return tasks.progress(path: &iterator)
   }
-  func upload(hub: Hub, file: UploadingFile) async throws {
+  func upload(files: [URL], hub: Hub) async throws {
+    do {
+      for file in files {
+        if file.hasDirectoryPath {
+          var content = [URL]()
+          try file.contents(array: &content)
+          let prefix = file.absoluteString.count - file.lastPathComponent.count - 1
+          for url in content {
+            let name = url.absoluteString
+            let file = UploadingFile(target: String(name.suffix(name.count - prefix)), content: url)
+            let task = UploadTask()
+            set(path: file.target, task: task)
+            Task {
+              try await upload(hub: hub, file: file, task: task)
+            }
+          }
+        } else {
+          let file = UploadingFile(target: file.lastPathComponent, content: file)
+          let task = UploadTask()
+          set(path: file.target, task: task)
+          Task {
+            try await upload(hub: hub, file: file, task: task)
+          }
+        }
+      }
+    } catch {
+      print(error)
+    }
+  }
+  func upload(hub: Hub, file: UploadingFile, task: UploadTask) async throws {
     print("Uploading", file.target)
     let url: URL = try await hub.client.send("s3/write", file.target)
     var request = URLRequest(url: url)
     request.httpMethod = "PUT"
-    let task = UploadTask()
-    set(path: file.target, task: task)
     _ = try await URLSession.shared.upload(for: request, fromFile: file.content, delegate: task)
     try await hub.client.send("s3/updated")
     print("Uploaded", file.target)
