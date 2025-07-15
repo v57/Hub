@@ -130,7 +130,15 @@ struct StorageView: View {
       }
     }
     var icon: String {
-      isDirectory ? "folder" : "document"
+      isDirectory ? "folder" : fileIcon
+    }
+    var fileIcon: String {
+      switch file.name.components(separatedBy: ".").last {
+      case "png", "jpg", "jpeg", "heic", "avif": "photo"
+      case "mp4", "mov", "mkv", "avi": "video"
+      case "wav", "ogg", "acc", "m4a", "mp3": "speaker.wave.2"
+      default: "document"
+      }
     }
     var name: String {
       isDirectory ? String(file.name.dropLast(1)) : file.name
