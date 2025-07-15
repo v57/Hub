@@ -11,8 +11,8 @@ struct StorageView: View {
   @State var hasService: Bool = false
   @Environment(Hub.self) var hub
   @State var list = FileList(count: 0, files: [], directories: [])
-  var content: [FileInfo] { list.files }
   @State var selected: Set<String> = []
+  @State var uploadManager = UploadManager()
   var body: some View {
     Table(of: FileInfo.self, selection: $selected) {
       TableColumn("Name") { file in
@@ -61,7 +61,18 @@ struct StorageView: View {
       return true
     }.navigationTitle("Storage").hubStream("hub/status") { (status: Status) in
       hasService = status.contains(service: "s3")
-    }.hubStream("s3/list", to: $list)
+    }.hubStream("s3/list") { (list: FileList) in
+      var list = list
+      let files = Set(list.files.map(\.name))
+      for key in uploadManager.tasks.keys {
+        if !files.contains(key) {
+          list.files.insert(FileInfo(name: key, size: 0, lastModified: nil), at: 0)
+        }
+      }
+      self.list = list
+    }.environment(uploadManager).contentTransition(.symbolEffect(.replace))
+      .progressDraw()
+    
   }
   func add(files: [URL]) async throws {
     do {
@@ -75,23 +86,17 @@ struct StorageView: View {
             return UploadingFile(target: String(name.suffix(name.count - prefix)), content: url)
           }
           for file in uploading {
-            try await upload(file: file)
+            self.list.files.insert(.init(name: file.target, size: 0, lastModified: nil), at: 0)
+            try await uploadManager.upload(hub: hub, file: file)
           }
         } else {
-          try await upload(file: UploadingFile(target: file.lastPathComponent, content: file))
+          self.list.files.insert(.init(name: file.lastPathComponent, size: 0, lastModified: nil), at: 0)
+          try await uploadManager.upload(hub: hub, file: UploadingFile(target: file.lastPathComponent, content: file))
         }
       }
     } catch {
       print(error)
     }
-  }
-  func upload(file: UploadingFile) async throws {
-    print("Uploading", file.target)
-    let url: URL = try await hub.client.send("s3/write", file.target)
-    var request = URLRequest(url: url)
-    request.httpMethod = "PUT"
-    _ = try await URLSession.shared.upload(for: request, fromFile: file.content)
-    try await hub.client.send("s3/updated")
   }
   func remove(files: [String]) async throws {
     do {
@@ -111,18 +116,55 @@ struct StorageView: View {
   }
   struct FileView: View {
     let file: FileInfo
+    @Environment(UploadManager.self) var uploadManager
     var isDirectory: Bool { file.name.last == "/" }
     var body: some View {
-      HStack {
-        Image(systemName: icon).foregroundStyle(.blue)
+      let task = uploadManager.tasks[file.name]
+      let isCompleted: Bool = task?.progress == 1 && !(task?.isCompleted ?? false)
+      HStack(spacing: 0) {
+        Image(systemName: isCompleted ? "checkmark" : icon, variableValue: task?.progress)
+          .symbolVariant(task?.progress != nil && !(task?.isCompleted ?? false) ? .circle : .fill)
+          .foregroundStyle(.blue)
+          .frame(minWidth: 25)
         Text(name)
       }
     }
     var icon: String {
-      isDirectory ? "folder.fill" : "document.fill"
+      isDirectory ? "folder" : "document"
     }
     var name: String {
       isDirectory ? String(file.name.dropLast(1)) : file.name
+    }
+  }
+}
+
+@Observable
+class UploadManager {
+  var tasks: [String: UploadTask] = [:]
+  func upload(hub: Hub, file: UploadingFile) async throws {
+    print("Uploading", file.target)
+    let url: URL = try await hub.client.send("s3/write", file.target)
+    var request = URLRequest(url: url)
+    request.httpMethod = "PUT"
+    let task = UploadTask()
+    tasks[file.target] = task
+    _ = try await URLSession.shared.upload(for: request, fromFile: file.content, delegate: task)
+    try await hub.client.send("s3/updated")
+    print("Uploaded", file.target)
+  }
+}
+@Observable
+class UploadTask: NSObject, URLSessionTaskDelegate {
+  var progress = 0.0
+  var isCompleted = false
+  func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+    guard totalBytesExpectedToSend > 0 else { return }
+    progress = Double(totalBytesSent) / Double(totalBytesExpectedToSend)
+    if progress == 1 {
+      Task {
+        try await Task.sleep(for: .seconds(1))
+        isCompleted = true
+      }
     }
   }
 }
@@ -146,8 +188,8 @@ extension URL {
 
 struct FileList: Decodable {
   let count: Int
-  let files: [FileInfo]
-  let directories: [String]
+  var files: [FileInfo]
+  var directories: [String]
 }
 struct FileInfo: Identifiable, Hashable, Decodable {
   var id: String { name }
@@ -158,4 +200,15 @@ struct FileInfo: Identifiable, Hashable, Decodable {
 
 #Preview {
   StorageView().environment(Hub.test)
+}
+
+extension View {
+  @ViewBuilder
+  func progressDraw() -> some View {
+    if #available(macOS 26.0, *) {
+      self.symbolVariableValueMode(.draw)
+    } else {
+      self
+    }
+  }
 }
