@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct StorageView: View {
   @State var hasService: Bool = false
@@ -18,7 +19,7 @@ struct StorageView: View {
   var files: [FileInfo] {
     uploadManager.files(list.files)
   }
-  @State var uploadManager = UploadManager()
+  @State var uploadManager = UploadManager.main
   var body: some View {
     Table(of: FileInfo.self, selection: $selected) {
       TableColumn("Name") { file in
@@ -52,7 +53,7 @@ struct StorageView: View {
               await remove(files: [file.name])
             }
           }
-        }
+        }.draggable(FileInfoTransfer(hub: hub, file: file))
       }
     }.toolbar {
       if selected.count > 0 {
@@ -126,6 +127,7 @@ struct StorageView: View {
 @Observable
 @MainActor
 class UploadManager {
+  static let main = UploadManager()
   enum TaskType: CustomStringConvertible {
     case task(UploadTask)
     case directory([String: TaskType])
@@ -338,7 +340,6 @@ class UploadManager {
       } catch { }
       uploadingSize -= total
       running.remove(task)
-      print(running.count, uploadingSize)
       nextPending()
       completed.insert(task.file.target)
       if running.isEmpty {
@@ -400,6 +401,29 @@ struct FileInfo: Identifiable, Hashable, Decodable {
   let name: String
   let size: Int
   let lastModified: Date?
+  var utType: UTType? {
+    UTType(filenameExtension: name)
+  }
+}
+
+struct FileInfoTransfer: Transferable {
+  let hub: Hub
+  let file: FileInfo
+  static var transferRepresentation: some TransferRepresentation {
+    FileRepresentation(exportedContentType: .png) { file in
+      do {
+        let link: URL = try await file.hub.client.send("s3/read", file.file.name)
+        let (url, _) = try await URLSession.shared.download(from: link)
+        let target = URL.temporaryDirectory.appending(component: file.file.name.components(separatedBy: "/").last!, directoryHint: .notDirectory)
+        try? FileManager.default.moveItem(at: url, to: target)
+        print(target)
+        return SentTransferredFile(target, allowAccessingOriginalFile: false)
+      } catch {
+        print(error)
+        throw error
+      }
+    }
+  }
 }
 
 #Preview {
