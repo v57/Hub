@@ -275,9 +275,9 @@ class UploadManager {
         if file.hasDirectoryPath {
           var content = [URL]()
           try file.contents(array: &content)
-          let prefix = file.absoluteString.count - file.lastPathComponent.count - 1
+          let prefix = file.path(percentEncoded: false).count - file.lastPathComponent.count - 1
           for url in content {
-            let name = url.absoluteString
+            let name = url.path(percentEncoded: false)
             let file = UploadingFile(target: String(name.suffix(name.count - prefix)), content: url)
             let task = UploadTask()
             task.total = url.fileSize
