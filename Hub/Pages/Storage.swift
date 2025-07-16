@@ -64,7 +64,7 @@ struct StorageView: View {
         }.keyboardShortcut(.delete)
       }
     }.dropDestination { (files: [URL], point: CGPoint) -> Bool in
-      Task { try await add(files: files) }
+      add(files: files)
       return true
     }.navigationTitle("Storage").hubStream("hub/status") { (status: Status) in
       hasService = status.contains(service: "s3")
@@ -73,8 +73,8 @@ struct StorageView: View {
       .progressDraw()
     
   }
-  func add(files: [URL]) async throws {
-    try await uploadManager.upload(files: files, hub: hub)
+  func add(files: [URL]) {
+    uploadManager.upload(files: files, hub: hub)
   }
   func remove(files: [String]) async {
     do {
@@ -271,7 +271,7 @@ class UploadManager {
     var iterator = components.makeIterator()
     return tasks.progress(path: &iterator)
   }
-  func upload(files: [URL], hub: Hub) async throws {
+  func upload(files: [URL], hub: Hub) {
     do {
       for file in files {
         if file.hasDirectoryPath {
@@ -441,7 +441,6 @@ struct DirectoryTransfer: Transferable {
       let manager = FileManager.default
       let files: [String] = try await hub.client.send("s3/read/directory", name)
       let root = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
-      print(root)
       for file in files {
         let link: URL = try await hub.client.send("s3/read", file)
         let (url, _) = try await URLSession.shared.download(from: link)
