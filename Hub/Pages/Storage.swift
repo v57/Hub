@@ -280,34 +280,75 @@ class UploadManager {
             let name = url.absoluteString
             let file = UploadingFile(target: String(name.suffix(name.count - prefix)), content: url)
             let task = UploadTask()
+            task.total = url.fileSize
             set(path: file.target, task: task)
-            Task {
-              try await upload(hub: hub, file: file, task: task)
-            }
+            upload(hub: hub, file: file, task: task)
           }
         } else {
-          let file = UploadingFile(target: file.lastPathComponent, content: file)
+          let uploadingFile = UploadingFile(target: file.lastPathComponent, content: file)
           let task = UploadTask()
-          set(path: file.target, task: task)
-          Task {
-            try await upload(hub: hub, file: file, task: task)
-          }
+          task.total = file.fileSize
+          set(path: uploadingFile.target, task: task)
+          upload(hub: hub, file: uploadingFile, task: task)
         }
       }
     } catch {
       print(error)
     }
   }
-  func upload(hub: Hub, file: UploadingFile, task: UploadTask) async throws {
-    print("Uploading", file.target)
-    let url: URL = try await hub.client.send("s3/write", file.target)
-    var request = URLRequest(url: url)
-    request.httpMethod = "PUT"
-    _ = try await URLSession.shared.upload(for: request, fromFile: file.content, delegate: task)
-    try await hub.client.send("s3/updated")
-    print("Uploaded", file.target)
-    try await Task.sleep(for: .seconds(1))
-    remove(path: file.target)
+  struct PendingTask: Hashable {
+    let hub: Hub, file: UploadingFile, task: UploadTask
+    func start() async throws {
+      print("Uploading", file.target)
+      let url: URL = try await hub.client.send("s3/write", file.target)
+      var request = URLRequest(url: url)
+      request.httpMethod = "PUT"
+      _ = try await URLSession.shared.upload(for: request, fromFile: file.content, delegate: task)
+      try await hub.client.send("s3/updated")
+      print("Uploaded", file.target)
+    }
+    func hash(into hasher: inout Hasher) {
+      task.hash(into: &hasher)
+    }
+    static func ==(l: Self, r: Self) -> Bool {
+      l.task === r.task
+    }
+  }
+  var running = Set<PendingTask>()
+  var pending = [PendingTask]()
+  var completed = Set<String>()
+  func upload(hub: Hub, file: UploadingFile, task: UploadTask) {
+    let task = PendingTask(hub: hub, file: file, task: task)
+    pending.append(task)
+    if running.isEmpty {
+      nextPending()
+    }
+  }
+  private func nextPending() {
+    guard !pending.isEmpty else { return }
+    guard running.isEmpty else { return }
+    let task = pending.removeFirst()
+    running.insert(task)
+    Task {
+      do {
+        try await task.start()
+      } catch { }
+      running.remove(task)
+      nextPending()
+      completed.insert(task.file.target)
+      if running.isEmpty {
+        try await Task.sleep(for: .seconds(1))
+        completed.forEach { path in
+          remove(path: path)
+        }
+        completed = []
+      }
+    }
+  }
+}
+extension URL {
+  var fileSize: Int64 {
+    (try? FileManager.default.attributesOfItem(atPath: path(percentEncoded: false))[FileAttributeKey.size] as? Int64) ?? 0
   }
 }
 @Observable
@@ -326,7 +367,7 @@ class UploadTask: NSObject, URLSessionTaskDelegate {
   }
 }
 
-struct UploadingFile {
+struct UploadingFile: Hashable {
   let target: String
   let content: URL
 }
