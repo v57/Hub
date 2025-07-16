@@ -314,6 +314,7 @@ class UploadManager {
       l.task === r.task
     }
   }
+  var uploadingSize: Int64 = 0
   var running = Set<PendingTask>()
   var pending = [PendingTask]()
   var completed = Set<String>()
@@ -326,14 +327,18 @@ class UploadManager {
   }
   private func nextPending() {
     guard !pending.isEmpty else { return }
-    guard running.isEmpty else { return }
+    guard uploadingSize < 10_000_000 else { return }
     let task = pending.removeFirst()
+    let total = task.task.total
+    uploadingSize += total
     running.insert(task)
     Task {
       do {
         try await task.start()
       } catch { }
+      uploadingSize -= total
       running.remove(task)
+      print(running.count, uploadingSize)
       nextPending()
       completed.insert(task.file.target)
       if running.isEmpty {
@@ -344,6 +349,7 @@ class UploadManager {
         completed = []
       }
     }
+    nextPending()
   }
 }
 extension URL {
