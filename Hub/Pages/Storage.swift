@@ -399,29 +399,32 @@ struct FileList: Decodable {
 struct FileInfo: Identifiable, Hashable, Decodable {
   var id: String { name }
   let name: String
+  var isDirectory: Bool {
+    name.last == "/"
+  }
+  var ext: String {
+    isDirectory ? "" : String(name.split { $0 == "." }.last!)
+  }
   let size: Int
   let lastModified: Date?
-  var utType: UTType? {
-    UTType(filenameExtension: name)
-  }
 }
 
 struct FileInfoTransfer: Transferable {
   let hub: Hub
   let file: FileInfo
   static var transferRepresentation: some TransferRepresentation {
-    FileRepresentation(exportedContentType: .png) { file in
-      do {
-        let link: URL = try await file.hub.client.send("s3/read", file.file.name)
-        let (url, _) = try await URLSession.shared.download(from: link)
-        let target = URL.temporaryDirectory.appending(component: file.file.name.components(separatedBy: "/").last!, directoryHint: .notDirectory)
-        try? FileManager.default.moveItem(at: url, to: target)
-        print(target)
-        return SentTransferredFile(target, allowAccessingOriginalFile: false)
-      } catch {
-        print(error)
-        throw error
-      }
+    FileRepresentation<Self>(exportedContentType: .data) { file in
+      try await SentTransferredFile(file.download(), allowAccessingOriginalFile: false)
+    }.suggestedFileName { $0.file.name }
+  }
+  func download() async throws -> URL {
+    do {
+      let link: URL = try await hub.client.send("s3/read", file.name)
+      let (url, _) = try await URLSession.shared.download(from: link)
+      return url
+    } catch {
+      print(error)
+      throw error
     }
   }
 }
