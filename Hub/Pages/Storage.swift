@@ -44,7 +44,7 @@ struct StorageView: View {
               await remove(files: [file])
             }
           }
-        }
+        }.draggable(DirectoryTransfer(hub: hub, name: file))
       }
       ForEach(files) { file in
         TableRow(file).contextMenu {
@@ -422,6 +422,35 @@ struct FileInfoTransfer: Transferable {
       let link: URL = try await hub.client.send("s3/read", file.name)
       let (url, _) = try await URLSession.shared.download(from: link)
       return url
+    } catch {
+      print(error)
+      throw error
+    }
+  }
+}
+struct DirectoryTransfer: Transferable {
+  let hub: Hub
+  let name: String
+  static var transferRepresentation: some TransferRepresentation {
+    FileRepresentation<Self>(exportedContentType: .folder) { file in
+      try await SentTransferredFile(file.download(), allowAccessingOriginalFile: false)
+    }.suggestedFileName { String($0.name.dropLast(1)) }
+  }
+  func download() async throws -> URL {
+    do {
+      let manager = FileManager.default
+      let files: [String] = try await hub.client.send("s3/read/directory", name)
+      let root = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
+      print(root)
+      for file in files {
+        let link: URL = try await hub.client.send("s3/read", file)
+        let (url, _) = try await URLSession.shared.download(from: link)
+        let path = file.components(separatedBy: "/").dropFirst().joined(separator: "/")
+        let target = root.appending(path: path, directoryHint: .notDirectory)
+        try? manager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try manager.moveItem(at: url, to: target)
+      }
+      return root
     } catch {
       print(error)
       throw error
