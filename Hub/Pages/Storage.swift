@@ -423,7 +423,8 @@ class UploadManager {
     }
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
       guard let task = tasks[downloadTask]?.upload else { return }
-      task.progress = FileProgress(sent: totalBytesWritten, total: totalBytesExpectedToWrite)
+      let progress = FileProgress(sent: totalBytesWritten, total: totalBytesExpectedToWrite)
+      task.set(progress: progress)
     }
   }
 }
@@ -454,11 +455,38 @@ struct FileProgress: Hashable {
 
 @Observable
 class UploadTask: NSObject, URLSessionTaskDelegate {
-  var progress = FileProgress()
+  var progress = FileProgress() {
+    didSet {
+      print(progress)
+    }
+  }
+  @ObservationIgnored
+  private var pendingProgress: FileProgress?
+  @ObservationIgnored
+  private var pendingTask: Task<Void, Error>?
   override var description: String { "\(progress.sent)/\(progress.total)" }
   func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
     guard totalBytesExpectedToSend > 0 else { return }
     progress = FileProgress(sent: totalBytesSent, total: totalBytesExpectedToSend)
+  }
+  func set(progress: FileProgress) {
+    if pendingTask == nil {
+      self.progress = progress
+      pendingTask = Task {
+        while true {
+          try await Task.sleep(for: .milliseconds(200))
+          if let pendingProgress {
+            self.progress = pendingProgress
+            self.pendingProgress = nil
+          } else {
+            break
+          }
+        }
+        pendingTask = nil
+      }
+    } else {
+      self.pendingProgress = progress
+    }
   }
 }
 
