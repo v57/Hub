@@ -303,7 +303,12 @@ class UploadManager {
     let task = UploadTask()
     task.total = Int64(file.size)
     set(path: file.name, task: task)
-    defer { remove(path: file.name) }
+    defer {
+      Task {
+        try await Task.sleep(for: .seconds(1))
+        remove(path: file.name)
+      }
+    }
     return try await session.download(from: link, delegate: delegate, task: task)
   }
   func downloadDirectory(hub: Hub, name: String) async throws -> URL {
@@ -317,7 +322,10 @@ class UploadManager {
       return task
     }
     defer {
-      files.forEach { file in remove(path: file.name) }
+      Task {
+        try await Task.sleep(for: .seconds(1))
+        files.forEach { file in remove(path: file.name) }
+      }
     }
     for (file, task) in zip(files, tasks) {
       let link: URL = try await hub.client.send("s3/read", file.name)
