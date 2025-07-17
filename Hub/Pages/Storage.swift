@@ -21,7 +21,6 @@ struct StorageView: View {
   }
   @State var uploadManager = UploadManager.main
   var body: some View {
-    let _ = Self._printChanges()
     Table(of: FileInfo.self, selection: $selected) {
       TableColumn("Name") { file in
         FileView(file: file).tint(selected.contains(file.name) ? .white : .blue)
@@ -190,28 +189,27 @@ class UploadManager {
     }
     func progress(path: inout IndexingIterator<[String]>) -> Double? {
       switch self {
-      case .task(let task): return task.progress
+      case .task(let task): return task.progress.progress
       case .directory(let dictionary):
         if let p = path.next(), !p.isEmpty {
           return dictionary[p]?.progress(path: &path)
         } else {
-          var sent: Int64 = 0
-          var total: Int64 = 0
+          var progress = FileProgress()
           var edited = false
-          progress(sent: &sent, total: &total, edited: &edited)
+          self.progress(progress: &progress, edited: &edited)
           guard edited else { return nil }
-          return total > 0 ? Double(sent) / Double(total) : 0
+          return progress.progress
         }
       }
     }
-    func progress(sent: inout Int64, total: inout Int64, edited: inout Bool) {
+    func progress(progress: inout FileProgress, edited: inout Bool) {
       switch self {
       case .task(let task):
-        sent += task.sent
-        total += task.total
+        progress.sent += task.progress.sent
+        progress.total += task.progress.total
         edited = true
       case .directory(let dictionary):
-        dictionary.values.forEach { $0.progress(sent: &sent, total: &total, edited: &edited) }
+        dictionary.values.forEach { $0.progress(progress: &progress, edited: &edited) }
       }
     }
     var directories: [String] {
@@ -288,14 +286,14 @@ class UploadManager {
             let name = url.path(percentEncoded: false)
             let file = UploadingFile(target: String(name.suffix(name.count - prefix)), content: url)
             let task = UploadTask()
-            task.total = url.fileSize
+            task.progress.total = url.fileSize
             set(path: file.target, task: task)
             upload(hub: hub, file: file, task: task)
           }
         } else {
           let uploadingFile = UploadingFile(target: file.lastPathComponent, content: file)
           let task = UploadTask()
-          task.total = file.fileSize
+          task.progress.total = file.fileSize
           set(path: uploadingFile.target, task: task)
           upload(hub: hub, file: uploadingFile, task: task)
         }
@@ -307,7 +305,7 @@ class UploadManager {
   func download(hub: Hub, file: FileInfo) async throws -> URL {
     let link: URL = try await hub.client.send("s3/read", file.name)
     let task = UploadTask()
-    task.total = Int64(file.size)
+    task.progress.total = Int64(file.size)
     set(path: file.name, task: task)
     defer {
       Task {
@@ -323,7 +321,7 @@ class UploadManager {
     let root = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
     let tasks = files.map { (file: FileInfo) -> UploadTask in
       let task = UploadTask()
-      task.total = Int64(file.size)
+      task.progress.total = Int64(file.size)
       set(path: file.name, task: task)
       return task
     }
@@ -376,7 +374,7 @@ class UploadManager {
     guard !pending.isEmpty else { return }
     guard uploadingSize < 10_000_000 else { return }
     let task = pending.removeFirst()
-    let total = task.task.total
+    let total = task.task.progress.total
     uploadingSize += total
     running.insert(task)
     Task {
@@ -424,9 +422,8 @@ class UploadManager {
       }
     }
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-      guard let task = tasks[downloadTask] else { return }
-      task.upload.sent = totalBytesWritten
-      task.upload.total = totalBytesExpectedToWrite
+      guard let task = tasks[downloadTask]?.upload else { return }
+      task.progress = FileProgress(sent: totalBytesWritten, total: totalBytesExpectedToWrite)
     }
   }
 }
@@ -445,19 +442,23 @@ extension URL {
     (try? FileManager.default.attributesOfItem(atPath: path(percentEncoded: false))[FileAttributeKey.size] as? Int64) ?? 0
   }
 }
-@Observable
-class UploadTask: NSObject, URLSessionTaskDelegate {
+
+struct FileProgress: Hashable {
   var sent: Int64 = 0
   var total: Int64 = 0
   var progress: Double {
     guard total > 0 else { return 0 }
     return Double(sent) / Double(total)
   }
-  override var description: String { "\(sent)/\(total)" }
+}
+
+@Observable
+class UploadTask: NSObject, URLSessionTaskDelegate {
+  var progress = FileProgress()
+  override var description: String { "\(progress.sent)/\(progress.total)" }
   func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
     guard totalBytesExpectedToSend > 0 else { return }
-    sent = totalBytesSent
-    total = totalBytesExpectedToSend
+    progress = FileProgress(sent: totalBytesSent, total: totalBytesExpectedToSend)
   }
 }
 
