@@ -21,6 +21,7 @@ struct StorageView: View {
   }
   @State var uploadManager = UploadManager.main
   var body: some View {
+    let _ = Self._printChanges()
     Table(of: FileInfo.self, selection: $selected) {
       TableColumn("Name") { file in
         FileView(file: file).tint(selected.contains(file.name) ? .white : .blue)
@@ -94,32 +95,37 @@ struct StorageView: View {
   }
   struct FileView: View {
     let file: FileInfo
-    @Environment(UploadManager.self) var uploadManager
-    var isDirectory: Bool { file.name.last == "/" }
     var body: some View {
-      let progress = uploadManager.progress(path: file.name)
-      let isCompleted: Bool = progress == 1
       HStack(spacing: 0) {
-        Image(systemName: isCompleted ? "checkmark" : icon, variableValue: progress)
-          .symbolVariant(progress != nil ? .circle : .fill)
+        IconView(file: file)
           .foregroundStyle(.tint)
           .frame(minWidth: 25)
         Text(name)
       }
     }
-    var icon: String {
-      isDirectory ? "folder" : fileIcon
-    }
-    var fileIcon: String {
-      switch file.name.components(separatedBy: ".").last {
-      case "png", "jpg", "jpeg", "heic", "avif": "photo"
-      case "mp4", "mov", "mkv", "avi": "video"
-      case "wav", "ogg", "acc", "m4a", "mp3": "speaker.wave.2"
-      default: "document"
+    struct IconView: View {
+      let file: FileInfo
+      @Environment(UploadManager.self) private var uploadManager
+      var body: some View {
+        let progress = uploadManager.progress(path: file.name)
+        let isCompleted: Bool = progress == 1
+        Image(systemName: isCompleted ? "checkmark" : icon, variableValue: progress)
+          .symbolVariant(progress != nil ? .circle : .fill)
+      }
+      var icon: String {
+        file.isDirectory ? "folder" : fileIcon
+      }
+      var fileIcon: String {
+        switch file.name.components(separatedBy: ".").last {
+        case "png", "jpg", "jpeg", "heic", "avif": "photo"
+        case "mp4", "mov", "mkv", "avi": "video"
+        case "wav", "ogg", "acc", "m4a", "mp3": "speaker.wave.2"
+        default: "document"
+        }
       }
     }
     var name: String {
-      isDirectory ? String(file.name.dropLast(1)) : file.name
+      file.isDirectory ? String(file.name.dropLast(1)) : file.name
     }
   }
 }
