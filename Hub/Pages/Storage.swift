@@ -23,7 +23,7 @@ struct StorageView: View {
   var body: some View {
     Table(of: FileInfo.self, selection: $selected) {
       TableColumn("Name") { file in
-        FileView(file: file)
+        FileView(file: file).tint(selected.contains(file.name) ? .white : .blue)
       }
       TableColumn("Size") { file in
         Text(formatBytes(file.size))
@@ -102,7 +102,7 @@ struct StorageView: View {
       HStack(spacing: 0) {
         Image(systemName: isCompleted ? "checkmark" : icon, variableValue: progress)
           .symbolVariant(progress != nil ? .circle : .fill)
-          .foregroundStyle(.blue)
+          .foregroundStyle(.tint)
           .frame(minWidth: 25)
         Text(name)
       }
