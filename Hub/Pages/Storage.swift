@@ -299,17 +299,35 @@ class UploadManager {
     }
   }
   func download(hub: Hub, file: FileInfo) async throws -> URL {
-    do {
-      let link: URL = try await hub.client.send("s3/read", file.name)
+    let link: URL = try await hub.client.send("s3/read", file.name)
+    let task = UploadTask()
+    task.total = Int64(file.size)
+    set(path: file.name, task: task)
+    defer { remove(path: file.name) }
+    return try await session.download(from: link, delegate: delegate, task: task)
+  }
+  func downloadDirectory(hub: Hub, name: String) async throws -> URL {
+    let manager = FileManager.default
+    let files: [FileInfo] = try await hub.client.send("s3/read/directory", name)
+    let root = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
+    let tasks = files.map { (file: FileInfo) -> UploadTask in
       let task = UploadTask()
-      task.total = link.fileSize
+      task.total = Int64(file.size)
       set(path: file.name, task: task)
-      defer { remove(path: file.name) }
-      return try await session.download(from: link, delegate: delegate, task: task)
-    } catch {
-      print(error)
-      throw error
+      return task
     }
+    defer {
+      files.forEach { file in remove(path: file.name) }
+    }
+    for (file, task) in zip(files, tasks) {
+      let link: URL = try await hub.client.send("s3/read", file.name)
+      let url = try await session.download(from: link, delegate: delegate, task: task)
+      let path = file.name.components(separatedBy: "/").dropFirst().joined(separator: "/")
+      let target = root.appending(path: path, directoryHint: .notDirectory)
+      try? manager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try manager.moveItem(at: url, to: target)
+    }
+    return root
   }
   struct PendingTask: Hashable {
     let hub: Hub, file: UploadingFile, task: UploadTask
@@ -491,18 +509,7 @@ struct DirectoryTransfer: Transferable {
   }
   func download() async throws -> URL {
     do {
-      let manager = FileManager.default
-      let files: [String] = try await hub.client.send("s3/read/directory", name)
-      let root = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
-      for file in files {
-        let link: URL = try await hub.client.send("s3/read", file)
-        let (url, _) = try await URLSession.shared.download(from: link)
-        let path = file.components(separatedBy: "/").dropFirst().joined(separator: "/")
-        let target = root.appending(path: path, directoryHint: .notDirectory)
-        try? manager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try manager.moveItem(at: url, to: target)
-      }
-      return root
+      return try await UploadManager.main.downloadDirectory(hub: hub, name: name)
     } catch {
       print(error)
       throw error
