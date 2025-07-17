@@ -298,6 +298,19 @@ class UploadManager {
       print(error)
     }
   }
+  func download(hub: Hub, file: FileInfo) async throws -> URL {
+    do {
+      let link: URL = try await hub.client.send("s3/read", file.name)
+      let task = UploadTask()
+      task.total = link.fileSize
+      set(path: file.name, task: task)
+      defer { remove(path: file.name) }
+      return try await session.download(from: link, delegate: delegate, task: task)
+    } catch {
+      print(error)
+      throw error
+    }
+  }
   struct PendingTask: Hashable {
     let hub: Hub, file: UploadingFile, task: UploadTask
     func start() async throws {
@@ -351,6 +364,48 @@ class UploadManager {
       }
     }
     nextPending()
+  }
+  var session: URLSession
+  var delegate: Delegate
+  init() {
+    let delegate = Delegate()
+    self.delegate = delegate
+    session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: .main)
+  }
+  @MainActor
+  final class Delegate: NSObject, @preconcurrency URLSessionDownloadDelegate {
+    struct Task: Sendable {
+      let upload: UploadTask
+      let continuation: CheckedContinuation<URL, Error>
+    }
+    var tasks = [URLSessionTask: Task]()
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+      let target = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .notDirectory)
+      try? FileManager.default.moveItem(at: location, to: target)
+      tasks[downloadTask]?.continuation.resume(returning: target)
+      tasks[downloadTask] = nil
+    }
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
+      if let error {
+        tasks[task]?.continuation.resume(throwing: error)
+        tasks[task] = nil
+      }
+    }
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+      guard let task = tasks[downloadTask] else { return }
+      task.upload.sent = totalBytesWritten
+      task.upload.total = totalBytesExpectedToWrite
+    }
+  }
+}
+extension URLSession {
+  @MainActor
+  func download(from: URL, delegate: UploadManager.Delegate, task: UploadTask) async throws -> URL {
+    try await withCheckedThrowingContinuation { continuation in
+      let downloadTask = downloadTask(with: URLRequest(url: from))
+      delegate.tasks[downloadTask] = .init(upload: task, continuation: continuation)
+      downloadTask.resume()
+    }
   }
 }
 extension URL {
@@ -419,9 +474,7 @@ struct FileInfoTransfer: Transferable {
   }
   func download() async throws -> URL {
     do {
-      let link: URL = try await hub.client.send("s3/read", file.name)
-      let (url, _) = try await URLSession.shared.download(from: link)
-      return url
+      return try await UploadManager.main.download(hub: hub, file: file)
     } catch {
       print(error)
       throw error
