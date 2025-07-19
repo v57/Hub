@@ -28,7 +28,7 @@ struct StorageView: View {
   var body: some View {
     Table(of: FileInfo.self, selection: $selected, sortOrder: $sortOrder) {
       TableColumn("Name", value: \FileInfo.name) { (file: FileInfo) in
-        NameView(file: file).tint(selected.contains(file.name) ? .white : .blue)
+        NameView(file: file, path: path).tint(selected.contains(file.name) ? .white : .blue)
       }
       TableColumn("Size", value: \FileInfo.size) { (file: FileInfo) in
         Text(formatBytes(file.size))
@@ -85,13 +85,13 @@ struct StorageView: View {
       .progressDraw()
   }
   func add(files: [URL]) {
-    uploadManager.upload(files: files, to: hub)
+    uploadManager.upload(files: files, directory: path, to: hub)
   }
   func remove(files: [String]) async {
     do {
       for file in files {
-        try await hub.client.send("s3/delete", file)
-        try await hub.client.send("s3/updated")
+        print(path + file)
+        try await hub.client.send("s3/delete", path + file)
       }
     } catch {
       print(error)
@@ -106,6 +106,7 @@ struct StorageView: View {
   // MARK: File name view
   struct NameView: View {
     let file: FileInfo
+    let path: String
     var body: some View {
       if file.name.first == "/" {
         HStack(spacing: 0) {
@@ -121,7 +122,7 @@ struct StorageView: View {
         }.foregroundStyle(.tint).fontWeight(.medium)
       } else {
         HStack(spacing: 0) {
-          IconView(file: file)
+          IconView(file: file, path: path)
             .foregroundStyle(.tint)
             .frame(minWidth: 25)
           Text(name).contentTransition(.numericText()).animation(.smooth, value: name)
@@ -130,10 +131,11 @@ struct StorageView: View {
     }
     struct IconView: View {
       let file: FileInfo
+      let path: String
       @Environment(UploadManager.self) private var uploadManager
       @Environment(Hub.self) var hub
       var body: some View {
-        let progress = uploadManager.progress(for: hub, at: file.name)
+        let progress = uploadManager.progress(for: hub, at: path + file.name)
         let isCompleted: Bool = progress == 1
         Image(systemName: isCompleted ? "checkmark" : icon, variableValue: progress)
           .symbolVariant(progress != nil ? .circle : .fill)
@@ -215,7 +217,7 @@ final class UploadManager: Sendable {
     return root
   }
   // MARK: Upload
-  func upload(files: [URL], to hub: Hub) {
+  func upload(files: [URL], directory: String, to hub: Hub) {
     do {
       for url in files {
         if url.hasDirectoryPath {
@@ -224,14 +226,14 @@ final class UploadManager: Sendable {
           let prefix = url.path(percentEncoded: false).count - url.lastPathComponent.count - 1
           for url in content {
             let name = url.path(percentEncoded: false)
-            let file = UploadingFile(target: String(name.suffix(name.count - prefix)), content: url)
+            let file = UploadingFile(target: directory + String(name.suffix(name.count - prefix)), content: url)
             let task = ObservableProgress()
             task.progress.total = url.fileSize
             set(path: file.target, hub: hub, task: task)
             upload(file: file, with: task, to: hub)
           }
         } else {
-          let file = UploadingFile(target: url.lastPathComponent, content: url)
+          let file = UploadingFile(target: directory + url.lastPathComponent, content: url)
           let task = ObservableProgress()
           task.progress.total = url.fileSize
           set(path: file.target, hub: hub, task: task)
@@ -242,7 +244,7 @@ final class UploadManager: Sendable {
       print(error)
     }
   }
-  func upload(file: UploadingFile, with task: ObservableProgress, to hub: Hub) {
+  private func upload(file: UploadingFile, with task: ObservableProgress, to hub: Hub) {
     let task = PendingTask(hub: hub, file: file, progress: task)
     pending.append(task)
     if running.isEmpty {
@@ -317,7 +319,11 @@ final class UploadManager: Sendable {
       let url: URL = try await hub.client.send("s3/write", file.target)
       let manager = UploadManager.main
       _ = try await manager.session.upload(file: file.content, to: url, delegate: manager.delegate, progress: progress)
-      try await hub.client.send("s3/updated")
+      let parent = file.target.parentDirectory
+      try await hub.client.send("s3/updated", parent)
+      if !parent.isEmpty {
+        try await hub.client.send("s3/updated", parent.parentDirectory)
+      }
     }
     func hash(into hasher: inout Hasher) {
       progress.hash(into: &hasher)
