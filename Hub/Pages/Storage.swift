@@ -313,7 +313,9 @@ class UploadManager {
         remove(path: file.name)
       }
     }
-    return try await session.download(from: link, delegate: delegate, task: task)
+    let url = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .notDirectory)
+    try await session.download(from: link, to: url, delegate: delegate, task: task)
+    return url
   }
   func downloadDirectory(hub: Hub, name: String) async throws -> URL {
     let manager = FileManager.default
@@ -333,24 +335,19 @@ class UploadManager {
     }
     for (file, task) in zip(files, tasks) {
       let link: URL = try await hub.client.send("s3/read", file.name)
-      let url = try await session.download(from: link, delegate: delegate, task: task)
       let path = file.name.components(separatedBy: "/").dropFirst().joined(separator: "/")
       let target = root.appending(path: path, directoryHint: .notDirectory)
       try? manager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
-      try manager.moveItem(at: url, to: target)
+      try await session.download(from: link, to: target, delegate: delegate, task: task)
     }
     return root
   }
   struct PendingTask: Hashable {
-    let hub: Hub, file: UploadingFile, task: UploadTask
+    let hub: Hub, file: UploadingFile, session: URLSession, delegate: Delegate, task: UploadTask
     func start() async throws {
-      print("Uploading", file.target)
       let url: URL = try await hub.client.send("s3/write", file.target)
-      var request = URLRequest(url: url)
-      request.httpMethod = "PUT"
-      _ = try await URLSession.shared.upload(for: request, fromFile: file.content, delegate: task)
+      _ = try await session.upload(file: file.content, to: url, delegate: delegate, task: task)
       try await hub.client.send("s3/updated")
-      print("Uploaded", file.target)
     }
     func hash(into hasher: inout Hasher) {
       task.hash(into: &hasher)
@@ -364,7 +361,7 @@ class UploadManager {
   var pending = [PendingTask]()
   var completed = Set<String>()
   func upload(hub: Hub, file: UploadingFile, task: UploadTask) {
-    let task = PendingTask(hub: hub, file: file, task: task)
+    let task = PendingTask(hub: hub, file: file, session: session, delegate: delegate, task: task)
     pending.append(task)
     if running.isEmpty {
       nextPending()
@@ -406,20 +403,29 @@ class UploadManager {
   final class Delegate: NSObject, @preconcurrency URLSessionDownloadDelegate {
     struct Task: Sendable {
       let upload: UploadTask
-      let continuation: CheckedContinuation<URL, Error>
+      var target: URL?
+      let continuation: CheckedContinuation<Void, Error>
     }
     var tasks = [URLSessionTask: Task]()
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-      let target = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .notDirectory)
-      try? FileManager.default.moveItem(at: location, to: target)
-      tasks[downloadTask]?.continuation.resume(returning: target)
-      tasks[downloadTask] = nil
+      guard let task = tasks[downloadTask] else { return }
+      guard let target = task.target else { return }
+      try! FileManager.default.moveItem(at: location, to: target)
     }
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
       if let error {
         tasks[task]?.continuation.resume(throwing: error)
         tasks[task] = nil
+      } else {
+        tasks[task]?.continuation.resume()
+        tasks[task] = nil
       }
+    }
+    func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+      guard let task = tasks[task]?.upload else { return }
+      guard totalBytesExpectedToSend > 0 else { return }
+      let progress = FileProgress(sent: totalBytesSent, total: totalBytesExpectedToSend)
+      task.set(progress: progress)
     }
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
       guard let task = tasks[downloadTask]?.upload else { return }
@@ -430,11 +436,21 @@ class UploadManager {
 }
 extension URLSession {
   @MainActor
-  func download(from: URL, delegate: UploadManager.Delegate, task: UploadTask) async throws -> URL {
+  func download(from: URL, to: URL, delegate: UploadManager.Delegate, task: UploadTask) async throws {
     try await withCheckedThrowingContinuation { continuation in
       let downloadTask = downloadTask(with: URLRequest(url: from))
-      delegate.tasks[downloadTask] = .init(upload: task, continuation: continuation)
+      delegate.tasks[downloadTask] = .init(upload: task, target: to, continuation: continuation)
       downloadTask.resume()
+    }
+  }
+  @MainActor
+  func upload(file: URL, to: URL, delegate: UploadManager.Delegate, task: UploadTask) async throws {
+    try await withCheckedThrowingContinuation { continuation in
+      var request = URLRequest(url: to)
+      request.httpMethod = "PUT"
+      let uploadTask = uploadTask(with: request, fromFile: file)
+      delegate.tasks[uploadTask] = .init(upload: task, continuation: continuation)
+      uploadTask.resume()
     }
   }
 }
@@ -454,20 +470,18 @@ struct FileProgress: Hashable {
 }
 
 @Observable
-class UploadTask: NSObject, URLSessionTaskDelegate {
-  var progress = FileProgress() {
-    didSet {
-      print(progress)
-    }
-  }
+final class UploadTask: CustomStringConvertible, Sendable, Hashable {
+  var progress = FileProgress()
   @ObservationIgnored
   private var pendingProgress: FileProgress?
   @ObservationIgnored
   private var pendingTask: Task<Void, Error>?
-  override var description: String { "\(progress.sent)/\(progress.total)" }
-  func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
-    guard totalBytesExpectedToSend > 0 else { return }
-    progress = FileProgress(sent: totalBytesSent, total: totalBytesExpectedToSend)
+  var description: String { "\(progress.sent)/\(progress.total)" }
+  func hash(into hasher: inout Hasher) {
+    ObjectIdentifier(self).hash(into: &hasher)
+  }
+  static func == (l: UploadTask, r: UploadTask) -> Bool {
+    l === r
   }
   func set(progress: FileProgress) {
     if pendingTask == nil {
