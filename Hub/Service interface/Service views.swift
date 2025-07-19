@@ -71,6 +71,7 @@ extension Element: View {
     case .list(let a): ListView(value: a)
     case .picker(let a): PickerView(value: a)
     case .cell(let a): CellView(value: a)
+    case .files(let a): FilesView(value: a)
     }
   }
   struct TextView: View {
@@ -179,11 +180,23 @@ extension Element: View {
   }
   struct CellView: View {
     let value: Cell
-    @Environment(ServiceApp.self) var app
     var body: some View {
       VStack(alignment: .leading) {
         value.title?.secondary()
         value.subtitle
+      }
+    }
+  }
+  struct FilesView: View {
+    let value: Files
+    var body: some View {
+      RoundedRectangle(cornerRadius: 16).fill(Color.gray.opacity(0.1))
+        .stroke(.blue)
+        .frame(width: 120, height: 80).overlay {
+        VStack {
+          SwiftUI.Text("Drop files").foregroundStyle(.secondary)
+          value.title
+        }
       }
     }
   }

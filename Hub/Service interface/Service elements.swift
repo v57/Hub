@@ -8,7 +8,7 @@
 import Foundation
 
 enum ElementType: String, Codable {
-  case text, textField, button, list, picker, cell
+  case text, textField, button, list, picker, cell, files
 }
 
 protocol ElementProtocol {
@@ -25,6 +25,7 @@ enum Element: Identifiable, Decodable {
     case .list(let a): a.id
     case .picker(let a): a.id
     case .cell(let a): a.id
+    case .files(let a): a.id
     }
   }
   case text(Text)
@@ -33,6 +34,7 @@ enum Element: Identifiable, Decodable {
   case list(List)
   case picker(Picker)
   case cell(Cell)
+  case files(Files)
   enum CodingKeys: CodingKey {
     case type
   }
@@ -57,6 +59,8 @@ enum Element: Identifiable, Decodable {
         self = try .picker(Picker(from: decoder))
       case .cell:
         self = try .cell(Cell(from: decoder))
+      case .files:
+        self = try .files(Files(from: decoder))
       }
     }
   }
@@ -154,8 +158,25 @@ enum Element: Identifiable, Decodable {
     
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      self.title = try container.decodeIfPresent(Element.self, forKey: .title)
-      self.subtitle = try container.decodeIfPresent(Element.self, forKey: .subtitle)
+      self.title = try container.decodeIfPresent(.title)
+      self.subtitle = try container.decodeIfPresent(.subtitle)
+    }
+  }
+  final class Files: ElementProtocol, Identifiable, Decodable {
+    var type: ElementType { .files }
+    var id: String = UUID().uuidString
+    var title: Element?
+    var value: String
+    var action: Action
+    enum CodingKeys: CodingKey {
+      case title, value, action
+    }
+    
+    init(from decoder: any Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.title = try container.decodeIfPresent(.title)
+      self.value = try container.decode(.value)
+      self.action = try container.decode(.action)
     }
   }
   struct Action: Decodable {
