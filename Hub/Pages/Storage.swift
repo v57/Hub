@@ -13,11 +13,12 @@ struct StorageView: View {
   @Environment(Hub.self) var hub
   @State var list = FileList(count: 0, files: [], directories: [])
   @State var selected: Set<String> = []
+  @State var path: String = ""
   var directories: [String] {
-    uploadManager.directories(list.directories)
+    uploadManager.directories(at: path, list.directories)
   }
   var files: [FileInfo] {
-    uploadManager.files(list.files)
+    uploadManager.files(at: path, list.files)
   }
   @State var uploadManager = UploadManager.main
   var body: some View {
@@ -38,22 +39,19 @@ struct StorageView: View {
       }.width(110)
     } rows: {
       ForEach(directories, id: \.self) { file in
-        TableRow(FileInfo(name: file, size: 0, lastModified: nil)).contextMenu {
-          Button("Delete", role: .destructive) {
-            Task {
-              await remove(files: [file])
-            }
-          }
-        }.draggable(DirectoryTransfer(hub: hub, name: file))
+        TableRow(FileInfo(name: file, size: 0, lastModified: nil))
+          .draggable(DirectoryTransfer(hub: hub, name: file))
       }
       ForEach(files) { file in
-        TableRow(file).contextMenu {
-          Button("Delete", role: .destructive) {
-            Task {
-              await remove(files: [file.name])
-            }
-          }
-        }.draggable(FileInfoTransfer(hub: hub, file: file))
+        TableRow(file).draggable(FileInfoTransfer(hub: hub, file: file))
+      }
+    }.contextMenu(forSelectionType: String.self) { files in
+      Button("Delete", role: .destructive) {
+        Task { await remove(files: Array(files)) }
+      }.keyboardShortcut(.delete)
+    } primaryAction: { files in
+      if files.count == 1, let file = files.first, file.hasSuffix("/") {
+        path += file
       }
     }.toolbar {
       if selected.count > 0 {
@@ -68,10 +66,9 @@ struct StorageView: View {
       return true
     }.navigationTitle("Storage").hubStream("hub/status") { (status: Status) in
       hasService = status.contains(service: "s3")
-    }.hubStream("s3/list", to: $list)
+    }.hubStream("s3/list", path, to: $list)
       .environment(uploadManager).contentTransition(.symbolEffect(.replace))
       .progressDraw()
-    
   }
   func add(files: [URL]) {
     uploadManager.upload(files: files, hub: hub)
@@ -212,6 +209,15 @@ class UploadManager {
         dictionary.values.forEach { $0.progress(progress: &progress, edited: &edited) }
       }
     }
+    func resolve(path: inout IndexingIterator<[String]>) -> TaskType? {
+      guard let next = path.next(), !next.isEmpty else { return self }
+      switch self {
+      case .task:
+        return nil
+      case .directory(let dictionary):
+        return dictionary[next]?.resolve(path: &path)
+      }
+    }
     var directories: [String] {
       switch self {
       case .task: return []
@@ -237,20 +243,24 @@ class UploadManager {
       }
     }
   }
-  func directories(_ current: [String]) -> [String] {
+  func directories(at path: String, _ current: [String]) -> [String] {
     let set = Set(current)
     var current = current
-    tasks.directories.sorted().forEach { key in
+    let components = path.components(separatedBy: "/")
+    var iterator = components.makeIterator()
+    tasks.resolve(path: &iterator)?.directories.sorted().forEach { key in
       if !set.contains(key) {
         current.append(key)
       }
     }
     return current
   }
-  func files(_ current: [FileInfo]) -> [FileInfo] {
+  func files(at path: String, _ current: [FileInfo]) -> [FileInfo] {
     let set = Set(current.map { $0.name })
     var current = current
-    tasks.files.sorted().forEach { key in
+    let components = path.components(separatedBy: "/")
+    var iterator = components.makeIterator()
+    tasks.resolve(path: &iterator)?.files.sorted().forEach { key in
       if !set.contains(key) {
         current.append(FileInfo(name: key, size: 0, lastModified: nil))
       }
