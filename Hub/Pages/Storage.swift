@@ -231,6 +231,7 @@ final class UploadManager: Sendable {
           let task = ObservableProgress()
           task.progress.total = url.fileSize
           set(path: file.target, hub: hub, task: task)
+          session.files.append(file)
           upload(file: file, with: task, to: hub) { result in
             session.completeTask(result: result)
           }
@@ -240,6 +241,7 @@ final class UploadManager: Sendable {
         let file = UploadingFile(target: directory + url.lastPathComponent, content: url)
         let task = ObservableProgress()
         task.progress.total = url.fileSize
+        session.files.append(file)
         set(path: file.target, hub: hub, task: task)
         
         upload(file: file, with: task, to: hub) { result in
@@ -254,6 +256,7 @@ final class UploadManager: Sendable {
   class UploadSession {
     var tasks: Int = 0
     var lastError: Error?
+    var files: [UploadingFile] = []
     func completeTask(result: Result<Void, Error>) {
       do {
         try result.get()
