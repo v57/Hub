@@ -217,30 +217,26 @@ final class UploadManager: Sendable {
   }
   // MARK: Upload
   func upload(files: [URL], directory: String, to hub: Hub) {
-    do {
-      for url in files {
-        if url.hasDirectoryPath {
-          var content = [URL]()
-          try url.contents(array: &content)
-          let prefix = url.path(percentEncoded: false).count - url.lastPathComponent.count - 1
-          for url in content {
-            let name = url.path(percentEncoded: false)
-            let file = UploadingFile(target: directory + String(name.suffix(name.count - prefix)), content: url)
-            let task = ObservableProgress()
-            task.progress.total = url.fileSize
-            set(path: file.target, hub: hub, task: task)
-            upload(file: file, with: task, to: hub)
-          }
-        } else {
-          let file = UploadingFile(target: directory + url.lastPathComponent, content: url)
+    for url in files {
+      if url.hasDirectoryPath {
+        var content = [URL]()
+        url.contents(array: &content)
+        let prefix = url.path(percentEncoded: false).count - url.lastPathComponent.count - 1
+        for url in content {
+          let name = url.path(percentEncoded: false)
+          let file = UploadingFile(target: directory + String(name.suffix(name.count - prefix)), content: url)
           let task = ObservableProgress()
           task.progress.total = url.fileSize
           set(path: file.target, hub: hub, task: task)
           upload(file: file, with: task, to: hub)
         }
+      } else {
+        let file = UploadingFile(target: directory + url.lastPathComponent, content: url)
+        let task = ObservableProgress()
+        task.progress.total = url.fileSize
+        set(path: file.target, hub: hub, task: task)
+        upload(file: file, with: task, to: hub)
       }
-    } catch {
-      print(error)
     }
   }
   private func upload(file: UploadingFile, with task: ObservableProgress, to hub: Hub) {
@@ -556,11 +552,11 @@ struct UploadingFile: Hashable {
   let content: URL
 }
 extension URL {
-  func contents(array: inout [URL]) throws {
+  func contents(array: inout [URL]) {
     if hasDirectoryPath {
-      let content = try FileManager.default.contentsOfDirectory(at: self, includingPropertiesForKeys: nil)
+      let content = (try? FileManager.default.contentsOfDirectory(at: self, includingPropertiesForKeys: nil)) ?? []
       for url in content {
-        try url.contents(array: &array)
+        url.contents(array: &array)
       }
     } else {
       array.append(self)
