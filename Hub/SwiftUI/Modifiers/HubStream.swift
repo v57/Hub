@@ -85,7 +85,7 @@ private struct HubStreamBodyModifier<T: Decodable, Body: Encodable & Hashable & 
       }
       guard hub.isConnected else { return }
       do {
-        for try await value: T in hub.client.values(path) {
+        for try await value: T in hub.client.values(path, body) {
           action(value)
         }
       } catch is CancellationError {
