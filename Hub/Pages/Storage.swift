@@ -14,23 +14,27 @@ struct StorageView: View {
   @State var list = FileList(count: 0, files: [], directories: [])
   @State var selected: Set<String> = []
   @State var path: String = ""
-  var directories: [String] {
+  var directories: [FileInfo] {
     uploadManager.directories(at: path, list.directories)
+      .map { FileInfo(name: $0, size: 0, lastModified: nil) }
+      .sorted(using: sortOrder)
   }
   var files: [FileInfo] {
     uploadManager.files(at: path, list.files)
+      .sorted(using: sortOrder)
   }
   @State var uploadManager = UploadManager.main
+  @State private var sortOrder = [KeyPathComparator(\FileInfo.name, comparator: .localized)]
   var body: some View {
-    Table(of: FileInfo.self, selection: $selected) {
-      TableColumn("Name") { file in
+    Table(of: FileInfo.self, selection: $selected, sortOrder: $sortOrder) {
+      TableColumn("Name", value: \FileInfo.name) { (file: FileInfo) in
         FileView(file: file).tint(selected.contains(file.name) ? .white : .blue)
       }
-      TableColumn("Size") { file in
+      TableColumn("Size", value: \FileInfo.size) { (file: FileInfo) in
         Text(formatBytes(file.size))
           .foregroundStyle(.secondary)
       }.width(60)
-      TableColumn("Last Modified") { file in
+      TableColumn("Last Modified", value: \FileInfo.lastModified) { (file: FileInfo) in
         if let date = file.lastModified {
           Text(date, format: .dateTime).foregroundStyle(.secondary)
         } else {
@@ -40,8 +44,7 @@ struct StorageView: View {
     } rows: {
       TableRow(FileInfo(name: path.isEmpty ? "$\(hub.settings.name)" : "/\(path)", size: 0, lastModified: nil))
       ForEach(directories, id: \.self) { file in
-        TableRow(FileInfo(name: file, size: 0, lastModified: nil))
-          .draggable(DirectoryTransfer(hub: hub, name: file))
+        TableRow(file).draggable(DirectoryTransfer(hub: hub, name: file.name))
       }
       ForEach(files) { file in
         TableRow(file).draggable(FileInfoTransfer(hub: hub, file: file))
@@ -580,6 +583,13 @@ struct FileInfo: Identifiable, Hashable, Decodable {
   }
   let size: Int
   let lastModified: Date?
+}
+
+extension Optional: @retroactive Comparable where Wrapped == Date {
+  public static func < (lhs: Optional, rhs: Optional) -> Bool {
+    guard let lhs, let rhs else { return false }
+    return lhs < rhs
+  }
 }
 
 struct FileInfoTransfer: Transferable {
