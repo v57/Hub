@@ -7,13 +7,51 @@
 
 import Foundation
 
-enum AnyCodable: Codable {
+enum AnyCodable: Codable, Hashable {
   case dictionary([String: AnyCodable])
   case array([AnyCodable])
   case string(String)
   case int(Int)
   case double(Double)
   case date(Date)
+  case void
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    if let value = try? container.decode([String: AnyCodable].self) {
+      self = .dictionary(value)
+    } else if let value = try? container.decode([AnyCodable].self) {
+      self = .array(value)
+    } else if let value = try? container.decode(String.self) {
+      self = .string(value)
+    } else if let value = try? container.decode(Int.self) {
+      self = .int(value)
+    } else if let value = try? container.decode(Double.self) {
+      self = .double(value)
+    } else if let value = try? container.decode(Date.self) {
+      self = .date(value)
+    } else {
+      self = .void
+    }
+  }
+  
+  func encode(to encoder: any Encoder) throws {
+    var container = encoder.singleValueContainer()
+    switch self {
+    case .dictionary(let value):
+      try container.encode(value)
+    case .array(let value):
+      try container.encode(value)
+    case .string(let value):
+      try container.encode(value)
+    case .int(let value):
+      try container.encode(value)
+    case .double(let value):
+      try container.encode(value)
+    case .date(let value):
+      try container.encode(value)
+    case .void: break
+    }
+  }
   var dictionary: [String: AnyCodable]? {
     get {
       switch self {
@@ -45,7 +83,7 @@ enum AnyCodable: Codable {
   var string: String? {
     get {
       switch self {
-      case .dictionary, .array: nil
+      case .dictionary, .array, .void: nil
       case .string(let string): string
       case .int(let int): String(int)
       case .double(let double): String(double)
@@ -60,7 +98,7 @@ enum AnyCodable: Codable {
   var int: Int? {
     get {
       switch self {
-      case .dictionary, .array, .date: nil
+      case .dictionary, .array, .date, .void: nil
       case .string(let string): Int(string)
       case .int(let int): int
       case .double(let double): Int(double)
@@ -74,7 +112,7 @@ enum AnyCodable: Codable {
   var double: Double? {
     get {
       switch self {
-      case .dictionary, .array, .date: nil
+      case .dictionary, .array, .date, .void: nil
       case .string(let string): Double(string)
       case .int(let int): Double(int)
       case .double(let double): double
