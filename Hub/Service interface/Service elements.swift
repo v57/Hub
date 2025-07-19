@@ -8,7 +8,7 @@
 import Foundation
 
 enum ElementType: String, Codable {
-  case text, textField, button, list, picker, cell, files
+  case text, textField, button, list, picker, cell, files, fileOperation
 }
 
 protocol ElementProtocol {
@@ -26,6 +26,7 @@ enum Element: Identifiable, Decodable {
     case .picker(let a): a.id
     case .cell(let a): a.id
     case .files(let a): a.id
+    case .fileOperation(let a): a.id
     }
   }
   case text(Text)
@@ -35,6 +36,7 @@ enum Element: Identifiable, Decodable {
   case picker(Picker)
   case cell(Cell)
   case files(Files)
+  case fileOperation(FileOperation)
   enum CodingKeys: CodingKey {
     case type
   }
@@ -61,6 +63,8 @@ enum Element: Identifiable, Decodable {
         self = try .cell(Cell(from: decoder))
       case .files:
         self = try .files(Files(from: decoder))
+      case .fileOperation:
+        self = try .fileOperation(FileOperation(from: decoder))
       }
     }
   }
@@ -179,6 +183,23 @@ enum Element: Identifiable, Decodable {
       self.action = try container.decode(.action)
     }
   }
+  final class FileOperation: ElementProtocol, Identifiable, Decodable {
+    var type: ElementType { .fileOperation }
+    var id: String = UUID().uuidString
+    var title: Element?
+    var value: String
+    var action: Action
+    enum CodingKeys: CodingKey {
+      case title, value, action
+    }
+    
+    init(from decoder: any Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      self.title = try container.decodeIfPresent(.title)
+      self.value = try container.decode(.value)
+      self.action = try container.decode(.action)
+    }
+  }
   struct Action: Decodable {
     var path: String
     var body: ActionBody
@@ -197,6 +218,20 @@ enum Element: Identifiable, Decodable {
     }
     func perform(hub: Hub, app: ServiceApp, nested: NestedList?) async throws {
       let body = body.resolve(app: app, nested: nested)
+      let result: AnyCodable = try await hub.client.send(path, body)
+      result.update(app: app, nested: nested, output: output)
+    }
+    func perform(hub: Hub, app: ServiceApp, nested: NestedList?, customValues: (inout [String: AnyCodable]) -> Void) async throws {
+      var body: AnyCodable? = body.resolve(app: app, nested: nested)
+      switch body {
+      case .dictionary(var dictionary):
+        customValues(&dictionary)
+        body = .dictionary(dictionary)
+      default:
+        var dictionary = [String: AnyCodable]()
+        customValues(&dictionary)
+        body = .dictionary(dictionary)
+      }
       let result: AnyCodable = try await hub.client.send(path, body)
       result.update(app: app, nested: nested, output: output)
     }

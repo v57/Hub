@@ -81,6 +81,7 @@ extension Element: View {
     case .picker(let a): PickerView(value: a)
     case .cell(let a): CellView(value: a)
     case .files(let a): FilesView(value: a)
+    case .fileOperation(let a): FileOperationView(value: a)
     }
   }
   struct TextView: View {
@@ -219,6 +220,54 @@ extension Element: View {
             }
             app.store(.array(links), for: value.value, nested: nested)
             try await value.action.perform(hub: hub, app: app, nested: nested)
+          }
+        }
+    }
+  }
+  struct FileOperationView: View {
+    let value: FileOperation
+    @Environment(Hub.self) private var hub
+    @Environment(ServiceApp.self) private var app
+    @Environment(NestedList.self) private var nested: NestedList?
+    @State private var files = [String]()
+    @State private var session: UploadManager.UploadSession?
+    var path: String { "Hasher/" }
+    var body: some View {
+      RoundedRectangle(cornerRadius: 16).fill(Color.gray.opacity(0.1))
+        .frame(height: 80).overlay {
+          SwiftUI.List(files, id: \.self) { name in
+            StorageView.NameView(file: FileInfo(name: name, size: 0, lastModified: nil), path: path)
+          }.environment(UploadManager.main).progressDraw()
+          if files.isEmpty {
+            VStack {
+              SwiftUI.Text("Drop files").foregroundStyle(.secondary)
+              value.title
+            }
+          }
+        }.dropDestination { (files: [URL], point: CGPoint) -> Bool in
+          self.files = files.map(\.lastPathComponent)
+          session = UploadManager.main.upload(files: files, directory: path, to: hub)
+          return true
+        }.onChange(of: session?.tasks == 0) {
+          guard let session, session.tasks == 0 else { return }
+          let files = session.files.map(\.target)
+          Task {
+            do {
+              for path in files {
+                let from: String = try await hub.client.send("s3/read", path)
+                let result = path.parentDirectory + "Output/" + path.components(separatedBy: "/").last!
+                let to: String = try await hub.client.send("s3/write", result)
+                print("from", path)
+                print("to", result)
+                try await value.action.perform(hub: hub, app: app, nested: nested) { data in
+                  data["from"] = .string(from)
+                  data["to"] = .string(to)
+                }
+                print("operation done")
+              }
+            } catch {
+              print(error)
+            }
           }
         }
     }
