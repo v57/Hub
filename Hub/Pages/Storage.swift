@@ -216,31 +216,58 @@ final class UploadManager: Sendable {
     return root
   }
   // MARK: Upload
-  func upload(files: [URL], directory: String, to hub: Hub) {
+  @discardableResult
+  func upload(files: [URL], directory: String, to hub: Hub) -> UploadSession {
+    let session = UploadSession()
     for url in files {
       if url.hasDirectoryPath {
         var content = [URL]()
         url.contents(array: &content)
         let prefix = url.path(percentEncoded: false).count - url.lastPathComponent.count - 1
+        session.tasks += content.count
         for url in content {
           let name = url.path(percentEncoded: false)
           let file = UploadingFile(target: directory + String(name.suffix(name.count - prefix)), content: url)
           let task = ObservableProgress()
           task.progress.total = url.fileSize
           set(path: file.target, hub: hub, task: task)
-          upload(file: file, with: task, to: hub)
+          upload(file: file, with: task, to: hub) { result in
+            session.completeTask(result: result)
+          }
         }
       } else {
+        session.tasks += 1
         let file = UploadingFile(target: directory + url.lastPathComponent, content: url)
         let task = ObservableProgress()
         task.progress.total = url.fileSize
         set(path: file.target, hub: hub, task: task)
-        upload(file: file, with: task, to: hub)
+        
+        upload(file: file, with: task, to: hub) { result in
+          session.completeTask(result: result)
+        }
       }
     }
+    session.tasks -= 1
+    return session
   }
-  private func upload(file: UploadingFile, with task: ObservableProgress, to hub: Hub) {
-    let task = PendingTask(hub: hub, file: file, progress: task)
+  @Observable
+  class UploadSession {
+    var tasks: Int = 0
+    var lastError: Error?
+    func completeTask(result: Result<Void, Error>) {
+      do {
+        try result.get()
+      } catch {
+        lastError = error
+      }
+      tasks -= 1
+    }
+    deinit {
+      print("upload session deinit")
+    }
+  }
+  private func upload(file: UploadingFile, with task: ObservableProgress, to hub: Hub, completion: @escaping (Result<Void, Error>) -> Void) {
+    let task = PendingTask(hub: hub, file: file, progress: task, completion: completion)
     pending.append(task)
     if running.isEmpty {
       nextPending()
@@ -309,15 +336,21 @@ final class UploadManager: Sendable {
   // MARK: Pending task
   private struct PendingTask: Hashable {
     let hub: Hub, file: UploadingFile, progress: ObservableProgress
+    let completion: (Result<Void, Error>) -> Void
     @MainActor
     func start() async throws {
-      let url: URL = try await hub.client.send("s3/write", file.target)
-      let manager = UploadManager.main
-      _ = try await manager.session.upload(file: file.content, to: url, delegate: manager.delegate, progress: progress)
-      let parent = file.target.parentDirectory
-      try await hub.client.send("s3/updated", parent)
-      if !parent.isEmpty {
-        try await hub.client.send("s3/updated", parent.parentDirectory)
+      do {
+        let url: URL = try await hub.client.send("s3/write", file.target)
+        let manager = UploadManager.main
+        _ = try await manager.session.upload(file: file.content, to: url, delegate: manager.delegate, progress: progress)
+        let parent = file.target.parentDirectory
+        try await hub.client.send("s3/updated", parent)
+        if !parent.isEmpty {
+          try await hub.client.send("s3/updated", parent.parentDirectory)
+        }
+        completion(.success(()))
+      } catch {
+        completion(.failure(error))
       }
     }
     func hash(into hasher: inout Hasher) {
