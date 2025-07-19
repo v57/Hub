@@ -38,6 +38,7 @@ struct StorageView: View {
         }
       }.width(110)
     } rows: {
+      TableRow(FileInfo(name: path.isEmpty ? "$\(hub.settings.name)" : "/\(path)", size: 0, lastModified: nil))
       ForEach(directories, id: \.self) { file in
         TableRow(FileInfo(name: file, size: 0, lastModified: nil))
           .draggable(DirectoryTransfer(hub: hub, name: file))
@@ -51,9 +52,19 @@ struct StorageView: View {
       }.keyboardShortcut(.delete)
     } primaryAction: { files in
       if files.count == 1, let file = files.first, file.hasSuffix("/") {
-        path += file
+        guard !file.isEmpty else { return }
+        if file.hasPrefix("/") {
+          path = path.parentDirectory
+        } else {
+          path += file
+        }
       }
     }.toolbar {
+      if !path.isEmpty {
+        Button("Back", systemImage: "chevron.left") {
+          path = path.parentDirectory
+        }
+      }
       if selected.count > 0 {
         Button("Delete Selected", systemImage: "trash", role: .destructive) {
           Task {
@@ -92,11 +103,25 @@ struct StorageView: View {
   struct FileView: View {
     let file: FileInfo
     var body: some View {
-      HStack(spacing: 0) {
-        IconView(file: file)
-          .foregroundStyle(.tint)
-          .frame(minWidth: 25)
-        Text(name)
+      if file.name.first == "/" {
+        HStack(spacing: 0) {
+          Image(systemName: "chevron.left")
+            .frame(minWidth: 25)
+          Text(name.dropFirst())
+        }.foregroundStyle(.tint).fontWeight(.medium)
+      } else if file.name.first == "$" {
+        HStack(spacing: 0) {
+          Image(systemName: "display")
+            .frame(minWidth: 25)
+          Text(name.dropFirst())
+        }.foregroundStyle(.tint).fontWeight(.medium)
+      } else {
+        HStack(spacing: 0) {
+          IconView(file: file)
+            .foregroundStyle(.tint)
+            .frame(minWidth: 25)
+          Text(name).contentTransition(.numericText()).animation(.smooth, value: name)
+        }
       }
     }
     struct IconView: View {
@@ -467,6 +492,14 @@ extension URLSession {
 extension URL {
   var fileSize: Int64 {
     (try? FileManager.default.attributesOfItem(atPath: path(percentEncoded: false))[FileAttributeKey.size] as? Int64) ?? 0
+  }
+}
+extension String {
+  var parentDirectory: String {
+    guard !isEmpty else { return self }
+    let c = components(separatedBy: "/")
+    let d = c.prefix(c.last == "" ? c.count - 2 : c.count - 1).joined(separator: "/")
+    return d.isEmpty ? d : d + "/"
   }
 }
 
