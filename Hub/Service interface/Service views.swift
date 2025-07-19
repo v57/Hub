@@ -40,6 +40,15 @@ class ServiceApp {
       print(error)
     }
   }
+  func store(_ value: String, for key: String, nested: NestedList?) {
+    if let nested {
+      if nested.string?[key] != value {
+        nested.string?[key] = value
+      }
+    } else if string[key] != value {
+      string[key] = value
+    }
+  }
 }
 struct AppInterface: Decodable {
   struct Header: Decodable {
@@ -189,15 +198,40 @@ extension Element: View {
   }
   struct FilesView: View {
     let value: Files
+    @Environment(Hub.self) private var hub
+    @Environment(ServiceApp.self) private var app
+    @Environment(NestedList.self) private var nested: NestedList?
+    @State private var files = [String]()
+    @State private var session: UploadManager.UploadSession?
+    var path: String { "Hasher/" }
     var body: some View {
       RoundedRectangle(cornerRadius: 16).fill(Color.gray.opacity(0.1))
-        .stroke(.blue)
-        .frame(width: 120, height: 80).overlay {
-        VStack {
-          SwiftUI.Text("Drop files").foregroundStyle(.secondary)
-          value.title
+        .frame(height: 80).overlay {
+          SwiftUI.List(files, id: \.self) { name in
+            StorageView.NameView(file: FileInfo(name: name, size: 0, lastModified: nil), path: path)
+          }.environment(UploadManager.main).progressDraw()
+          if files.isEmpty {
+            VStack {
+              SwiftUI.Text("Drop files").foregroundStyle(.secondary)
+              value.title
+            }
+          }
+        }.dropDestination { (files: [URL], point: CGPoint) -> Bool in
+          self.files = files.map(\.lastPathComponent)
+          session = UploadManager.main.upload(files: files, directory: path, to: hub)
+          return true
+        }.onChange(of: session?.tasks == 0) {
+          guard let session, session.tasks == 0 else { return }
+          let files = session.files.map(\.target)
+          Task {
+            for path in files {
+              let url: URL = try await hub.client.send("s3/read", path)
+              let target = url.absoluteString
+              app.store(target, for: value.value, nested: nested)
+              try await value.action.perform(hub: hub, app: app, nested: nested)
+            }
+          }
         }
-      }
     }
   }
 }
