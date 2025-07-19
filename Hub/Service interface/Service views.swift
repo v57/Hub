@@ -212,12 +212,13 @@ extension Element: View {
           guard let session, session.tasks == 0 else { return }
           let files = session.files.map(\.target)
           Task {
+            var links = [AnyCodable]()
             for path in files {
               let url: URL = try await hub.client.send("s3/read", path)
-              let target = url.absoluteString
-              app.store(.string(target), for: value.value, nested: nested)
-              try await value.action.perform(hub: hub, app: app, nested: nested)
+              links.append(.string(url.absoluteString))
             }
+            app.store(.array(links), for: value.value, nested: nested)
+            try await value.action.perform(hub: hub, app: app, nested: nested)
           }
         }
     }
