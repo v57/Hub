@@ -15,11 +15,11 @@ struct InterfaceData {
 @Observable
 class ServiceApp {
   var app = AppInterface()
-  var string = [String: String]()
+  var data = [String: AnyCodable]()
   var lists = [String: [NestedList]]()
   struct List: Identifiable {
     var id: String
-    var string: [String: String]
+    var string: [String: AnyCodable]
   }
   init() {
     
@@ -40,13 +40,13 @@ class ServiceApp {
       print(error)
     }
   }
-  func store(_ value: String, for key: String, nested: NestedList?) {
+  func store(_ value: AnyCodable, for key: String, nested: NestedList?) {
     if let nested {
-      if nested.string?[key] != value {
-        nested.string?[key] = value
+      if nested.data?[key] != value {
+        nested.data?[key] = value
       }
-    } else if string[key] != value {
-      string[key] = value
+    } else if data[key] != value {
+      data[key] = value
     }
   }
 }
@@ -94,7 +94,7 @@ extension Element: View {
         } else {
           SwiftUI.Text(text).textSelection(.enabled)
         }
-      } else if let text = nested?.string?[value.value] ?? app.string[value.value] {
+      } else if let text = nested?.data?[value.value]?.string ?? app.data[value.value]?.string {
         if value.secondary {
           SwiftUI.Text(text).textSelection(.enabled).secondary()
         } else {
@@ -111,7 +111,7 @@ extension Element: View {
     @Environment(ServiceApp.self) var app
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
-      let state = nested?.string?[value.value] ?? app.string[value.value]
+      let state = nested?.data?[value.value]?.string ?? app.data[value.value]?.string
       SwiftUI.TextField(value.placeholder, text: $text)
         .task(id: state) {
           if let state, state != text {
@@ -120,13 +120,7 @@ extension Element: View {
           }
         }.task(id: text) {
           if !disableUpdates {
-            if let nested {
-              if nested.string?[value.value] != text {
-                nested.string?[value.value] = text
-              }
-            } else if app.string[value.value] != text {
-              app.string[value.value] = text
-            }
+            app.store(.string(text), for: value.value, nested: nested)
             try? await value.action?.perform(hub: hub, app: app, nested: nested)
           } else {
             disableUpdates = false
@@ -140,7 +134,7 @@ extension Element: View {
     @Environment(ServiceApp.self) var app
     @Environment(NestedList.self) var nested: NestedList?
     var body: some View {
-      let selected = nested?.string?[value.selected] ?? app.string[value.selected]
+      let selected = nested?.data?[value.selected]?.string ?? app.data[value.selected]?.string
       SwiftUI.Picker("", selection: $selected) {
         ForEach(value.options, id: \.self) { value in
           SwiftUI.Text(value).tag(value)
@@ -153,13 +147,7 @@ extension Element: View {
           }
         }
         .onChange(of: self.selected) {
-          if let nested {
-            if nested.string?[value.selected] != self.selected {
-              nested.string?[value.selected] = self.selected
-            }
-          } else if app.string[value.selected] != self.selected {
-            app.string[value.selected] = self.selected
-          }
+          app.store(.string(self.selected), for: value.selected, nested: nested)
         }
     }
   }
@@ -227,7 +215,7 @@ extension Element: View {
             for path in files {
               let url: URL = try await hub.client.send("s3/read", path)
               let target = url.absoluteString
-              app.store(target, for: value.value, nested: nested)
+              app.store(.string(target), for: value.value, nested: nested)
               try await value.action.perform(hub: hub, app: app, nested: nested)
             }
           }
@@ -243,9 +231,9 @@ extension String {
 
 @Observable
 class NestedList: Identifiable {
-  var string: [String: String]?
-  init(string: [String : String]? = nil) {
-    self.string = string
+  var data: [String: AnyCodable]?
+  init(data: [String : AnyCodable]? = nil) {
+    self.data = data
   }
 }
 

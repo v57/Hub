@@ -197,7 +197,7 @@ enum Element: Identifiable, Decodable {
     }
     func perform(hub: Hub, app: ServiceApp, nested: NestedList?) async throws {
       let body = body.resolve(app: app, nested: nested)
-      let result: ActionBody = try await hub.client.send(path, body)
+      let result: AnyCodable = try await hub.client.send(path, body)
       result.update(app: app, nested: nested, output: output)
     }
   }
@@ -232,31 +232,20 @@ enum Element: Identifiable, Decodable {
       case .void: break
       }
     }
-    func resolve(app: ServiceApp, nested: NestedList?) -> ActionBody? {
+    func resolve(app: ServiceApp, nested: NestedList?) -> AnyCodable? {
       switch self {
       case .single(let string):
-        guard let string = nested?.string?[string] ?? app.string[string] else { return nil }
-        return .single(string)
+        guard let string = nested?.data?[string] ?? app.data[string] else { return nil }
+        return string
       case .multiple(let dictionary):
-        let data = dictionary.compactMapValues { (string: String) -> String? in
-          guard let string = nested?.string?[string] ?? app.string[string] else { return nil }
-          return string
+        let data = dictionary.compactMapValues { (string: String) -> AnyCodable? in
+          guard let value = nested?.data?[string] ?? app.data[string] else { return nil }
+          return value
         }
-        return .multiple(data)
+        return .dictionary(data)
       case .void:
-        return ActionBody.void
+        return nil
       }
-    }
-    func map(_ output: ActionBody?) -> [String: String] {
-      let map = output?.resolved() ?? [:]
-      var result = resolved()
-      for (key, value) in result {
-        if let mapped = map[key] {
-          result[key] = nil
-          result[mapped] = value
-        }
-      }
-      return result
     }
     func resolved() -> [String: String] {
       switch self {
@@ -265,13 +254,36 @@ enum Element: Identifiable, Decodable {
       case .multiple(let dictionary): dictionary
       }
     }
-    func update(app: ServiceApp, nested: NestedList?, output: ActionBody?) {
-      let data = map(output)
-      if let nested, nested.string != nil {
-        nested.string?.insert(contentsOf: data)
-      } else {
-        app.string.insert(contentsOf: data)
+  }
+}
+
+extension AnyCodable {
+  func update(app: ServiceApp, nested: NestedList?, output: Element.ActionBody?) {
+    let data = map(output)
+    if let nested, nested.data != nil {
+      nested.data?.insert(contentsOf: data)
+    } else {
+      app.data.insert(contentsOf: data)
+    }
+  }
+  func map(_ output: Element.ActionBody?) -> [String: AnyCodable] {
+    switch output {
+    case .void, nil:
+      switch self {
+      case .dictionary(let dictionary): return dictionary
+      default: return [:]
       }
+    case .single(let key):
+      return [key: self]
+    case .multiple(let keys):
+      guard var dictionary else { return [:] }
+      for (key, value) in dictionary {
+        if let mapped = keys[key] {
+          dictionary[key] = nil
+          dictionary[mapped] = value
+        }
+      }
+      return dictionary
     }
   }
 }
