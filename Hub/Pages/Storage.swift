@@ -90,7 +90,6 @@ struct StorageView: View {
   func remove(files: [String]) async {
     do {
       for file in files {
-        print(path + file)
         try await hub.client.send("s3/delete", path + file)
       }
     } catch {
