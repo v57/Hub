@@ -265,9 +265,6 @@ final class UploadManager: Sendable {
       }
       tasks -= 1
     }
-    deinit {
-      print("upload session deinit")
-    }
   }
   private func upload(file: UploadingFile, with task: ObservableProgress, to hub: Hub, completion: @escaping (Result<Void, Error>) -> Void) {
     let task = PendingTask(hub: hub, file: file, progress: task, completion: completion)
@@ -284,9 +281,7 @@ final class UploadManager: Sendable {
     uploadingSize += total
     running.insert(task)
     Task {
-      do {
-        try await task.start()
-      } catch { }
+      try? await task.start()
       uploadingSize -= total
       running.remove(task)
       nextPending()

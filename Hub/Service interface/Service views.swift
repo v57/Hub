@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import HubClient
 
 struct InterfaceData {
   var string: [String: String]
@@ -50,29 +51,10 @@ class ServiceApp {
     }
   }
 }
-struct AppInterface: Decodable {
-  struct Header: Decodable {
-    var name: String
-  }
-  var header: Header?
-  var body: [Element]?
-  enum CodingKeys: CodingKey {
-    case header, body
-  }
-  
-  init(from decoder: any Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    header = try? container.decodeIfPresent(.header)
-    body = try? container.decodeLossy(.body)
-  }
-  init() {
-    
-  }
-}
 
-extension Element: View {
+extension Element: @retroactive View {
   @ViewBuilder
-  var body: some View {
+  public var body: some View {
     switch self {
     case .text(let a): TextView(value: a)
     case .textField(let a): TextFieldView(value: a)
@@ -170,7 +152,7 @@ extension Element: View {
       if let list = app.lists[value.data] {
         SwiftUI.ForEach(list) { data in
           HStack {
-            value.element
+            value.elements
           }.environment(data)
         }
       }
