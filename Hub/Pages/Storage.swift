@@ -686,7 +686,7 @@ extension String {
 extension View {
   @ViewBuilder
   func progressDraw() -> some View {
-    if #available(macOS 26.0, iOS 26.0, tvOS 26.0, watchOS 26.0, *) {
+    if #available(macOS 26.0, iOS 26.0, tvOS 26.0, watchOS 26.0, *, visionOS 26.0, *) {
       self.symbolVariableValueMode(.draw)
     } else {
       self
