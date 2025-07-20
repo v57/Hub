@@ -61,11 +61,20 @@ struct ContentView: View {
     NavigationLink("Connections", value: SideView.cluster)
     if let hub = hubs.selectedHub {
       Section(hub.settings.name) {
+#if os(tvOS)
+        NavigationLink("Services", value: SideView.services)
+#else
         NavigationLink("Services", value: SideView.services)
           .badge(statusBadges.services)
+#endif
         NavigationLink("Launcher", value: SideView.launcher)
+#if os(tvOS)
         NavigationLink("Security", value: SideView.security)
-          .badge(statusBadges.security ?? 0).badgeProminence(.increased)
+#else
+        NavigationLink("Security", value: SideView.security)
+          .badge(statusBadges.security ?? 0)
+          .badgeProminence(.increased)
+#endif
         NavigationLink("Storage", value: SideView.storage)
       }.hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges)
         .environment(hub)

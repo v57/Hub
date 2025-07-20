@@ -261,9 +261,11 @@ struct LauncherView: View {
         if showsInstances || (app.info?.instances ?? 0) > 1 {
           HStack {
             Text("\(instances)").secondary()
+#if !os(tvOS)
             Stepper("Instances", value: $instances)
               .labelsHidden()
               .task(id: instances) { try? await updateInstances() }
+#endif
           }
         }
         if app.id == "Hub Lite" {

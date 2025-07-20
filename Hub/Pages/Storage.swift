@@ -26,6 +26,7 @@ struct StorageView: View {
   @State var uploadManager = UploadManager.main
   @State private var sortOrder = [KeyPathComparator(\FileInfo.name, comparator: .localized)]
   var body: some View {
+#if !os(tvOS)
     Table(of: FileInfo.self, selection: $selected, sortOrder: $sortOrder) {
       TableColumn("Name", value: \FileInfo.name) { (file: FileInfo) in
         NameView(file: file, path: path).tint(selected.contains(file.name) ? .white : .blue)
@@ -91,6 +92,7 @@ struct StorageView: View {
     }.hubStream("s3/list", path, to: $list)
       .environment(uploadManager).contentTransition(.symbolEffect(.replace))
       .progressDraw()
+#endif
   }
   func add(files: [URL]) {
     uploadManager.upload(files: files, directory: path, to: hub)

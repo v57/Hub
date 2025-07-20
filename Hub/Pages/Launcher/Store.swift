@@ -86,7 +86,7 @@ struct StoreView: View {
         ForEach(ServiceType.allCases, id: \.rawValue) { type in
           Text(type.name).tag(type)
         }
-      }.pickerStyle(.palette).labelsHidden().task(id: attempt) {
+      }.pickerStyle(.main).labelsHidden().task(id: attempt) {
         guard self.allItems.isEmpty else { return }
         do {
           fetchStatus = .loading

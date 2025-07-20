@@ -42,7 +42,7 @@ struct CreateApp: View {
       Picker("Type", selection: $type) {
         Text("Shell").tag(AppType.shell)
         Text("Bun").tag(AppType.bun)
-      }.pickerStyle(.palette)
+      }.pickerStyle(.main)
       TextField(defaultName ?? "App Name", text: $name)
         .fontDesign(.monospaced)
       switch type {

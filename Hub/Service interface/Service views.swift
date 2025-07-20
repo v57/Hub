@@ -52,6 +52,8 @@ class ServiceApp {
   }
 }
 
+
+
 extension Element: @retroactive View {
   @ViewBuilder
   public var body: some View {
@@ -73,15 +75,15 @@ extension Element: @retroactive View {
     var body: some View {
       if let text = value.value.staticText {
         if value.secondary {
-          SwiftUI.Text(text).textSelection(.enabled).secondary()
+          SwiftUI.Text(text).textSelection().secondary()
         } else {
-          SwiftUI.Text(text).textSelection(.enabled)
+          SwiftUI.Text(text).textSelection()
         }
       } else if let text = nested?.data?[value.value]?.string ?? app.data[value.value]?.string {
         if value.secondary {
-          SwiftUI.Text(text).textSelection(.enabled).secondary()
+          SwiftUI.Text(text).textSelection().secondary()
         } else {
-          SwiftUI.Text(text).textSelection(.enabled)
+          SwiftUI.Text(text).textSelection()
         }
       }
     }
@@ -187,7 +189,7 @@ extension Element: @retroactive View {
               value.title
             }
           }
-        }.dropDestination { (files: [URL], point: CGPoint) -> Bool in
+        }.dropFiles { (files: [URL], point: CGPoint) -> Bool in
           self.files = files.map(\.lastPathComponent)
           session = UploadManager.main.upload(files: files, directory: path, to: hub)
           return true
@@ -226,7 +228,7 @@ extension Element: @retroactive View {
               value.title
             }
           }
-        }.dropDestination { (files: [URL], point: CGPoint) -> Bool in
+        }.dropFiles { (files: [URL], point: CGPoint) -> Bool in
           self.files = files.map(\.lastPathComponent)
           session = UploadManager.main.upload(files: files, directory: path, to: hub)
           return true
