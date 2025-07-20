@@ -72,8 +72,7 @@ public actor VideoEncoder {
     guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else { throw Error.noVideo }
     
     let (videoSize, transform) = try await videoTrack.load(.naturalSize, .preferredTransform)
-    var targetSize = mapSize(settings.size, size: videoSize)
-    targetSize = CGSize(width: targetSize.height, height: targetSize.width)
+    let targetSize = mapSize(settings.size, size: videoSize)
     let videoSettings = settings.settings.width(targetSize.width).height(targetSize.height).settings
     let audio: AudioTrack?
     if let track = try await asset.loadTracks(withMediaType: .audio).first {
