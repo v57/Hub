@@ -49,8 +49,16 @@ struct StorageView: View {
       ForEach(files) { file in
         TableRow(file).draggable(FileInfoTransfer(hub: hub, file: file))
       }
-    }.contextMenu(forSelectionType: String.self) { files in
-      Button("Delete", role: .destructive) {
+    }.contextMenu(forSelectionType: String.self) { (files: Set<String>) in
+      if files.count == 1, let file = files.first, file.last != "/" {
+        Button("Copy temporary link", systemImage: "link") {
+          Task {
+            let link: String = try await hub.client.send("s3/read", path + file)
+            link.copyToClipboard()
+          }
+        }
+      }
+      Button("Delete", systemImage: "trash", role: .destructive) {
         Task { await remove(files: Array(files)) }
       }.keyboardShortcut(.delete)
     } primaryAction: { files in
