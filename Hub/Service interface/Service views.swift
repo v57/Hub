@@ -239,13 +239,10 @@ extension Element: @retroactive View {
                 let from: String = try await hub.client.send("s3/read", path)
                 let result = path.parentDirectory + "Output/" + path.components(separatedBy: "/").last!
                 let to: String = try await hub.client.send("s3/write", result)
-                print("from", path)
-                print("to", result)
                 try await value.action.perform(hub: hub, app: app, nested: nested) { data in
                   data["from"] = .string(from)
                   data["to"] = .string(to)
                 }
-                print("operation done")
               }
             } catch {
               print(error)
