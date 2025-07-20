@@ -19,6 +19,7 @@ extension KeyChain {
   var id: Settings.ID { settings.id }
   var settings: Settings
   let client: HubClient
+  var service: HubService { client.service }
   var isConnected: Bool = false
   @ObservationIgnored
   var connectionTask: AnyCancellable?
