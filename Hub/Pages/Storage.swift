@@ -592,18 +592,6 @@ struct UploadingFile: Hashable {
   let target: String
   let content: URL
 }
-extension URL {
-  func contents(array: inout [URL]) {
-    if hasDirectoryPath {
-      let content = (try? FileManager.default.contentsOfDirectory(at: self, includingPropertiesForKeys: nil)) ?? []
-      for url in content {
-        url.contents(array: &array)
-      }
-    } else {
-      array.append(self)
-    }
-  }
-}
 
 struct FileList: Decodable {
   let count: Int
@@ -667,6 +655,19 @@ struct DirectoryTransfer: Transferable {
 
 // MARK: Extensions
 extension URL {
+  func contents(array: inout [URL]) {
+    if hasDirectoryPath {
+      let content = (try? FileManager.default.contentsOfDirectory(at: self, includingPropertiesForKeys: nil)) ?? []
+      for url in content {
+        url.contents(array: &array)
+      }
+    } else {
+      array.append(self)
+    }
+  }
+  var fileExists: Bool {
+    FileManager.default.fileExists(atPath: path(percentEncoded: false))
+  }
   var fileSize: Int64 {
     (try? FileManager.default.attributesOfItem(atPath: path(percentEncoded: false))[FileAttributeKey.size] as? Int64) ?? 0
   }
