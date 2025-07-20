@@ -219,6 +219,8 @@ final class UploadManager: Sendable {
   @discardableResult
   func upload(files: [URL], directory: String, to hub: Hub) -> UploadSession {
     let session = UploadSession()
+    session.tasks += 1
+    defer { session.tasks -= 1 }
     for url in files {
       if url.hasDirectoryPath {
         var content = [URL]()
@@ -249,7 +251,6 @@ final class UploadManager: Sendable {
         }
       }
     }
-    session.tasks -= 1
     return session
   }
   @Observable
@@ -258,6 +259,7 @@ final class UploadManager: Sendable {
     var lastError: Error?
     var files: [UploadingFile] = []
     func completeTask(result: Result<Void, Error>) {
+      print("Upload completed", result)
       do {
         try result.get()
       } catch {
