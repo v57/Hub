@@ -188,7 +188,7 @@ struct LauncherView: View {
           if let buttonIcon = status.buttonIcon, let buttonTitle = status.buttonTitle {
             AsyncButton(buttonTitle, systemImage: buttonIcon) {
               switch status {
-              case .notInstalled, .installationFailed:
+              case .notInstalled, .installationFailed, .bunInstallationFailed, .downloadFailed:
                 await Launcher.main.install()
               case .installed, .offline:
                 await Launcher.main.launch()
@@ -335,6 +335,8 @@ extension Launcher.Status {
   var statusText: LocalizedStringKey {
     switch self {
     case .notInstalled: "Not installed"
+    case .downloadFailed: "Failed to download the project"
+    case .bunInstallationFailed: "Failed to install Bun"
     case .installationFailed: "Installation failed"
     case .installed: "Installed"
     case .status(let s): s

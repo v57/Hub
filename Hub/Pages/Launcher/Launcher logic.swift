@@ -189,7 +189,7 @@ class Launcher {
   enum Status {
     case installed, offline, running, stopping
     case notInstalled
-    case status(LocalizedStringKey), installationFailed
+    case status(LocalizedStringKey), downloadFailed, bunInstallationFailed, installationFailed
   }
   static var url: URL {
     URL.homeDirectory.appendingPathComponent("hub-launcher", conformingTo: .directory)
@@ -203,22 +203,47 @@ class Launcher {
       status = .notInstalled
     }
   }
+  private func installBunIfNeeded() async throws {
+    if await !hasSh("bun") {
+      status = .status("Installing Bun")
+      try await sh("curl -fsSL https://bun.sh/install | bash")
+    }
+  }
   func install() async {
+    status = .status("Downloading")
     do {
-      status = .status("Downloading")
       try await git.clone("v57/hub-launcher")
-      status = .status("Installing")
+    } catch {
+      status = .downloadFailed
+      return
+    }
+    status = .status("Installing")
+    do {
+      try await installBunIfNeeded()
+    } catch {
+      status = .bunInstallationFailed
+      return
+    }
+    do {
       try await sh("""
 cd hub-launcher
 bun i
 """)
-      status = .installed
     } catch {
       status = .installationFailed
+      return
     }
+    status = .installed
   }
   func launch() async {
     do {
+      do {
+        status = .status("Installing Bun")
+        try await installBunIfNeeded()
+      } catch {
+        status = .status("Failed to install bun")
+        return
+      }
       status = .status("Launching")
       try await sh("""
 if screen -ls | grep hub >/dev/null; then
