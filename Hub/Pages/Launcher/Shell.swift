@@ -26,7 +26,7 @@ func hasSh(_ command: String) async -> Bool {
 func sh(_ command: String, from: URL = .homeDirectory) async throws {
   let process = Process()
   process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-  process.arguments = ["-c", command.replacingOccurrences(of: "\n", with: ";")]
+  process.arguments = ["-c", "source .zshrc\n" + command.replacingOccurrences(of: "\n", with: ";")]
   process.currentDirectoryURL = from
   try await withCheckedThrowingContinuation { continuation in
     process.terminationHandler = { process in

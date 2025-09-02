@@ -209,7 +209,6 @@ class Launcher {
       try await git.clone("v57/hub-launcher")
       status = .status("Installing")
       try await sh("""
-source .zshrc
 cd hub-launcher
 bun i
 """)
@@ -222,7 +221,6 @@ bun i
     do {
       status = .status("Launching")
       try await sh("""
-source .zshrc
 if screen -ls | grep hub >/dev/null; then
   screen -X -S hub quit
 fi
