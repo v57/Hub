@@ -15,6 +15,14 @@ extension Data {
 struct ShellError: Error {
   let code: Int32
 }
+func hasSh(_ command: String) async -> Bool {
+  do {
+    try await sh("which \(command)")
+    return true
+  } catch {
+    return false
+  }
+}
 func sh(_ command: String, from: URL = .homeDirectory) async throws {
   let process = Process()
   process.executableURL = URL(fileURLWithPath: "/bin/zsh")
