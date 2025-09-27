@@ -25,18 +25,17 @@ extension KeyChain {
   var connectionTask: AnyCancellable?
   var permissions = Set<String>()
   var merge: [Hub.MergeStatus] = []
-  var encoder: EncoderService!
+  var appServices: AppServices!
   init(settings: Settings) {
     self.settings = settings
     self.client = HubClient(settings.address, keyChain: .main)
-    encoder = nil
     connectionTask = client.isConnected.sink { [unowned self] isConnected in
       self.isConnected = isConnected
       if isConnected {
         Task { permissions = try await client.send("hub/permissions") }
       }
     }
-    encoder = EncoderService(hub: self)
+    appServices = AppServices(hub: self)
   }
   struct Settings: Codable, Identifiable, Hashable {
     var id: URL { address }
