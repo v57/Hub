@@ -239,8 +239,8 @@ extension Element: @retroactive View {
             do {
               for path in files {
                 let from: String = try await hub.client.send("s3/read", path)
-                let result = path.parentDirectory + "Output/" + path.components(separatedBy: "/").last!
-                let to: String = try await hub.client.send("s3/write", result)
+                let target = target(from: path, value: value.value)
+                let to: String = try await hub.client.send("s3/write", target)
                 try await value.action.perform(hub: hub, app: app, nested: nested) { data in
                   data["from"] = .string(from)
                   data["to"] = .string(to)
@@ -251,6 +251,18 @@ extension Element: @retroactive View {
             }
           }
         }
+    }
+    func target(from path: String, value: String) -> String {
+      let result = path.parentDirectory + "Output/" + path.components(separatedBy: "/").last!
+      let valueComponents = value.components(separatedBy: ".")
+      if valueComponents.count > 1 {
+        let ext = valueComponents.last!
+        var res = result.components(separatedBy: ".")
+        res[res.count - 1] = ext
+        return res.joined(separator: ".")
+      } else {
+        return result
+      }
     }
   }
 }
