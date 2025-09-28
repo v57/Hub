@@ -13,15 +13,26 @@ extension HubService {
   @discardableResult
   func videoService() -> Self {
     app(App(header: .init(type: .app, name: "Video Encoder", path: "video/encode/ui"), body: [
-      .fileOperation(.init(title: nil, value: "videos", action: .init(path: "video/encode/hevc", body: .void)))
+      .fileOperation(.init(title: nil, value: "videos.mov", action: .init(path: "video/encode/hevc", body: .void)))
+    ], data: [:]))
+    .app(App(header: .init(type: .app, name: "Image Encoder", path: "image/encode/ui"), body: [
+      .fileOperation(.init(title: nil, value: "images.heic", action: .init(path: "image/encode/heic", body: .void)))
     ], data: [:]))
     .post("video/encode/hevc") { (request: EncodeRequest) in
       try await HubService.encodeVideo(from: request.from, to: request.to)
+    }
+    .post("image/encode/heic") { (request: EncodeRequest) in
+      print(request)
+      try await HubService.encodeImage(from: request.from, to: request.to)
     }
   }
   struct EncodeRequest: Decodable, Sendable {
     let from: URL
     let to: URL
+  }
+  static func encodeImage(from: URL, to: URL) async throws {
+    let heic = try await data(from: from).heic(quality: 0.8, metadata: false)
+    try await upload(data: heic, to: to)
   }
   static func encodeVideo(from: URL, to: URL) async throws {
     let url = try await download(from: from)
@@ -36,11 +47,19 @@ extension HubService {
     try FileManager.default.moveItem(at: tempDownload, to: url)
     return url
   }
+  static func data(from: URL) async throws -> Data {
+    try await URLSession.shared.data(from: from).0
+  }
   static func upload(file: URL, to: URL) async throws {
     var request = URLRequest(url: to)
     request.httpMethod = "PUT"
     defer { try? FileManager.default.removeItem(at: file) }
     _ = try await URLSession.shared.upload(for: request, fromFile: file)
+  }
+  static func upload(data: Data, to: URL) async throws {
+    var request = URLRequest(url: to)
+    request.httpMethod = "PUT"
+    _ = try await URLSession.shared.upload(for: request, from: data)
   }
 }
 
