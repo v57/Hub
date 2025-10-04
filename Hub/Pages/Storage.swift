@@ -32,7 +32,7 @@ struct StorageView: View {
         NameView(file: file, path: path).tint(selected.contains(file.name) ? .white : .blue)
       }
       TableColumn("Size", value: \FileInfo.size) { (file: FileInfo) in
-        Text(formatBytes(file.size))
+        Text(file.size.bytesString)
           .foregroundStyle(.secondary)
       }.width(60)
       TableColumn("Last Modified", value: \FileInfo.lastModified) { (file: FileInfo) in
@@ -105,12 +105,6 @@ struct StorageView: View {
     } catch {
       print(error)
     }
-  }
-  func formatBytes(_ bytes: Int) -> String {
-    guard bytes > 0 else { return "" }
-    let formatter = ByteCountFormatter()
-    formatter.countStyle = .file
-    return formatter.string(fromByteCount: Int64(bytes))
   }
   // MARK: File name view
   struct NameView: View {
@@ -672,6 +666,14 @@ extension URL {
   }
   var fileSize: Int64 {
     (try? FileManager.default.attributesOfItem(atPath: path(percentEncoded: false))[FileAttributeKey.size] as? Int64) ?? 0
+  }
+}
+extension Int {
+  var bytesString: String {
+    guard self > 0 else { return "" }
+    let formatter = ByteCountFormatter()
+    formatter.countStyle = .file
+    return formatter.string(fromByteCount: Int64(self))
   }
 }
 extension String {
