@@ -147,11 +147,11 @@ struct StorageView: View {
         file.isDirectory ? "folder" : fileIcon
       }
       var fileIcon: String {
-        switch file.name.components(separatedBy: ".").last {
-        case "png", "jpg", "jpeg", "heic", "avif": "photo"
-        case "mp4", "mov", "mkv", "avi": "video"
-        case "wav", "ogg", "acc", "m4a", "mp3": "speaker.wave.2"
-        default: "document"
+        switch file.name.fileType {
+        case .image: "photo"
+        case .video: "video"
+        case .audio: "speaker.wave.2"
+        case .document: "document"
         }
       }
     }
@@ -682,6 +682,17 @@ extension String {
     let c = components(separatedBy: "/")
     let d = c.prefix(c.last == "" ? c.count - 2 : c.count - 1).joined(separator: "/")
     return d.isEmpty ? d : d + "/"
+  }
+  enum FileType {
+    case image, video, audio, document
+  }
+  var fileType: FileType {
+    switch components(separatedBy: ".").last?.lowercased() {
+    case "png", "jpg", "jpeg", "heic", "avif": .image
+    case "mp4", "mov", "mkv", "avi": .video
+    case "wav", "ogg", "acc", "m4a", "mp3": .audio
+    default: .document
+    }
   }
 }
 
