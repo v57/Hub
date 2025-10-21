@@ -16,7 +16,7 @@ class Translator {
   var target: String = "de"
 }
 
-@available(macOS 15.0, *)
+@available(macOS 15.0, iOS 18.0, *)
 struct TranslateView: View {
   @Bindable var translator = Translator()
   @State var configuration: TranslationSession.Configuration?
@@ -46,7 +46,7 @@ struct TranslateView: View {
       Text(translator.result).contentTransition(.numericText()).translationTask(configuration) { session in
         currentTask?.cancel()
         currentTask = Task {
-          if #available(macOS 26.0, *) {
+          if #available(macOS 26.0, iOS 26.0, *) {
             for await text in Observations({ translator.text }) {
               guard !text.isEmpty else { continue }
               let result = try await session.translate(text).targetText
