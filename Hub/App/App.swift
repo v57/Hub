@@ -15,6 +15,7 @@ struct ContentView: View {
     case security
     case storage
     case app(AppHeader)
+    case local
   }
   @State var sideView: SideView? = .storage
   @State var statusBadges = StatusBadges()
@@ -53,6 +54,8 @@ struct ContentView: View {
         if let hub = hubs.selectedHub {
           StorageView().environment(hub)
         }
+      case .local:
+        AppServicesView().environment(hubs.selectedHub)
       }
     }
   }
@@ -88,6 +91,7 @@ struct ContentView: View {
         }
       }
     }
+    NavigationLink("My Apps", value: SideView.local)
   }
   struct StatusBadges: Decodable {
     var services: Int = 0
