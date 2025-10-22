@@ -16,13 +16,14 @@ struct ChatView: View {
   var body: some View {
     List(messages) { message in
       Text(message.text).contentTransition(.numericText())
+    }.safeAreaInset(edge: .bottom) {
+      HStack {
+        TextField("Type your message...", text: $text)
+        Button("Send") {
+          Task { try await send(text: text) }
+        }.disabled(session.isResponding)
+      }.padding()
     }
-    HStack {
-      TextField("Type your message...", text: $text)
-      Button("Send") {
-        Task { try await send(text: text) }
-      }.disabled(session.isResponding)
-    }.padding()
   }
   @Observable
   class Message: Identifiable {
