@@ -38,10 +38,14 @@ struct ChatView: View {
     Task {
       let message = Message(text: "responding...")
       messages.append(message)
-      for try await response in session.streamResponse(to: text) {
-        withAnimation {
-          message.text = response.content.markdown
+      do {
+        for try await response in session.streamResponse(to: text) {
+          withAnimation {
+            message.text = response.content.markdown
+          }
         }
+      } catch {
+        message.text = error.localizedDescription.markdown
       }
     }
   }
