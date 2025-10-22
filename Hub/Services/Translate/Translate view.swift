@@ -10,7 +10,8 @@ import Translation
 
 @Observable
 class Translator {
-  var text: String = ""
+  @ObservationIgnored
+  @Published var text: String = ""
   var result: String = ""
   var source: String = "en"
   var target: String = "de"
@@ -29,25 +30,12 @@ struct TranslateView: View {
     return (session.sourceLanguage?.minimalIdentifier ?? "") + (session.targetLanguage?.minimalIdentifier ?? "")
   }
   var body: some View {
-    VStack {
-      HStack {
-        Picker("Source", selection: $translator.source) {
-          ForEach(languages, id: \.self) { language in
-            Text(language.languageName).tag(language)
-          }
-        }
-        Picker("Target", selection: $translator.target) {
-          ForEach(languages, id: \.self) { language in
-            Text(language.languageName).tag(language)
-          }
-        }
-      }
-      TextField("Text to translate", text: $translator.text)
-      Text(translator.result).contentTransition(.numericText()).translationTask(configuration) { session in
-        currentTask?.cancel()
-        currentTask = Task {
-          if #available(macOS 26.0, iOS 26.0, *) {
-            for await text in Observations({ translator.text }) {
+    ScrollView {
+      VStack {
+        Text(translator.result).textSelection().contentTransition(.numericText()).translationTask(configuration) { session in
+          currentTask?.cancel()
+          currentTask = Task {
+            for await text in translator.$text.values {
               guard !text.isEmpty else { continue }
               let result = try await session.translate(text).targetText
               withAnimation {
@@ -56,21 +44,43 @@ struct TranslateView: View {
             }
           }
         }
-      }
-    }.task {
-      languages = await availability.supportedLanguages.map(\.minimalIdentifier).sorted(by: { $0.languageName < $1.languageName })
-    }.task(id: translator.source + translator.target) {
-      configuration = TranslationSession.Configuration(source: .init(identifier: translator.source), target: .init(identifier: translator.target))
-    }.padding()
+      }.task {
+        languages = await availability.supportedLanguages.map(\.minimalIdentifier).sorted(by: { $0.languageName < $1.languageName })
+      }.task(id: translator.source + translator.target) {
+        configuration = TranslationSession.Configuration(source: translator.source.language, target: translator.target.language)
+      }.frame(maxWidth: .infinity, alignment: .leading).padding()
+    }.safeAreaInset(edge: .bottom) {
+      VStack(alignment: .leading) {
+        HStack {
+          Picker("Source", selection: $translator.source) {
+            ForEach(languages, id: \.self) { language in
+              Text(language.languageName).tag(language)
+            }
+          }
+          Picker("Target", selection: $translator.target) {
+            ForEach(languages, id: \.self) { language in
+              Text(language.languageName).tag(language)
+            }
+          }
+        }
+        TextField("Text to translate", text: $translator.text, axis: .vertical)
+          .textFieldStyle(.roundedBorder)
+      }.padding()
+    }.frame(maxWidth: .infinity)
   }
 }
 extension String {
   var languageName: String {
     Locale.current.localizedString(forIdentifier: self)!
   }
+  var language: Locale.Language {
+    Locale.Language(identifier: self)
+  }
 }
 
-//@available(macOS 15.0, *)
-//#Preview {
-//  TranslateView()
-//}
+@available(macOS 15.0, iOS 18.0, *)
+#Preview {
+  NavigationStack {
+    TranslateView()
+  }
+}
