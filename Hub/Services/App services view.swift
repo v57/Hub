@@ -29,7 +29,7 @@ struct AppServicesView: View {
         switch service {
         case .chat:
           if #available(macOS 26.0, iOS 26.0, *) {
-            ModelChat()
+            ChatView()
           } else {
             ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 26").bold()) and \(Text("macOS 26").bold()) for devices with \(Text("Apple Intelligence").bold()) so it's not possible to run it on other devices or lower versions"))
           }

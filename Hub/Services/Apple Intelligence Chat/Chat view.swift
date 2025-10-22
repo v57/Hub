@@ -9,7 +9,7 @@ import SwiftUI
 import FoundationModels
 
 @available(macOS 26.0, iOS 26.0, *)
-struct ModelChat: View {
+struct ChatView: View {
   @State var session = LanguageModelSession()
   @State var messages: [Message] = []
   @State var text: String = ""
@@ -54,7 +54,7 @@ extension String {
 
 @available(macOS 26.0, iOS 26.0, *)
 #Preview {
-  ModelChat()
+  ChatView()
 }
 
 
