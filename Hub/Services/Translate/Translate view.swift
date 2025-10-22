@@ -57,6 +57,14 @@ struct TranslateView: View {
               Text(language.languageName).tag(language)
             }
           }
+          Button("Switch", systemImage: "arrow.left.arrow.right") {
+            let source = translator.source
+            withAnimation {
+              translator.source = translator.target
+              translator.target = source
+              translator.text = translator.result
+            }
+          }.labelStyle(.iconOnly)
           Picker("Target", selection: $translator.target) {
             ForEach(languages, id: \.self) { language in
               Text(language.languageName).tag(language)
