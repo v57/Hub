@@ -8,25 +8,45 @@
 import SwiftUI
 
 struct AppServicesView: View {
+  @State var open: Service?
   var body: some View {
     NavigationStack {
-      ScrollView {
-        LazyVGrid(columns: [.init(.adaptive(minimum: 160, maximum: 320), alignment: .top)]) {
-          ForEach(Service.allCases, id: \.self) { service in
-            HStack {
-              VStack {
-                Image(systemName: service.image)
-                  .resizable().scaledToFill()
-                  .frame(width: 32, height: 32)
-                Text(service.title)
-                Text(service.description).secondary()
-                Toggle("Enable", isOn: .constant(true))
-              }.multilineTextAlignment(.center)
-            }.frame(maxWidth: .infinity).padding()
-              .background(RoundedRectangle(cornerRadius: 16).fill(.blue.opacity(0.1)))
+      List {
+        ForEach(Service.allCases, id: \.self) { item in
+          HStack {
+            IconView(icon: Icon(symbol: Icon.SFSymbolIcon(name: item.image))).frame(width: 44, height: 44)
+            VStack(alignment: .leading) {
+              Text(item.title)
+              Text(item.description).secondary()
+            }
+            Spacer()
+            Button("Open") {
+              open = item
+            }.buttonStyle(DownloadButtonStyle())
           }
-        }.padding(.horizontal)
-      }.frame(maxWidth: .infinity)
+        }
+      }.navigationDestination(item: $open) { service in
+        switch service {
+        case .chat:
+          if #available(macOS 26.0, iOS 26.0, *) {
+            ModelChat()
+          } else {
+            ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 26").bold()) and \(Text("macOS 26").bold()) for devices with \(Text("Apple Intelligence").bold()) so it's not possible to run it on other devices or lower versions"))
+          }
+        case .imageEncoder:
+          ImageEncoderView()
+        case .videoEncoder:
+          Text("Video encoder")
+        case .translate:
+          if #available(macOS 15.0, iOS 18.0, *) {
+            TranslateView()
+          } else {
+            ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 18").bold()) and \(Text("macOS 15").bold()) so it's not possible to run it on other devices or lower versions"))
+          }
+        case .sensitiveContent:
+          SensitiveContentView()
+        }
+      }
     }
   }
   enum Service: CaseIterable {
