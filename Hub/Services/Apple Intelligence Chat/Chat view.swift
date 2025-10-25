@@ -19,9 +19,11 @@ struct ChatView: View {
     }.safeAreaInset(edge: .bottom) {
       HStack {
         TextField("Type your message...", text: $text)
+          .padding(.horizontal).padding(.vertical, 6)
+          .glassEffect(.regular, in: .capsule)
         Button("Send") {
           Task { try await send(text: text) }
-        }.disabled(session.isResponding)
+        }.disabled(session.isResponding || text.isEmpty).buttonStyle(.glassProminent)
       }.padding()
     }
   }
