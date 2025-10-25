@@ -551,7 +551,7 @@ private extension URLSession {
 }
 
 @Observable
-final class ObservableProgress: Sendable, Hashable {
+final class ObservableProgress: @unchecked Sendable, Hashable {
   var progress = StaticProgress()
   @ObservationIgnored
   private var pendingProgress: StaticProgress?

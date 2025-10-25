@@ -85,8 +85,8 @@ public actor VideoEncoder {
     let duration: CMTime = try await asset.load(.duration)
     let progress = CompressionProgress(duration: duration, callback: progress)
     
-    let videoOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA])
-    let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+    nonisolated(unsafe) let videoOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA])
+    nonisolated(unsafe) let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
     videoInput.transform = transform
     let reader = try AVAssetReader(asset: asset)
     let writer = try AVAssetWriter(url: to, fileType: settings.fileType)
@@ -98,8 +98,8 @@ public actor VideoEncoder {
       writer.add(videoInput)
     }
     
-    var audioInput: AVAssetWriterInput?
-    var audioOutput: AVAssetReaderTrackOutput?
+    nonisolated(unsafe) var audioInput: AVAssetWriterInput?
+    nonisolated(unsafe) var audioOutput: AVAssetReaderTrackOutput?
     if let audio {
       audioOutput = AVAssetReaderTrackOutput(track: audio.track, outputSettings: [AVFormatIDKey: kAudioFormatLinearPCM, AVNumberOfChannelsKey: 2])
       audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audio.settings)
@@ -132,7 +132,9 @@ public actor VideoEncoder {
   
   
   private func process(input: AVAssetWriterInput?, output: AVAssetReaderOutput?, progress: CompressionProgress?) async {
-    guard let input, let output else { return }
+    guard let i = input, let o = output else { return }
+    nonisolated(unsafe) let input = i
+    nonisolated(unsafe) let output = o
     await withCheckedContinuation { continuation in
       input.requestMediaDataWhenReady(on: .global()) {
         while input.isReadyForMoreMediaData {
