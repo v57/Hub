@@ -40,8 +40,14 @@ struct ImageEncoderView: View {
         TableRow(file).draggable(ImageTransfer(file: file))
       }
     }.dropFiles { (files: [URL], point: CGPoint) -> Bool in
+      var content = [URL]()
       for file in files {
-        operations.append(Operation(file: file, size: Int(file.fileSize), result: nil))
+        file.contents(array: &content)
+      }
+      for file in content {
+        if file.lastPathComponent.fileType == .image {
+          operations.append(Operation(file: file, size: Int(file.fileSize), result: nil))
+        }
       }
       if !isRunning {
         Task { try await run() }
