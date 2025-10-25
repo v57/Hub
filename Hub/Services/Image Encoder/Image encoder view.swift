@@ -12,6 +12,9 @@ struct ImageEncoderView: View {
     var id: URL { file }
     var file: URL
     var name: String { file.lastPathComponent }
+    var targetName: String {
+      file.deletingPathExtension().lastPathComponent
+    }
     var size: Int
     var result: Data?
     var error: Bool = false
@@ -34,7 +37,7 @@ struct ImageEncoderView: View {
       }.width(60)
     } rows: {
       ForEach(operations) { file in
-        TableRow(file)
+        TableRow(file).draggable(ImageTransfer(file: file))
       }
     }.dropFiles { (files: [URL], point: CGPoint) -> Bool in
       for file in files {
@@ -44,6 +47,14 @@ struct ImageEncoderView: View {
         Task { try await run() }
       }
       return true
+    }
+  }
+  struct ImageTransfer: Transferable {
+    let file: Operation
+    static var transferRepresentation: some TransferRepresentation {
+      DataRepresentation(exportedContentType: .heic) { item in
+        item.file.result!
+      }.suggestedFileName { $0.file.targetName }
     }
   }
   struct NameView: View {
