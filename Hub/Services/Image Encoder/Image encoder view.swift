@@ -24,6 +24,8 @@ struct ImageEncoderView: View {
   @State var operations: [Operation] = []
   @State private var sortOrder = [KeyPathComparator(\Operation.name, comparator: .localized)]
   @State private var isRunning = false
+  @State private var quality: CGFloat = 0.6
+  @State private var metadata: Bool = false
   var body: some View {
     Table(of: Operation.self, selection: $selected, sortOrder: $sortOrder) {
       TableColumn("Name", value: \Operation.name) { (file: Operation) in
@@ -53,6 +55,15 @@ struct ImageEncoderView: View {
         Task { try await run() }
       }
       return true
+    }.safeAreaInset(edge: .top) {
+      HStack {
+        Toggle("Keep metadata", isOn: $metadata)
+        HStack {
+          Text("Quality \(Int(quality * 100))%")
+          Slider(value: $quality, in: 0.1...0.9, step: 0.1)
+            .frame(maxWidth: 100)
+        }
+      }.frame(maxWidth: .infinity, alignment: .trailing).padding(.horizontal).secondary()
     }
   }
   struct ImageTransfer: Transferable {
@@ -99,7 +110,7 @@ struct ImageEncoderView: View {
       guard operation.result == nil else { return }
       try Task.checkCancellation()
       do {
-        operations[i].result = try await operation.file.heic(quality: 0.8, metadata: false)
+        operations[i].result = try await operation.file.heic(quality: quality, metadata: metadata)
         completed += 1
       } catch {
         operations[i].error = true
