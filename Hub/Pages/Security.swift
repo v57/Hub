@@ -33,7 +33,9 @@ struct SecurityView: View {
             SecureField("Key", text: $ownerKey)
             AsyncButton("Add") {
               addingOwner = false
-              try await hub.addOwner(ownerKey)
+              let key = ownerKey
+              ownerKey = ""
+              try await hub.addOwner(key)
             }.disabled(ownerKey.isEmpty)
           } else {
             Button("Add owner") {
