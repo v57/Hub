@@ -23,8 +23,12 @@ extension HubService.Group {
       .fileOperation(.init(title: nil, value: "images.heic", action: .init(path: "image/encode/heic", body: .void)))
     ], data: [:]))
     .post("image/encode/heic") { (request: EncodeRequest) in
-      print(request)
       try await Self.encodeImage(from: request.from, to: request.to)
+    }
+  }
+  func sensitiveContentService() -> Self {
+    post("image/sensitive") { (url: URL) -> Bool in
+      try await Self.download(from: url).isSensitive()
     }
   }
   struct EncodeRequest: Decodable, Sendable {
@@ -69,9 +73,11 @@ class AppServices {
   let hub: Hub
   let video: HubService.Group
   let image: HubService.Group
+  let sensitiveContent: HubService.Group
   init(hub: Hub) {
     self.hub = hub
     video = hub.service.group(enabled: false).videoService()
     image = hub.service.group(enabled: false).imageService()
+    sensitiveContent = hub.service.group(enabled: false).sensitiveContentService()
   }
 }
