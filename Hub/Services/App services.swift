@@ -9,21 +9,22 @@ import Foundation
 import AVFoundation
 import HubClient
 
-extension HubService {
-  @discardableResult
+extension HubService.Group {
   func videoService() -> Self {
     app(App(header: .init(type: .app, name: "Video Encoder", path: "video/encode/ui"), body: [
       .fileOperation(.init(title: nil, value: "videos.mov", action: .init(path: "video/encode/hevc", body: .void)))
     ], data: [:]))
-    .app(App(header: .init(type: .app, name: "Image Encoder", path: "image/encode/ui"), body: [
+    .post("video/encode/hevc") { (request: EncodeRequest) in
+      try await Self.encodeVideo(from: request.from, to: request.to)
+    }
+  }
+  func imageService() -> Self {
+    app(App(header: .init(type: .app, name: "Image Encoder", path: "image/encode/ui"), body: [
       .fileOperation(.init(title: nil, value: "images.heic", action: .init(path: "image/encode/heic", body: .void)))
     ], data: [:]))
-    .post("video/encode/hevc") { (request: EncodeRequest) in
-      try await HubService.encodeVideo(from: request.from, to: request.to)
-    }
     .post("image/encode/heic") { (request: EncodeRequest) in
       print(request)
-      try await HubService.encodeImage(from: request.from, to: request.to)
+      try await Self.encodeImage(from: request.from, to: request.to)
     }
   }
   struct EncodeRequest: Decodable, Sendable {
@@ -66,8 +67,11 @@ extension HubService {
 @MainActor
 class AppServices {
   let hub: Hub
+  let video: HubService.Group
+  let image: HubService.Group
   init(hub: Hub) {
     self.hub = hub
-    hub.service.videoService()
+    video = hub.service.group(enabled: false).videoService()
+    image = hub.service.group(enabled: false).imageService()
   }
 }
