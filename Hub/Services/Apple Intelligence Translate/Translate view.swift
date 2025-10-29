@@ -8,73 +8,53 @@
 import SwiftUI
 import Translation
 
-@Observable
-class Translator {
-  @ObservationIgnored
-  @Published var text: String = ""
-  var result: String = ""
-  var source: String = "en"
-  var target: String = "de"
-}
-
 @available(macOS 15.0, iOS 18.0, *)
 struct TranslateView: View {
-  @Bindable var translator = Translator()
-  @State var configuration: TranslationSession.Configuration?
   @State var availability = LanguageAvailability()
   @State var languages = [String]()
-  @State var session: TranslationSession?
-  @State var currentTask: Task<Void, Error>?
-  var taskId: String {
-    guard let session else { return "" }
-    return (session.sourceLanguage?.minimalIdentifier ?? "") + (session.targetLanguage?.minimalIdentifier ?? "")
-  }
+  @State var source: String = "en"
+  @State var target: String = "de"
+  @State var translation = Translation()
+  @State var text: String = ""
+  @State var result: String = ""
   var body: some View {
     ScrollView {
       VStack {
-        Text(translator.result).textSelection().contentTransition(.numericText()).translationTask(configuration) { session in
-          currentTask?.cancel()
-          currentTask = Task {
-            for await text in translator.$text.values {
-              guard !text.isEmpty else { continue }
-              let result = try await session.translate(text).targetText
-              withAnimation {
-                translator.result = result
-              }
-            }
-          }
-        }
+        Text(result).textSelection().contentTransition(.numericText())
       }.task {
         languages = await availability.supportedLanguages.map(\.minimalIdentifier).sorted(by: { $0.languageName < $1.languageName })
-      }.task(id: translator.source + translator.target) {
-        configuration = TranslationSession.Configuration(source: translator.source.language, target: translator.target.language)
       }.frame(maxWidth: .infinity, alignment: .leading).padding()
     }.safeAreaInset(edge: .bottom) {
       VStack(alignment: .leading) {
         HStack {
-          Picker("Source", selection: $translator.source) {
+          Picker("Source", selection: $source) {
             ForEach(languages, id: \.self) { language in
               Text(language.languageName).tag(language)
             }
           }
           Button("Switch", systemImage: "arrow.left.arrow.right") {
-            let source = translator.source
+            let source = source
             withAnimation {
-              translator.source = translator.target
-              translator.target = source
-              translator.text = translator.result
+              self.source = target
+              target = source
+              text = result
             }
           }.labelStyle(.iconOnly)
-          Picker("Target", selection: $translator.target) {
+          Picker("Target", selection: $target) {
             ForEach(languages, id: \.self) { language in
               Text(language.languageName).tag(language)
             }
           }
         }
-        TextField("Text to translate", text: $translator.text, axis: .vertical)
+        TextField("Text to translate", text: $text, axis: .vertical)
           .textFieldStyle(.roundedBorder)
-      }.padding()
-    }.frame(maxWidth: .infinity)
+      }.padding().task(id: text) {
+        do {
+          let text = try await translation.translate(text: text, source: source, target: target)
+          withAnimation { result = text }
+        } catch { }
+      }
+    }.frame(maxWidth: .infinity).modifier(TranslationModifier()).environment(translation)
   }
 }
 extension String {
