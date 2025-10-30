@@ -12,6 +12,7 @@ import SwiftUI
 @Observable
 @MainActor
 class Translation {
+  static let main = Translation()
   var configuration: TranslationSession.Configuration?
   var tasks = [TranslationTask]()
   @ObservationIgnored

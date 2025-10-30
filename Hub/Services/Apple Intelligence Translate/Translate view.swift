@@ -15,7 +15,7 @@ struct TranslateView: View {
   @State var installed: Set<String>?
   @State var source: String = "en"
   @State var target: String = "de"
-  @State var translation = Translation()
+  @State var translation = Translation.main
   @State var text: String = ""
   @State var result: String = ""
   var body: some View {
