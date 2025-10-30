@@ -78,9 +78,12 @@ extension LanguageAvailability {
     var available = Set<LanguagePair>()
     var unavailable = Set<LanguagePair>()
   }
-  struct LanguagePair: Hashable {
+  struct LanguagePair: Hashable, Identifiable {
+    var id: String { sourceId + targetId }
     let source: Locale.Language
     let target: Locale.Language
+    var sourceId: String { source.minimalIdentifier }
+    var targetId: String { target.minimalIdentifier }
   }
   func pairs() async -> Pairs {
     var pairs = Pairs()
