@@ -14,10 +14,10 @@ struct AppServicesView: View {
       List {
         ForEach(Service.allCases, id: \.self) { item in
           HStack {
-            IconView(icon: Icon(symbol: Icon.SFSymbolIcon(name: item.image))).frame(width: 44, height: 44)
-            VStack(alignment: .leading) {
-              Text(item.title)
-              Text(item.description).secondary()
+            if let hub = Hubs.main.selectedHub, let publisher = item.servicePublisher(hub: hub) {
+              HubButton(hub: hub, publisher: publisher, service: item)
+            } else {
+              ServiceContent(item: item, isSharing: nil)
             }
             Spacer()
             Button("Open") {
@@ -49,6 +49,48 @@ struct AppServicesView: View {
       }
     }
   }
+  struct HubButton: View {
+    let hub: Hub
+    let publisher: Published<Bool>.Publisher
+    let service: Service
+    @State var isEnabled: Bool = false
+    var body: some View {
+      Button {
+        withAnimation {
+          isEnabled.toggle()
+        }
+        service.setService(enabled: isEnabled, hub: hub)
+      } label: {
+        ServiceContent(item: service, isSharing: isEnabled)
+      }.onReceive(publisher) { isEnabled = $0 }
+        .buttonStyle(.plain)
+    }
+  }
+  struct ServiceContent: View {
+    let item: Service
+    let isSharing: Bool?
+    var body: some View {
+      RoundedRectangle(cornerRadius: 12)
+        .fill(Color.gray.opacity(0.2))
+        .overlay {
+          Image(systemName: item.image)
+            .font(.system(size: 17.6)).fontWeight(.medium)
+        }.frame(width: 44, height: 44).overlay(alignment: .topTrailing) {
+          if let isSharing {
+            Image(systemName: "square.and.arrow.up.circle.fill")
+              .foregroundStyle(isSharing ? .white : .primary, isSharing ? .blue : Color(.tertiarySystemFill))
+              .font(.title).labelStyle(.iconOnly)
+              .offset(x: 6, y: -4)
+          }
+        }
+      VStack(alignment: .leading) {
+        HStack {
+          Text(item.title)
+        }
+        Text(item.description).secondary()
+      }
+    }
+  }
   enum Service: CaseIterable {
     case imageEncoder, videoEncoder, translate, chat, sensitiveContent
     var title: LocalizedStringKey {
@@ -76,6 +118,26 @@ struct AppServicesView: View {
       case .sensitiveContent: return "Detect if image or video contains sensitive content"
       case .translate: return "Translate text using on device translation"
       case .chat: return "Chat with apple intelligence on device model"
+      }
+    }
+    @MainActor
+    func servicePublisher(hub: Hub) -> Published<Bool>.Publisher? {
+      switch self {
+      case .imageEncoder: hub.appServices.image.$isEnabled
+      case .videoEncoder: hub.appServices.video.$isEnabled
+      case .translate: hub.appServices.$translationEnabled
+      case .chat: hub.appServices.chat?.$isEnabled
+      case .sensitiveContent: hub.appServices.sensitiveContent.$isEnabled
+      }
+    }
+    @MainActor
+    func setService(enabled: Bool, hub: Hub) {
+      switch self {
+      case .imageEncoder: hub.appServices.image.isEnabled = enabled
+      case .videoEncoder: hub.appServices.video.isEnabled = enabled
+      case .translate: hub.appServices.translationEnabled = enabled
+      case .chat: hub.appServices.chat?.isEnabled = enabled
+      case .sensitiveContent: hub.appServices.sensitiveContent.isEnabled = enabled
       }
     }
   }
