@@ -10,7 +10,6 @@ import Translation
 
 @available(macOS 15.0, iOS 18.0, *)
 struct TranslateView: View {
-  @State var availability = LanguageAvailability()
   @State var languages = [String]()
   @State var installed: Set<String>?
   @State var source: String = "en"
@@ -18,13 +17,23 @@ struct TranslateView: View {
   @State var translation = Translation.main
   @State var text: String = ""
   @State var result: String = ""
+  @State private var isRefreshing = false
   var body: some View {
     ScrollView {
       VStack {
         Text(result).textSelection().contentTransition(.numericText())
       }.task {
-        languages = await availability.supportedLanguages.map(\.minimalIdentifier).sorted(by: { $0.languageName < $1.languageName })
+        languages = await LanguageAvailability().supportedLanguages
+          .map(\.minimalIdentifier).sorted(by: { $0.languageName < $1.languageName })
       }.frame(maxWidth: .infinity, alignment: .leading).padding()
+    }.toolbar {
+      Button("Refresh", systemImage: "arrow.clockwise") {
+        Task {
+          isRefreshing = true
+          defer { isRefreshing = false }
+          await translation.updateLanguages()
+        }
+      }.disabled(isRefreshing)
     }.safeAreaInset(edge: .bottom) {
       VStack(alignment: .leading) {
         HStack {
