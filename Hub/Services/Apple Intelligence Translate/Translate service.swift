@@ -23,8 +23,8 @@ struct TranslationGroups {
 }
 extension AppServices {
   @available(macOS 15.0, iOS 18.0, *)
-  func translationGroups() {
-    translation.groupsSubscription = Translation.main.$pairs.compactMap { $0 }.combineLatest(Translation.main.$isEnabled).sink { [weak self] pairs, isEnabled in
+  func translationGroups(enabled: Published<Bool>.Publisher) {
+    translation.groupsSubscription = Translation.main.$pairs.compactMap { $0 }.combineLatest(enabled).sink { [weak self] pairs, isEnabled in
       guard let self else { return }
       if isEnabled {
         if translation.groups.isEmpty {

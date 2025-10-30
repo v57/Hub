@@ -26,8 +26,6 @@ class Translation {
   var isRunning = false
   @ObservationIgnored
   @Published var pairs: LanguageAvailability.Pairs?
-  @ObservationIgnored 
-  @Published var isEnabled = false
   
   private init() {
     Task { await updateLanguages() }

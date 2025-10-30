@@ -8,6 +8,7 @@
 import Foundation
 import AVFoundation
 import HubClient
+import Combine
 
 extension HubService.Group {
   func videoService() -> Self {
@@ -76,16 +77,50 @@ class AppServices {
   let image: HubService.Group
   let sensitiveContent: HubService.Group
   var translation = TranslationGroups()
+  @Published var translationEnabled = false
+  private var enabled: Set<String> = [] {
+    didSet {
+      guard enabled != oldValue else { return }
+      let list = enabled
+      saveTask = Task {
+        try await Task.sleep(for: .seconds(1))
+        UserDefaults.standard.setValue(Array(list).sorted(), forKey: "services/\(hub.id)")
+      }
+    }
+  }
+  private var saveTask: Task<Void, Error>? {
+    didSet { oldValue?.cancel() }
+  }
+  private var tasks = Set<AnyCancellable>()
   init(hub: Hub) {
     self.hub = hub
+    enabled = Set(UserDefaults.standard.array(forKey: "services/\(hub.id)") as? [String] ?? [])
     if #available(macOS 26.0, iOS 26.0, *) {
-      chat = hub.service.group(enabled: false).chat()
+      chat = hub.service.group(enabled: enabled.contains("text/llm")).chat()
     }
-    video = hub.service.group(enabled: false).videoService()
-    image = hub.service.group(enabled: false).imageService()
-    sensitiveContent = hub.service.group(enabled: false).sensitiveContentService()
+    video = hub.service.group(enabled: enabled.contains("video/encode")).videoService()
+    image = hub.service.group(enabled: enabled.contains("image/encode")).imageService()
+    sensitiveContent = hub.service.group(enabled: enabled.contains("image/sensitive")).sensitiveContentService()
     if #available(macOS 15.0, iOS 18.0, *) {
-      translationGroups()
+      translationEnabled = enabled.contains("text/translate")
+      translationGroups(enabled: $translationEnabled)
     }
+    assign(chat?.$isEnabled, to: "text/llm")
+    assign(video.$isEnabled, to: "video/encode")
+    assign(image.$isEnabled, to: "image/encode")
+    assign(sensitiveContent.$isEnabled, to: "image/sensitive")
+    assign($translationEnabled, to: "text/translate")
+  }
+  private func save() {
+    enabled = Set(UserDefaults.standard.array(forKey: "services/\(hub.id)") as? [String] ?? [])
+  }
+  private func assign(_ publisher: Published<Bool>.Publisher?, to key: String) {
+    publisher?.sink { [unowned self] isEnabled in
+      if isEnabled {
+        enabled.insert(key)
+      } else {
+        enabled.remove(key)
+      }
+    }.store(in: &tasks)
   }
 }
