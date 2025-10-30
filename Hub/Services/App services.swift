@@ -71,12 +71,16 @@ extension HubService.Group {
 @MainActor
 class AppServices {
   let hub: Hub
+  var chat: HubService.Group?
   let video: HubService.Group
   let image: HubService.Group
   let sensitiveContent: HubService.Group
   var translation = TranslationGroups()
   init(hub: Hub) {
     self.hub = hub
+    if #available(macOS 26.0, iOS 26.0, *) {
+      chat = hub.service.group(enabled: false).chat()
+    }
     video = hub.service.group(enabled: false).videoService()
     image = hub.service.group(enabled: false).imageService()
     sensitiveContent = hub.service.group(enabled: false).sensitiveContentService()
