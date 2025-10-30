@@ -24,22 +24,27 @@ struct TranslationGroups {
 extension AppServices {
   @available(macOS 15.0, iOS 18.0, *)
   func translationGroups() {
-    translation.groupsSubscription = Translation.main.$pairs.compactMap { $0 }.sink { [weak self] pairs in
+    translation.groupsSubscription = Translation.main.$pairs.compactMap { $0 }.combineLatest(Translation.main.$isEnabled).sink { [weak self] pairs, isEnabled in
       guard let self else { return }
-      if translation.groups.isEmpty {
-        for pair in pairs.available {
-          translation.groups[pair.id] = self.hub.service.group(enabled: true).translate(pair)
-        }
-        for pair in pairs.unavailable {
-          translation.groups[pair.id] = self.hub.service.group(enabled: false).translate(pair)
+      if isEnabled {
+        if translation.groups.isEmpty {
+          for pair in pairs.available {
+            translation.groups[pair.id] = self.hub.service.group(enabled: true).translate(pair)
+          }
+          for pair in pairs.unavailable {
+            translation.groups[pair.id] = self.hub.service.group(enabled: false).translate(pair)
+          }
+          self.hub.service.sendServiceUpdates()
+        } else {
+          for pair in pairs.available {
+            translation.groups[pair.id]?.isEnabled = true
+          }
+          for pair in pairs.unavailable {
+            translation.groups[pair.id]?.isEnabled = false
+          }
         }
       } else {
-        for pair in pairs.available {
-          translation.groups[pair.id]?.isEnabled = true
-        }
-        for pair in pairs.unavailable {
-          translation.groups[pair.id]?.isEnabled = false
-        }
+        translation.groups.values.forEach { $0.isEnabled = false }
       }
     }
   }
