@@ -24,7 +24,13 @@ class Translation {
     }
   }
   var isRunning = false
+  @ObservationIgnored
+  @Published
+  var pairs: LanguageAvailability.Pairs?
   
+  private init() {
+    Task { await updateLanguages() }
+  }
   func translate(text: String, source: String, target: String) async throws -> String {
     let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
     let source = source.language
@@ -82,6 +88,9 @@ class Translation {
     } else {
       isRunning = false
     }
+  }
+  func updateLanguages() async {
+    pairs = await LanguageAvailability().pairs()
   }
   struct TranslationTask {
     let id = UUID()
