@@ -72,7 +72,7 @@ struct TranslateView: View {
   }
 }
 
-@available(macOS 15.0, iOS 18.0, *, *)
+@available(macOS 15.0, iOS 18.0, *)
 extension LanguageAvailability {
   struct Pairs {
     var available = Set<LanguagePair>()

@@ -74,10 +74,14 @@ class AppServices {
   let video: HubService.Group
   let image: HubService.Group
   let sensitiveContent: HubService.Group
+  var translation = TranslationGroups()
   init(hub: Hub) {
     self.hub = hub
     video = hub.service.group(enabled: false).videoService()
     image = hub.service.group(enabled: false).imageService()
     sensitiveContent = hub.service.group(enabled: false).sensitiveContentService()
+    if #available(macOS 15.0, iOS 18.0, *) {
+      translationGroups()
+    }
   }
 }
