@@ -5,6 +5,7 @@
 //  Created by Linux on 05.10.25.
 //
 
+#if canImport(SensitiveContentAnalysis)
 import SwiftUI
 import SensitiveContentAnalysis
 
@@ -52,3 +53,4 @@ struct SensitiveContentView: View {
 #Preview {
   SensitiveContentView()
 }
+#endif

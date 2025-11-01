@@ -5,6 +5,7 @@
 //  Created by Linux on 05.10.25.
 //
 
+#if os(macOS) || os(iOS)
 import SwiftUI
 import Translation
 
@@ -153,3 +154,4 @@ extension String {
     TranslateView()
   }
 }
+#endif

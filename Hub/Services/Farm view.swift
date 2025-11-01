@@ -5,6 +5,7 @@
 //  Created by Linux on 31.10.25.
 //
 
+#if os(macOS) || os(iOS)
 import SwiftUI
 #if os(macOS)
 import IOKit.ps
@@ -79,14 +80,6 @@ extension View {
     #else
     self
     #endif
-  }
-  @ViewBuilder
-  func glassProminentButton() -> some View {
-    if #available(macOS 26.0, *) {
-      buttonStyle(.glassProminent)
-    } else {
-      buttonStyle(.borderedProminent)
-    }
   }
 }
 
@@ -261,3 +254,4 @@ class Farm {
 #Preview {
   FarmView()
 }
+#endif

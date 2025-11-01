@@ -5,6 +5,7 @@
 //  Created by Linux on 29.10.25.
 //
 
+#if os(macOS) || os(iOS)
 import Translation
 import SwiftUI
 
@@ -111,3 +112,4 @@ struct TranslationModifier: ViewModifier {
     }
   }
 }
+#endif

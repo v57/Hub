@@ -5,6 +5,7 @@
 //  Created by Linux on 08.10.25.
 //
 
+#if canImport(FoundationModels)
 import SwiftUI
 import FoundationModels
 
@@ -23,7 +24,7 @@ struct ChatView: View {
           .glassEffect(.regular, in: .capsule)
         Button("Send") {
           Task { try await send(text: text) }
-        }.disabled(session.isResponding || text.isEmpty).buttonStyle(.glassProminent)
+        }.disabled(session.isResponding || text.isEmpty).glassProminentButton()
       }.padding()
     }
   }
@@ -64,18 +65,4 @@ extension String {
   ChatView()
 }
 
-
-
-
-
-
-
-enum ALM {
-  struct Message: Codable {
-    let role: String
-    let content: String
-  }
-  struct ChatRequest: Codable {
-    let messages: [Message]
-  }
-}
+#endif

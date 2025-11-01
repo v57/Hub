@@ -5,6 +5,7 @@
 //  Created by Linux on 30.10.25.
 //
 
+#if os(macOS) || os(iOS)
 import HubClient
 import Translation
 import Combine
@@ -49,3 +50,4 @@ extension AppServices {
     }
   }
 }
+#endif

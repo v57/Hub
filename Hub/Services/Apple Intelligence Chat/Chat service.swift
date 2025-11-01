@@ -5,6 +5,7 @@
 //  Created by Linux on 30.10.25.
 //
 
+#if canImport(FoundationModels)
 import Foundation
 import FoundationModels
 import HubClient
@@ -57,3 +58,4 @@ struct ChatRequest: Decodable {
     }
   }
 }
+#endif

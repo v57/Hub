@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+#if os(macOS) || os(iOS)
 
 struct ImageEncoderView: View {
   struct Operation: Identifiable {
@@ -123,14 +124,15 @@ struct ImageEncoderView: View {
   }
 }
 
+#Preview {
+  ImageEncoderView()
+}
+#endif
+
 extension URL {
   func heic(quality: CGFloat, metadata: Bool) async throws -> Data {
     try await Task.detached {
       try Data(contentsOf: self).heic(quality: quality, metadata: metadata)
     }.value
   }
-}
-
-#Preview {
-  ImageEncoderView()
 }

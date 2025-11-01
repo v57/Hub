@@ -5,6 +5,8 @@
 //  Created by Linux on 25.10.25.
 //
 
+
+#if os(macOS) || os(iOS)
 import SwiftUI
 import AVFoundation
 
@@ -135,3 +137,4 @@ struct VideoEncoderView: View {
 #Preview {
   VideoEncoderView()
 }
+#endif

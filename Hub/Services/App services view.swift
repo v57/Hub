@@ -26,29 +26,45 @@ struct AppServicesView: View {
           }
         }
       }.safeAreaInset(edge: .bottom) {
+#if os(macOS) || os(iOS)
         NavigationLink("Farm") {
           FarmView()
         }.glassProminentButton().padding()
+#endif
       }.navigationDestination(item: $open) { service in
         switch service {
         case .chat:
+#if os(macOS) || os(iOS)
           if #available(macOS 26.0, iOS 26.0, *) {
             ChatView()
           } else {
             ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 26").bold()) and \(Text("macOS 26").bold()) for devices with \(Text("Apple Intelligence").bold()) so it's not possible to run it on other devices or lower versions"))
           }
+#else
+          ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 26").bold()) and \(Text("macOS 26").bold()) for devices with \(Text("Apple Intelligence").bold()) so it's not possible to run it on other devices or lower versions"))
+#endif
         case .imageEncoder:
+#if os(macOS) || os(iOS) || os(visionOS)
           ImageEncoderView()
+#else
+          ContentUnavailableView("Service not available", systemImage: "photo.fill", description: Text("Image encoder interface is not available on Apple Watch and Apple TV but you can still use it as a service"))
+#endif
         case .videoEncoder:
-          Text("Video encoder")
+          ContentUnavailableView("Service not available", systemImage: "photo.fill", description: Text("Video encoder interface is not available yet but you can still use it as a service"))
         case .translate:
+#if os(macOS) || os(iOS)
           if #available(macOS 15.0, iOS 18.0, *) {
             TranslateView()
           } else {
             ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 18").bold()) and \(Text("macOS 15").bold()) so it's not possible to run it on other devices or lower versions"))
           }
+#else
+          ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 18").bold()) and \(Text("macOS 15").bold()) so it's not possible to run it on other devices or lower versions"))
+#endif
         case .sensitiveContent:
+#if os(macOS) || os(iOS)
           SensitiveContentView()
+#endif
         }
       }
     }
@@ -82,7 +98,7 @@ struct AppServicesView: View {
         }.frame(width: 44, height: 44).overlay(alignment: .topTrailing) {
           if let isSharing {
             Image(systemName: "square.and.arrow.up.circle.fill")
-              .foregroundStyle(isSharing ? .white : .primary, isSharing ? .blue : Color(.tertiarySystemFill))
+              .foregroundStyle(isSharing ? .white : .primary, isSharing ? .blue : .tertiaryBackground)
               .font(.title).labelStyle(.iconOnly)
               .offset(x: 6, y: -4)
           }
@@ -129,9 +145,19 @@ struct AppServicesView: View {
       switch self {
       case .imageEncoder: hub.appServices.image.$isEnabled
       case .videoEncoder: hub.appServices.video.$isEnabled
-      case .translate: hub.appServices.$translationEnabled
+      case .translate:
+#if os(macOS) || os(iOS)
+        hub.appServices.$translationEnabled
+#else
+        nil
+#endif
       case .chat: hub.appServices.chat?.$isEnabled
-      case .sensitiveContent: hub.appServices.sensitiveContent.$isEnabled
+      case .sensitiveContent:
+#if os(macOS) || os(iOS)
+        hub.appServices.sensitiveContent.$isEnabled
+#else
+        nil
+#endif
       }
     }
     @MainActor
@@ -139,14 +165,34 @@ struct AppServicesView: View {
       switch self {
       case .imageEncoder: hub.appServices.image.isEnabled = enabled
       case .videoEncoder: hub.appServices.video.isEnabled = enabled
-      case .translate: hub.appServices.translationEnabled = enabled
+      case .translate:
+#if os(macOS) || os(iOS)
+        hub.appServices.translationEnabled = enabled
+#else
+        break
+#endif
       case .chat: hub.appServices.chat?.isEnabled = enabled
-      case .sensitiveContent: hub.appServices.sensitiveContent.isEnabled = enabled
+      case .sensitiveContent:
+#if os(macOS) || os(iOS)
+        hub.appServices.sensitiveContent.isEnabled = enabled
+#else
+        break
+#endif
       }
     }
   }
   enum Availability {
     case available, iOS(Int), macOS(Int), unsupportedDevice
+  }
+}
+
+extension Color {
+  static var tertiaryBackground: Color {
+#if os(macOS) || os(iOS)
+    Color(.tertiarySystemFill)
+#else
+    Color.gray.opacity(0.4)
+#endif
   }
 }
 

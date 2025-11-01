@@ -27,11 +27,13 @@ extension HubService.Group {
       try await Self.encodeImage(from: request.from, to: request.to)
     }
   }
+#if os(macOS) || os(iOS)
   func sensitiveContentService() -> Self {
     post("image/sensitive") { (url: URL) -> Bool in
       try await Self.download(from: url).isSensitive()
     }
   }
+#endif
   struct EncodeRequest: Decodable, Sendable {
     let from: URL
     let to: URL
@@ -75,9 +77,11 @@ class AppServices {
   var chat: HubService.Group?
   let video: HubService.Group
   let image: HubService.Group
+#if os(macOS) || os(iOS)
   let sensitiveContent: HubService.Group
   var translation = TranslationGroups()
   @Published var translationEnabled = false
+#endif
   private var enabled: Set<String> = [] {
     didSet {
       guard enabled != oldValue else { return }
@@ -95,21 +99,27 @@ class AppServices {
   init(hub: Hub) {
     self.hub = hub
     enabled = Set(UserDefaults.standard.array(forKey: "services/\(hub.id)") as? [String] ?? [])
+#if os(macOS) || os(iOS)
     if #available(macOS 26.0, iOS 26.0, *) {
       chat = hub.service.group(enabled: enabled.contains("text/llm")).chat()
     }
+#endif
     video = hub.service.group(enabled: enabled.contains("video/encode")).videoService()
     image = hub.service.group(enabled: enabled.contains("image/encode")).imageService()
+#if os(macOS) || os(iOS)
     sensitiveContent = hub.service.group(enabled: enabled.contains("image/sensitive")).sensitiveContentService()
     if #available(macOS 15.0, iOS 18.0, *) {
       translationEnabled = enabled.contains("text/translate")
       translationGroups(enabled: $translationEnabled)
     }
+#endif
     assign(chat?.$isEnabled, to: "text/llm")
     assign(video.$isEnabled, to: "video/encode")
     assign(image.$isEnabled, to: "image/encode")
+#if os(macOS) || os(iOS)
     assign(sensitiveContent.$isEnabled, to: "image/sensitive")
     assign($translationEnabled, to: "text/translate")
+#endif
   }
   private func save() {
     enabled = Set(UserDefaults.standard.array(forKey: "services/\(hub.id)") as? [String] ?? [])
