@@ -40,7 +40,7 @@ struct FarmView: View {
             farm.isRunning = false
           }.ignoresSafeArea()
         }
-      }
+      }.statusBarHidden(farm.isRunning)
   }
   var text: LocalizedStringKey {
     if minimumBattery == 0 {
