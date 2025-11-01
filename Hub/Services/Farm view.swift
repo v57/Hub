@@ -9,13 +9,14 @@ import SwiftUI
 #if os(macOS)
 import IOKit.ps
 import IOKit.pwr_mgt
+#elseif os(iOS)
+import Combine
 #endif
 
 struct FarmView: View {
   @State var minimumBattery: Float = 80
-  @State var dimDisplay: Bool = true
   @State var blackOverlay: Bool = true
-  @State var farm = Farm.main
+  @Bindable var farm = Farm.main
   var body: some View {
     List {
       VStack(alignment: .leading) {
@@ -26,7 +27,7 @@ struct FarmView: View {
           Image(battery: minimumBattery, charging: false)
         }
       }
-      Toggle("Lower brightness", isOn: $dimDisplay)
+      Toggle("Lower brightness", isOn: $farm.lowerBrightness)
       Toggle("Black overlay", isOn: $blackOverlay)
       Button("Start") {
         farm.isRunning = true
@@ -34,10 +35,10 @@ struct FarmView: View {
     }.frame(maxWidth: .infinity, maxHeight: .infinity)
       .toggleStyle(.switch)
       .overlay {
-        if farm.isRunning && dimDisplay {
+        if farm.isRunning {
           Color.black.opacity(blackOverlay ? 1 : 0.001).onTapGesture {
             farm.isRunning = false
-          }
+          }.ignoresSafeArea()
         }
       }
   }
@@ -81,6 +82,7 @@ class Farm {
     didSet {
       guard isRunning != oldValue else { return }
       preventSleep(enabled: isRunning)
+      lowerBrightness(enabled: isRunning)
       if isRunning {
         trackBattery()
       } else {
@@ -88,16 +90,25 @@ class Farm {
       }
     }
   }
+  var lowerBrightness: Bool = true
   
 #if os(macOS)
   private var powerSourceRunLoopSource: CFRunLoopSource?
   private var sleepAssertionID: IOPMAssertionID = 0
-#else
+#elseif os(iOS)
+  private var brightness: CGFloat?
+  weak var screen: UIScreen?
   private var powerTracking: AnyCancellable?
+  private var farmTracking: AnyCancellable?
 #endif
   
   init() {
     battery = batteryStatus()
+#if os(iOS)
+    farmTracking = NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification).sink { [unowned self] _ in
+      isRunning = false
+    }
+#endif
   }
   
   struct BatteryStatus {
@@ -116,7 +127,7 @@ class Farm {
       return BatteryStatus(level: Float(capacity) / Float(max), charging: info[kIOPSPowerSourceStateKey] as? String != "Battery Power")
     }
     return nil
-#else
+#elseif os(iOS)
     let state = UIDevice.current.batteryState
     return BatteryStatus(level: UIDevice.current.batteryLevel, charging: state == .charging || state == .full)
 #endif
@@ -134,20 +145,12 @@ class Farm {
     if let runLoopSource = powerSourceRunLoopSource {
       CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .defaultMode)
     }
-#else
+#elseif os(iOS)
     UIDevice.current.isBatteryMonitoringEnabled = true
-    NotificationCenter.default.addObserver(
-      self,
-      selector: #selector(updateBatteryStatus),
-      name: UIDevice.batteryLevelDidChangeNotification,
-      object: nil
-    )
-    NotificationCenter.default.addObserver(
-      self,
-      selector: #selector(updateBatteryStatus),
-      name: UIDevice.batteryStateDidChangeNotification,
-      object: nil
-    )
+    powerTracking = NotificationCenter.default.publisher(for: UIDevice.batteryLevelDidChangeNotification)
+      .combineLatest(NotificationCenter.default.publisher(for: UIDevice.batteryStateDidChangeNotification)).sink { [unowned self] _, _ in
+        updateBatteryStatus()
+    }
 #endif
   }
   
@@ -156,7 +159,7 @@ class Farm {
     if let runLoopSource = powerSourceRunLoopSource {
       CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, .defaultMode)
     }
-#else
+#elseif os(iOS)
     NotificationCenter.default.removeObserver(self)
 #endif
   }
@@ -183,7 +186,7 @@ class Farm {
         sleepAssertionID = 0
       }
     }
-#else
+#elseif os(iOS)
     UIApplication.shared.isIdleTimerDisabled = enabled
 #endif
   }
@@ -191,23 +194,21 @@ class Farm {
   private func updateBatteryStatus() {
     battery = batteryStatus()
   }
-}
-
-extension Farm {
-  func setBrightnessLevel(level: Float) {
-    #if os(macOS)
-    var iterator: io_iterator_t = 0
-    if IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IODisplayConnect"), &iterator) == kIOReturnSuccess {
-      var service: io_object_t = 1
-      while service != 0 {
-        service = IOIteratorNext(iterator)
-        IODisplaySetFloatParameter(service, 0, kIODisplayBrightnessKey as CFString, level)
-        IOObjectRelease(service)
+  
+  private func lowerBrightness(enabled: Bool) {
+#if os(iOS)
+    if enabled {
+      if lowerBrightness {
+        screen = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen
+        if let screen {
+          brightness = screen.brightness
+          screen.brightness = 0
+        }
       }
+    } else if let brightness {
+      screen?.brightness = brightness
     }
-    #else
-    UIScreen.main.brightness = CGFloat(level)
-    #endif
+#endif
   }
 }
 
