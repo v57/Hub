@@ -20,7 +20,7 @@ extension HubService.Group {
   }
 }
 
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 26.0, *)
 struct ChatRequest: Decodable {
   let messages: [Message]
   enum Role: String, Decodable {
