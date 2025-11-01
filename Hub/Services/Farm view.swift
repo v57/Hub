@@ -14,20 +14,19 @@ import Combine
 #endif
 
 struct FarmView: View {
-  @State var minimumBattery: Float = 80
   @State var blackOverlay: Bool = true
   @Bindable var farm = Farm.main
   var canStart: Bool {
     guard let battery = farm.battery else { return true }
-    return battery.charging || battery.level >= minimumBattery
+    return battery.charging || battery.level >= farm.minimumBattery
   }
   var body: some View {
     List {
       VStack(alignment: .leading) {
         HStack {
-          Slider(value: $minimumBattery, in: 0...100, step: 5)
+          Slider(value: $farm.minimumBattery, in: 0...100, step: 5)
             .frame(maxWidth: 200)
-          Image(battery: minimumBattery, charging: false)
+          Image(battery: farm.minimumBattery, charging: false)
         }
         Text(text).secondary()
       }
@@ -60,12 +59,12 @@ struct FarmView: View {
       }.disableSystemOverlay(farm.isRunning)
   }
   var text: LocalizedStringKey {
-    if minimumBattery == 0 {
+    if farm.minimumBattery == 0 {
       return "Run until turned off"
-    } else if minimumBattery == 1 {
+    } else if farm.minimumBattery == 1 {
       return "Run while charging"
     } else {
-      return "Run while charging or battery level is above \(Int(minimumBattery))%"
+      return "Run while charging or battery level is above \(Int(farm.minimumBattery))%"
     }
   }
 }
@@ -104,7 +103,16 @@ extension Image {
 @Observable
 class Farm {
   static let main = Farm()
-  var battery: BatteryStatus?
+  var battery: BatteryStatus? {
+    didSet {
+      guard battery != oldValue else { return }
+      guard let battery else { return }
+      guard isRunning else { return }
+      guard !battery.charging && battery.level < minimumBattery else { return }
+      isRunning = false
+    }
+  }
+  var minimumBattery: Float = 80
   var isRunning = false {
     didSet {
       guard isRunning != oldValue else { return }
