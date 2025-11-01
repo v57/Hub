@@ -62,7 +62,7 @@ struct AppServicesView: View {
           ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 18").bold()) and \(Text("macOS 15").bold()) so it's not possible to run it on other devices or lower versions"))
 #endif
         case .sensitiveContent:
-#if os(macOS) || os(iOS)
+#if os(macOS) || os(iOS) || os(visionOS)
           SensitiveContentView()
 #endif
         }

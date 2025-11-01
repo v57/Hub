@@ -21,11 +21,15 @@ extension View {
   }
   @ViewBuilder
   func glassProminentButton() -> some View {
+    #if os(visionOS)
+    buttonStyle(.borderedProminent)
+    #else
     if #available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *) {
       buttonStyle(.glassProminent)
     } else {
       buttonStyle(.borderedProminent)
     }
+    #endif
   }
 }
 

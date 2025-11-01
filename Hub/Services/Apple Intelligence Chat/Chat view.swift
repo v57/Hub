@@ -19,9 +19,14 @@ struct ChatView: View {
       Text(message.text).contentTransition(.numericText())
     }.safeAreaInset(edge: .bottom) {
       HStack {
+        #if os(visionOS)
+        TextField("Type your message...", text: $text)
+          .padding(.horizontal).padding(.vertical, 6)
+        #else
         TextField("Type your message...", text: $text)
           .padding(.horizontal).padding(.vertical, 6)
           .glassEffect(.regular, in: .capsule)
+        #endif
         Button("Send") {
           Task { try await send(text: text) }
         }.disabled(session.isResponding || text.isEmpty).glassProminentButton()

@@ -27,7 +27,7 @@ extension HubService.Group {
       try await Self.encodeImage(from: request.from, to: request.to)
     }
   }
-#if os(macOS) || os(iOS)
+#if os(macOS) || os(iOS) || os(visionOS)
   func sensitiveContentService() -> Self {
     post("image/sensitive") { (url: URL) -> Bool in
       try await Self.download(from: url).isSensitive()
@@ -77,8 +77,10 @@ class AppServices {
   var chat: HubService.Group?
   let video: HubService.Group
   let image: HubService.Group
-#if os(macOS) || os(iOS)
+#if os(macOS) || os(iOS) || os(visionOS)
   let sensitiveContent: HubService.Group
+#endif
+#if os(macOS) || os(iOS)
   var translation = TranslationGroups()
   @Published var translationEnabled = false
 #endif
@@ -99,15 +101,17 @@ class AppServices {
   init(hub: Hub) {
     self.hub = hub
     enabled = Set(UserDefaults.standard.array(forKey: "services/\(hub.id)") as? [String] ?? [])
-#if os(macOS) || os(iOS)
-    if #available(macOS 26.0, iOS 26.0, *) {
+#if os(macOS) || os(iOS) || os(visionOS)
+    if #available(macOS 26.0, iOS 26.0, visionOS 26.0, *) {
       chat = hub.service.group(enabled: enabled.contains("text/llm")).chat()
     }
 #endif
     video = hub.service.group(enabled: enabled.contains("video/encode")).videoService()
     image = hub.service.group(enabled: enabled.contains("image/encode")).imageService()
-#if os(macOS) || os(iOS)
+#if os(macOS) || os(iOS) || os(visionOS)
     sensitiveContent = hub.service.group(enabled: enabled.contains("image/sensitive")).sensitiveContentService()
+#endif
+#if os(macOS) || os(iOS)
     if #available(macOS 15.0, iOS 18.0, *) {
       translationEnabled = enabled.contains("text/translate")
       translationGroups(enabled: $translationEnabled)

@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-#if os(macOS) || os(iOS)
+#if os(macOS) || os(iOS) || os(visionOS)
 
 struct ImageEncoderView: View {
   struct Operation: Identifiable {
