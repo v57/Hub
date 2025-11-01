@@ -25,6 +25,10 @@ struct AppServicesView: View {
             }.buttonStyle(DownloadButtonStyle())
           }
         }
+      }.safeAreaInset(edge: .bottom) {
+        NavigationLink("Farm") {
+          FarmView()
+        }.glassProminentButton().padding()
       }.navigationDestination(item: $open) { service in
         switch service {
         case .chat:
@@ -85,9 +89,9 @@ struct AppServicesView: View {
         }
       VStack(alignment: .leading) {
         HStack {
-          Text(item.title)
+          Text(item.title).lineLimit(2)
         }
-        Text(item.description).secondary()
+        Text(item.description).secondary().lineLimit(3)
       }
     }
   }
