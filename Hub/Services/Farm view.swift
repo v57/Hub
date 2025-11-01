@@ -24,12 +24,13 @@ struct FarmView: View {
     List {
       VStack(alignment: .leading) {
         HStack {
-          Slider(value: $farm.minimumBattery, in: 0...100, step: 5)
+          Slider(value: $farm.minimumBattery, in: 0...1, step: 0.05)
             .frame(maxWidth: 200)
           Image(battery: farm.minimumBattery, charging: false)
         }
         Text(text).secondary()
       }
+#if os(iOS)
       VStack(alignment: .leading) {
         Toggle("Lower brightness", isOn: $farm.lowerBrightness)
         Text("Lowers brightness to minimum level until stops. Helps to save battery").secondary()
@@ -38,16 +39,18 @@ struct FarmView: View {
         Toggle("Black overlay", isOn: $blackOverlay)
         Text("Adds black screen, increasing battery life on OLED and XDR displays").secondary()
       }
-      VStack(alignment: .leading) {
-        Button("Start") {
-          farm.isRunning = true
-        }.disabled(!canStart)
-        if !canStart {
-          Text("Start charging your device or change minimum battery level")
-            .foregroundStyle(.red).error()
-            .transition(.blurReplace)
-        }
+#endif
+      if !canStart {
+        VStack(alignment: .leading) {
+          Text("Start charging your device\nor change minimum battery level")
+          if let battery = farm.battery {
+            Text("Battery level is \(Int(battery.level * 100))%")
+          }
+        }.foregroundStyle(.red).error().transition(.blurReplace)
       }
+    }.safeAreaInset(edge: .bottom) {
+      Button(farm.isRunning ? "Stop" : "Start") { farm.isRunning = true }
+        .disabled(!canStart).glassProminentButton().padding()
     }.frame(maxWidth: .infinity, maxHeight: .infinity)
       .toggleStyle(.switch)
       .overlay {
@@ -64,7 +67,7 @@ struct FarmView: View {
     } else if farm.minimumBattery == 1 {
       return "Run while charging"
     } else {
-      return "Run while charging or battery level is above \(Int(farm.minimumBattery))%"
+      return "Run while charging or battery level is above \(Int(farm.minimumBattery * 100))%"
     }
   }
 }
@@ -77,6 +80,14 @@ extension View {
     self
     #endif
   }
+  @ViewBuilder
+  func glassProminentButton() -> some View {
+    if #available(macOS 26.0, *) {
+      buttonStyle(.glassProminent)
+    } else {
+      buttonStyle(.borderedProminent)
+    }
+  }
 }
 
 extension Image {
@@ -85,13 +96,13 @@ extension Image {
       self.init(systemName: "battery.100percent.bolt")
     } else {
       switch battery {
-      case ...10:
+      case ...0.1:
         self.init(systemName: "battery.0percent")
-      case 5...30:
+      case ...0.3:
         self.init(systemName: "battery.25percent")
-      case 30...60:
+      case ...0.6:
         self.init(systemName: "battery.50percent")
-      case 60...85:
+      case ...0.85:
         self.init(systemName: "battery.75percent")
       default:
         self.init(systemName: "battery.100percent")
@@ -112,7 +123,7 @@ class Farm {
       isRunning = false
     }
   }
-  var minimumBattery: Float = 80
+  var minimumBattery: Float = 0.8
   var isRunning = false {
     didSet {
       guard isRunning != oldValue else { return }
@@ -142,7 +153,7 @@ class Farm {
 #endif
   }
   
-  struct BatteryStatus {
+  struct BatteryStatus: Hashable {
     var level: Float
     var charging: Bool
   }
