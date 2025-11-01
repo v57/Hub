@@ -11,6 +11,9 @@ extension View {
   func secondary() -> some View {
     font(.caption2).foregroundStyle(.secondary)
   }
+  func error() -> some View {
+    font(.caption2).fontWeight(.medium).foregroundStyle(.red)
+  }
   func badgeStyle() -> some View {
     font(.caption2).foregroundStyle(.white)
       .padding(.horizontal, 6).padding(.vertical, 2)

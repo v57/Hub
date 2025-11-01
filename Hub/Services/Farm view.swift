@@ -17,20 +17,37 @@ struct FarmView: View {
   @State var minimumBattery: Float = 80
   @State var blackOverlay: Bool = true
   @Bindable var farm = Farm.main
+  var canStart: Bool {
+    guard let battery = farm.battery else { return true }
+    return battery.charging || battery.level >= minimumBattery
+  }
   var body: some View {
     List {
       VStack(alignment: .leading) {
-        Text(text)
         HStack {
           Slider(value: $minimumBattery, in: 0...100, step: 5)
             .frame(maxWidth: 200)
           Image(battery: minimumBattery, charging: false)
         }
+        Text(text).secondary()
       }
-      Toggle("Lower brightness", isOn: $farm.lowerBrightness)
-      Toggle("Black overlay", isOn: $blackOverlay)
-      Button("Start") {
-        farm.isRunning = true
+      VStack(alignment: .leading) {
+        Toggle("Lower brightness", isOn: $farm.lowerBrightness)
+        Text("Lowers brightness to minimum level until stops. Helps to save battery").secondary()
+      }
+      VStack(alignment: .leading) {
+        Toggle("Black overlay", isOn: $blackOverlay)
+        Text("Adds black screen, increasing battery life on OLED and XDR displays").secondary()
+      }
+      VStack(alignment: .leading) {
+        Button("Start") {
+          farm.isRunning = true
+        }.disabled(!canStart)
+        if !canStart {
+          Text("Start charging your device or change minimum battery level")
+            .foregroundStyle(.red).error()
+            .transition(.blurReplace)
+        }
       }
     }.frame(maxWidth: .infinity, maxHeight: .infinity)
       .toggleStyle(.switch)
@@ -40,7 +57,7 @@ struct FarmView: View {
             farm.isRunning = false
           }.ignoresSafeArea()
         }
-      }.statusBarHidden(farm.isRunning)
+      }.disableSystemOverlay(farm.isRunning)
   }
   var text: LocalizedStringKey {
     if minimumBattery == 0 {
@@ -50,6 +67,16 @@ struct FarmView: View {
     } else {
       return "Run while charging or battery level is above \(Int(minimumBattery))%"
     }
+  }
+}
+
+extension View {
+  func disableSystemOverlay(_ hidden: Bool) -> some View {
+    #if os(iOS)
+    statusBarHidden(hidden)
+    #else
+    self
+    #endif
   }
 }
 
@@ -83,11 +110,6 @@ class Farm {
       guard isRunning != oldValue else { return }
       preventSleep(enabled: isRunning)
       lowerBrightness(enabled: isRunning)
-      if isRunning {
-        trackBattery()
-      } else {
-        stopTrackingBattery()
-      }
     }
   }
   var lowerBrightness: Bool = true
@@ -104,6 +126,7 @@ class Farm {
   
   init() {
     battery = batteryStatus()
+    trackBattery()
 #if os(iOS)
     farmTracking = NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification).sink { [unowned self] _ in
       isRunning = false
@@ -129,6 +152,7 @@ class Farm {
     return nil
 #elseif os(iOS)
     let state = UIDevice.current.batteryState
+    print(state.rawValue)
     return BatteryStatus(level: UIDevice.current.batteryLevel, charging: state == .charging || state == .full)
 #endif
   }
@@ -148,7 +172,8 @@ class Farm {
 #elseif os(iOS)
     UIDevice.current.isBatteryMonitoringEnabled = true
     powerTracking = NotificationCenter.default.publisher(for: UIDevice.batteryLevelDidChangeNotification)
-      .combineLatest(NotificationCenter.default.publisher(for: UIDevice.batteryStateDidChangeNotification)).sink { [unowned self] _, _ in
+      .merge(with: NotificationCenter.default.publisher(for: UIDevice.batteryStateDidChangeNotification))
+      .sink { [unowned self] _ in
         updateBatteryStatus()
     }
 #endif
@@ -192,7 +217,9 @@ class Farm {
   }
   
   private func updateBatteryStatus() {
-    battery = batteryStatus()
+    withAnimation {
+      battery = batteryStatus()
+    }
   }
   
   private func lowerBrightness(enabled: Bool) {
