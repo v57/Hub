@@ -149,7 +149,7 @@ struct ConnectionsView: View {
   }
 }
 
-private extension URLComponents {
+extension URLComponents {
   mutating func hub() {
     if host == nil, !path.isEmpty || scheme != nil {
       var components = path.components(separatedBy: "/")
@@ -186,7 +186,7 @@ private extension URLComponents {
     }
   }
 }
-private extension URL {
+extension URL {
   var pathName: String {
     return path().components(separatedBy: "/")
       .last!.components(separatedBy: "?")[0]

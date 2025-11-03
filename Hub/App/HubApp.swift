@@ -14,7 +14,7 @@ struct HubApp: App {
 #endif
   var body: some Scene {
     WindowGroup {
-      ContentView()
+      Toolbar()
     }
   }
 }

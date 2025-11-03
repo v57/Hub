@@ -15,7 +15,11 @@ import Combine
 #endif
 
 struct FarmView: View {
+#if os(iOS)
   @State var blackOverlay: Bool = true
+#else
+  @State var blackOverlay: Bool = false
+#endif
   @Bindable var farm = Farm.main
   var canStart: Bool {
     guard let battery = farm.battery else { return true }
