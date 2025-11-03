@@ -54,12 +54,18 @@ struct FarmView: View {
         }.foregroundStyle(.red).error().transition(.blurReplace)
       }
     }.safeAreaInset(edge: .bottom) {
-      Button(farm.isRunning ? "Stop" : "Start") { farm.isRunning = true }
-        .disabled(!canStart).glassProminentButton().padding()
+      Button(farm.isRunning ? "Stop" : "Start") {
+        withAnimation {
+          farm.isRunning = true
+        }
+      }.disabled(!canStart).glassProminentButton().padding()
     }.frame(maxWidth: .infinity, maxHeight: .infinity)
       .toggleStyle(.switch)
       .overlay {
         if farm.isRunning {
+#if os(iOS)
+          Color.clear.toolbar(.hidden, for: .tabBar)
+#endif
           Color.black.opacity(blackOverlay ? 1 : 0.001).onTapGesture {
             farm.isRunning = false
           }.ignoresSafeArea()
