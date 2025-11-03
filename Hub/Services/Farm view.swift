@@ -141,6 +141,9 @@ class Farm {
 #endif
   
   init() {
+#if canImport(UIKit)
+    UIDevice.current.isBatteryMonitoringEnabled = true
+#endif
     battery = batteryStatus()
     trackBattery()
 #if os(iOS)
@@ -168,7 +171,6 @@ class Farm {
     return nil
 #elseif os(iOS)
     let state = UIDevice.current.batteryState
-    print(state.rawValue)
     return BatteryStatus(level: UIDevice.current.batteryLevel, charging: state == .charging || state == .full)
 #endif
   }
@@ -186,7 +188,6 @@ class Farm {
       CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .defaultMode)
     }
 #elseif os(iOS)
-    UIDevice.current.isBatteryMonitoringEnabled = true
     powerTracking = NotificationCenter.default.publisher(for: UIDevice.batteryLevelDidChangeNotification)
       .merge(with: NotificationCenter.default.publisher(for: UIDevice.batteryStateDidChangeNotification))
       .sink { [unowned self] _ in
