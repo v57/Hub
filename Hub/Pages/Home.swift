@@ -25,7 +25,11 @@ struct HomeView: View {
           Text("Hubs").sectionTitle()
           LazyVGrid(columns: [.init(.adaptive(minimum: isFocusing ? 360 : 180))]) {
             JoinHubView(focus: $focus)
-            Text("Make your own").blockBackground()
+            NavigationLink {
+              InstallationGuide()
+            } label: {
+              Text("Make your own").blockBackground()
+            }
             ForEach(Hubs.main.list) { hub in
               HubView(hub: hub).blockBackground()
             }
@@ -205,12 +209,11 @@ struct HomeView: View {
                 Text("Not running")
               }
             }.secondary()
-          }
-          Spacer()
-          if app.id == "Hub Lite" {
-            AsyncButton("Upgrade to Pro") {
-              try await hub.launcher.pro(KeyChain.main.publicKey())
-            }.buttonStyle(.borderedProminent)
+            if app.id == "Hub Lite" {
+              AsyncButton("Upgrade to Pro") {
+                try await hub.launcher.pro(KeyChain.main.publicKey())
+              }.buttonStyle(.borderedProminent)
+            }
           }
         }.overlay(alignment: .topTrailing) {
           if let installationStatus {
