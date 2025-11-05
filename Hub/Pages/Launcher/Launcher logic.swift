@@ -115,7 +115,7 @@ extension Hub {
       private enum CodingKeys: CodingKey {
         case name, active, restarts, settings
       }
-      init(name: String, active: Bool, restarts: Bool, setup: Setup, settings: AppSettings?) {
+      init(name: String, active: Bool, restarts: Bool, setup: Setup, settings: AppSettings? = nil) {
         self.name = name
         self.active = active
         self.restarts = restarts
