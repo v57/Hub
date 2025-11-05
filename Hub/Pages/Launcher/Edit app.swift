@@ -61,7 +61,7 @@ struct EditApp: View {
       let settings: Hub.Launcher.AppSettings
     }
     if let settings {
-      try await hub.client.send("launcher/app/settings", UpdateSettings(app: app.name, settings: settings))
+      try await hub.launcher.app(id: app.name).updateSettings(settings)
     }
   }
   var hasChanges: Bool { settings != nil }

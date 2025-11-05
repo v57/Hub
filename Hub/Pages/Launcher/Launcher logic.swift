@@ -41,6 +41,9 @@ extension Hub {
       func uninstall() async throws {
         try await hub.client.send("launcher/app/uninstall", id)
       }
+      func updateSettings(_ settings: Hub.Launcher.AppSettings) async throws {
+        try await hub.client.send("launcher/app/settings", UpdateSettings(app: id, settings: settings))
+      }
     }
     struct App: Identifiable, Hashable {
       let id: String
@@ -180,6 +183,10 @@ extension Hub {
           try sh.encode(to: encoder)
         }
       }
+    }
+    struct UpdateSettings: Encodable {
+      let app: String
+      let settings: Hub.Launcher.AppSettings
     }
   }
 }
