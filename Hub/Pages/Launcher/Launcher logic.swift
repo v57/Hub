@@ -107,15 +107,17 @@ extension Hub {
       let active: Bool
       let restarts: Bool
       let setup: Setup
+      let settings: AppSettings?
       
       private enum CodingKeys: CodingKey {
-        case name, active, restarts
+        case name, active, restarts, settings
       }
-      init(name: String, active: Bool, restarts: Bool, setup: Setup) {
+      init(name: String, active: Bool, restarts: Bool, setup: Setup, settings: AppSettings?) {
         self.name = name
         self.active = active
         self.restarts = restarts
         self.setup = setup
+        self.settings = settings
       }
       init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -123,6 +125,7 @@ extension Hub {
         active = try container.decode(.active)
         restarts = try container.decode(.restarts)
         setup = try Setup(from: decoder)
+        settings = try container.decodeIfPresent(.settings)
       }
       
       func encode(to encoder: any Encoder) throws {
@@ -130,6 +133,7 @@ extension Hub {
         try container.encode(name, forKey: .name)
         try container.encode(active, forKey: .active)
         try container.encode(restarts, forKey: .restarts)
+        try container.encodeIfPresent(settings, forKey: .settings)
         try setup.encode(to: encoder)
       }
     }
