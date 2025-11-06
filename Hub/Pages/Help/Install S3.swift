@@ -23,7 +23,7 @@ struct InstallS3: View {
         case .manual:
           Manual()
         }
-      }.toolbar {
+      }.frame(maxWidth: .infinity, alignment: .leading).toolbar {
         Picker("Storage Options", selection: $guide) {
           Text("Wasabi").tag(Guide.wasabi)
           Text("Manual").tag(Guide.manual)
@@ -58,17 +58,18 @@ struct InstallS3: View {
       }
     }
     var body: some View {
-      HStack {
-        Text("30 day trial")
-          .padding(.horizontal, 12)
-          .padding(.vertical, 4)
-          .background(.green, in: .capsule)
-        Text("$7 / TB / month")
-          .padding(.horizontal, 12)
-          .padding(.vertical, 4)
-          .background(.red, in: .capsule)
-      }.foregroundStyle(.white).fontWeight(.medium)
-        .frame(maxWidth: .infinity)
+      Section(number: 0, title: "Wasabi Pricing") {
+        HStack {
+          Text("30 day trial")
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(Color(.secondarySystemFill).opacity(0.4), in: .capsule)
+          Text("$7 / TB / month")
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(Color(.secondarySystemFill).opacity(0.4), in: .capsule)
+        }.fontWeight(.medium)
+      }
       Section(number: 1, title: "Create account") {
         Text("""
 1. Go to [Wasabi](https://wasabi.com) Website and create account
