@@ -208,15 +208,19 @@ struct InstallS3: View {
     @State var testSucccessful: Bool?
     var body: some View {
       HStack {
-        AsyncButton(installer.storageInstalled ? "Update" : "Create") {
-          if let settings {
-            try await installer.set(settings: settings)
+        if installer.permission != nil {
+          AsyncButton("Allow Access") {
+            try await installer.allow()
           }
-        }
-        if installer.storageInstalled {
+        } else if installer.storageInstalled {
           AsyncButton("Test") {
             testSucccessful = nil
             testSucccessful = try await installer.test()
+          }
+        }
+        AsyncButton(installer.storageInstalled ? "Update" : "Create") {
+          if let settings {
+            try await installer.set(settings: settings)
           }
         }
         if let testSucccessful {
@@ -233,6 +237,7 @@ struct InstallS3: View {
     }
     var storageInstalled = false
     var serviceAvailable = false
+    var permission: SecurityView.PendingAuthorization?
     static var s3: String { "S3 Storage" }
     @MainActor
     func set(hub: Hub) {
@@ -249,10 +254,20 @@ struct InstallS3: View {
             serviceAvailable = status.services.contains(where: { $0.name.starts(with: Installer.s3) })
           }
         },
+        Task {
+          for try await permissions: [SecurityView.PendingAuthorization] in hub.client.values("hub/permissions/pending") {
+            permission = permissions.last(where: { $0.pending.contains(where: { $0.starts(with: "s3/") }) })
+          }
+        },
       ]
     }
     func set(settings: Hub.Launcher.AppSettings) async throws {
       try await hub?.launcher.setupS3(id: Installer.s3, update: storageInstalled, settings: settings)
+    }
+    func allow() async throws {
+      guard let permission, let hub else { return }
+      try await hub.client.send("hub/permissions/add", SecurityView.Allow(services: permission.pending, permission: permission.id))
+      self.permission = nil
     }
     func test() async throws -> Bool {
       guard let hub else { return false }
