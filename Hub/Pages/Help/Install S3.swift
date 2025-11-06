@@ -8,10 +8,24 @@
 import SwiftUI
 
 struct InstallS3: View {
+  enum Guide {
+    case wasabi, manual
+  }
+  @State var guide: Guide = .manual
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
-        Wasabi()
+        switch guide {
+        case .wasabi:
+          Wasabi()
+        case .manual:
+          Manual()
+        }
+      }.toolbar {
+        Picker("Storage Options", selection: $guide) {
+          Text("Wasabi").tag(Guide.wasabi)
+          Text("Manual").tag(Guide.manual)
+        }.pickerStyle(.segmented)
       }.safeAreaPadding(.horizontal)
     }.navigationTitle("Connect Storage")
   }
@@ -84,17 +98,11 @@ struct InstallS3: View {
         TextField("Secret Key", text: $secretKey).frame(maxWidth: 400)
         
         AsyncButton("Create") {
-          try await create()
+          if let settings {
+            try await hub.launcher.setupS3(id: "S3 Storage", update: true, settings: settings)
+          }
         }.buttonStyle(.borderedProminent).disabled(!isReady)
       }
-    }
-    func create() async throws {
-      guard let settings else { return }
-      try await hub.launcher.create(.init(name: "Hub S3", active: true, restarts: true, setup: .bun(.init(repo: "v57/hub-s3", commit: nil, command: nil)), settings: settings))
-    }
-    func update(id: String) async throws {
-      guard let settings else { return }
-      try await hub.launcher.app(id: id).updateSettings(settings)
     }
     var settings: Hub.Launcher.AppSettings? {
       guard let region else { return nil }
@@ -171,6 +179,30 @@ struct InstallS3: View {
       }
     }
   }
+  struct Manual: View {
+    @Environment(Hub.self) var hub
+    @State var bucketName: String = ""
+    @State var region: String = ""
+    @State var endpoint: String = ""
+    @State var accessKey: String = ""
+    @State var secretKey: String = ""
+    var body: some View {
+      TextField("Endpoint", text: $endpoint)
+      TextField("Region", text: $region)
+      TextField("Bucket name", text: $bucketName)
+      TextField("Access Key", text: $accessKey)
+      TextField("Secret Key", text: $secretKey)
+      AsyncButton("Create") {
+        try await hub.launcher.setupS3(id: "S3 Storage", update: true, settings: settings)
+      }.buttonStyle(.borderedProminent).disabled(!isReady)
+    }
+    var isReady: Bool {
+      !bucketName.isEmpty && !region.isEmpty && !endpoint.isEmpty && !accessKey.isEmpty && !secretKey.isEmpty
+    }
+    var settings: Hub.Launcher.AppSettings {
+      return .s3(access: accessKey, secret: secretKey, region: region, endpoint: endpoint, bucket: bucketName)
+    }
+  }
 }
 
 extension Hub.Launcher.AppSettings {
@@ -183,6 +215,16 @@ extension Hub.Launcher.AppSettings {
     ], secrets: [
       "S3_SECRET_ACCESS_KEY": secret
     ])
+  }
+}
+extension Hub.Launcher {
+  @MainActor
+  func setupS3(id: String, update: Bool, settings: Hub.Launcher.AppSettings) async throws {
+    if update {
+      try await app(id: id).updateSettings(settings)
+    } else {
+      try await create(.init(name: id, active: true, restarts: true, setup: .bun(.init(repo: "v57/hub-s3", commit: nil, command: nil)), settings: settings))
+    }
   }
 }
 
