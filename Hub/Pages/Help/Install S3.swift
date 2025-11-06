@@ -12,7 +12,7 @@ struct InstallS3: View {
   enum Guide {
     case wasabi, manual
   }
-  let installer = Installer()
+  @State var installer = Installer()
   @State var guide: Guide = .manual
   var body: some View {
     ScrollView {
