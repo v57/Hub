@@ -96,7 +96,7 @@ struct HomeView: View {
           }.buttonStyle(.plain)
         } else if hub.permissions.contains("owner") {
           NavigationLink {
-            
+            InstallS3()
           } label: {
             Label("Connect Storage", systemImage: "shippingbox.fill").blockBackground()
           }
