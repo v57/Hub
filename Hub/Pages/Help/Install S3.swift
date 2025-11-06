@@ -8,9 +8,11 @@
 import SwiftUI
 
 struct InstallS3: View {
+  @Environment(Hub.self) var hub
   enum Guide {
     case wasabi, manual
   }
+  let installer = Installer()
   @State var guide: Guide = .manual
   var body: some View {
     ScrollView {
@@ -27,10 +29,12 @@ struct InstallS3: View {
           Text("Manual").tag(Guide.manual)
         }.pickerStyle(.segmented)
       }.safeAreaPadding(.horizontal)
-    }.navigationTitle("Connect Storage")
+    }.task {
+      installer.set(hub: hub)
+    }.navigationTitle("Connect Storage").environment(installer)
   }
   struct Wasabi: View {
-    @Environment(Hub.self) var hub
+    @Environment(Installer.self) var installer
     @State var bucketName: String = ""
     @State var region: Region?
     @State var accessKey: String = ""
@@ -96,15 +100,11 @@ struct InstallS3: View {
 """)
         TextField("Access Key", text: $accessKey).frame(maxWidth: 400)
         TextField("Secret Key", text: $secretKey).frame(maxWidth: 400)
-        
-        AsyncButton("Create") {
-          if let settings {
-            try await hub.launcher.setupS3(id: "S3 Storage", update: true, settings: settings)
-          }
-        }.buttonStyle(.borderedProminent).disabled(!isReady)
+        CreationButtons(settings: settings)
       }
     }
     var settings: Hub.Launcher.AppSettings? {
+      guard isReady else { return nil }
       guard let region else { return nil }
       return .s3(access: accessKey, secret: secretKey, region: region.region, endpoint: region.endpoint, bucket: bucketName)
     }
@@ -180,7 +180,7 @@ struct InstallS3: View {
     }
   }
   struct Manual: View {
-    @Environment(Hub.self) var hub
+    @Environment(Installer.self) var installer
     @State var bucketName: String = ""
     @State var region: String = ""
     @State var endpoint: String = ""
@@ -192,15 +192,75 @@ struct InstallS3: View {
       TextField("Bucket name", text: $bucketName)
       TextField("Access Key", text: $accessKey)
       TextField("Secret Key", text: $secretKey)
-      AsyncButton("Create") {
-        try await hub.launcher.setupS3(id: "S3 Storage", update: true, settings: settings)
-      }.buttonStyle(.borderedProminent).disabled(!isReady)
+      CreationButtons(settings: settings)
     }
     var isReady: Bool {
       !bucketName.isEmpty && !region.isEmpty && !endpoint.isEmpty && !accessKey.isEmpty && !secretKey.isEmpty
     }
-    var settings: Hub.Launcher.AppSettings {
-      return .s3(access: accessKey, secret: secretKey, region: region, endpoint: endpoint, bucket: bucketName)
+    var settings: Hub.Launcher.AppSettings? {
+      return isReady ? .s3(access: accessKey, secret: secretKey, region: region, endpoint: endpoint, bucket: bucketName) : nil
+    }
+  }
+  struct CreationButtons: View {
+    @Environment(Installer.self) private var installer
+    let settings: Hub.Launcher.AppSettings?
+    @State var testSucccessful: Bool?
+    var body: some View {
+      HStack {
+        AsyncButton(installer.storageInstalled ? "Update" : "Create") {
+          if let settings {
+            try await installer.set(settings: settings)
+          }
+        }
+        if installer.storageInstalled {
+          AsyncButton("Test") {
+            testSucccessful = nil
+            testSucccessful = try await installer.test()
+          }
+        }
+        if let testSucccessful {
+          Image(systemName: testSucccessful ? "checkmark.circle.fill" : "xmark.circle.fill")
+            .foregroundStyle(testSucccessful ? .green : .red)
+        }
+      }.buttonStyle(.borderedProminent).disabled(settings == nil)
+    }
+  }
+  @Observable class Installer {
+    var hub: Hub?
+    var listenTasks = [Task<Void, Error>]() {
+      didSet { oldValue.forEach { $0.cancel() } }
+    }
+    var storageInstalled = false
+    var serviceAvailable = false
+    static var s3: String { "S3 Storage" }
+    @MainActor
+    func set(hub: Hub) {
+      guard self.hub !== hub else { return }
+      self.hub = hub
+      listenTasks = [
+        Task {
+          for try await apps: Hub.Launcher.Apps in hub.client.values("launcher/info") {
+            storageInstalled = apps.apps.contains(where: { $0.name == Installer.s3 })
+          }
+        },
+        Task {
+          for try await status: Status in hub.client.values("hub/status") {
+            serviceAvailable = status.services.contains(where: { $0.name.starts(with: Installer.s3) })
+          }
+        },
+      ]
+    }
+    func set(settings: Hub.Launcher.AppSettings) async throws {
+      try await hub?.launcher.setupS3(id: Installer.s3, update: storageInstalled, settings: settings)
+    }
+    func test() async throws -> Bool {
+      guard let hub else { return false }
+      do {
+        try await hub.client.send("s3/list")
+        return true
+      } catch {
+        return false
+      }
     }
   }
 }
