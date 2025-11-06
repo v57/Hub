@@ -95,7 +95,7 @@ extension Hub {
       var name: String
       var checkingForUpdates: Bool?
       var updating: Bool?
-      var crashes: Int
+      var crashes: Int?
       var processes: [ProcessStatus]?
       var started: Date?
     }
