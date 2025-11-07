@@ -22,7 +22,13 @@ struct HomeView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading) {
-          Text("Hubs").sectionTitle()
+          HStack {
+            Text("Hubs").sectionTitle()
+            Spacer()
+            Button("Copy Key", systemImage: "key.fill") {
+              KeyChain.main.publicKey().copyToClipboard()
+            }
+          }
           LazyVGrid(columns: [.init(.adaptive(minimum: isFocusing ? 360 : 180))]) {
             JoinHubView(focus: $focus)
             NavigationLink {
