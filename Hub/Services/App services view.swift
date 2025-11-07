@@ -32,40 +32,46 @@ struct AppServicesView: View {
         }.glassProminentButton().padding()
 #endif
       }.navigationDestination(item: $open) { service in
-        switch service {
-        case .chat:
+        ServicePage(service: service)
+      }
+    }
+  }
+  struct ServicePage: View {
+    let service: Service
+    var body: some View {
+      switch service {
+      case .chat:
 #if os(macOS) || os(iOS)
-          if #available(macOS 26.0, iOS 26.0, *) {
-            ChatView()
-          } else {
-            ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 26").bold()) and \(Text("macOS 26").bold()) for devices with \(Text("Apple Intelligence").bold()) so it's not possible to run it on other devices or lower versions"))
-          }
-#else
+        if #available(macOS 26.0, iOS 26.0, *) {
+          ChatView()
+        } else {
           ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 26").bold()) and \(Text("macOS 26").bold()) for devices with \(Text("Apple Intelligence").bold()) so it's not possible to run it on other devices or lower versions"))
-#endif
-        case .imageEncoder:
-#if os(macOS) || os(iOS) || os(visionOS)
-          ImageEncoderView()
-#else
-          ContentUnavailableView("Service not available", systemImage: "photo.fill", description: Text("Image encoder interface is not available on Apple Watch and Apple TV but you can still use it as a service"))
-#endif
-        case .videoEncoder:
-          ContentUnavailableView("Service not available", systemImage: "photo.fill", description: Text("Video encoder interface is not available yet but you can still use it as a service"))
-        case .translate:
-#if os(macOS) || os(iOS)
-          if #available(macOS 15.0, iOS 18.0, *) {
-            TranslateView()
-          } else {
-            ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 18").bold()) and \(Text("macOS 15").bold()) so it's not possible to run it on other devices or lower versions"))
-          }
-#else
-          ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 18").bold()) and \(Text("macOS 15").bold()) so it's not possible to run it on other devices or lower versions"))
-#endif
-        case .sensitiveContent:
-#if os(macOS) || os(iOS) || os(visionOS)
-          SensitiveContentView()
-#endif
         }
+#else
+        ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 26").bold()) and \(Text("macOS 26").bold()) for devices with \(Text("Apple Intelligence").bold()) so it's not possible to run it on other devices or lower versions"))
+#endif
+      case .imageEncoder:
+#if os(macOS) || os(iOS) || os(visionOS)
+        ImageEncoderView()
+#else
+        ContentUnavailableView("Service not available", systemImage: "photo.fill", description: Text("Image encoder interface is not available on Apple Watch and Apple TV but you can still use it as a service"))
+#endif
+      case .videoEncoder:
+        ContentUnavailableView("Service not available", systemImage: "photo.fill", description: Text("Video encoder interface is not available yet but you can still use it as a service"))
+      case .translate:
+#if os(macOS) || os(iOS)
+        if #available(macOS 15.0, iOS 18.0, *) {
+          TranslateView()
+        } else {
+          ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 18").bold()) and \(Text("macOS 15").bold()) so it's not possible to run it on other devices or lower versions"))
+        }
+#else
+        ContentUnavailableView("Service not available", systemImage: "translate", description: Text("Translation feature was introduced in \(Text("iOS 18").bold()) and \(Text("macOS 15").bold()) so it's not possible to run it on other devices or lower versions"))
+#endif
+      case .sensitiveContent:
+#if os(macOS) || os(iOS) || os(visionOS)
+        SensitiveContentView()
+#endif
       }
     }
   }
