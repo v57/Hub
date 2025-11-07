@@ -35,7 +35,7 @@ struct HomeView: View {
               InstallationGuide()
             } label: {
               Text("Make your own").blockBackground()
-            }
+            }.buttonStyle(.plain)
             ForEach(Hubs.main.list) { hub in
               HubView(hub: hub).blockBackground()
             }
@@ -105,7 +105,7 @@ struct HomeView: View {
             InstallS3().environment(hub)
           } label: {
             Label("Connect Storage", systemImage: "shippingbox.fill").blockBackground()
-          }
+          }.buttonStyle(.plain)
         }
       }.task(id: task) {
         guard task.isConnected else { return }
@@ -367,7 +367,7 @@ struct HomeView: View {
           Text(item.title).lineLimit(2)
           Text(item.description).secondary().lineLimit(3)
         }.blockBackground()
-      }
+      }.buttonStyle(.plain)
     }
   }
   struct SupportView: View {
