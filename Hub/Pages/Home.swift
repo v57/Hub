@@ -358,12 +358,16 @@ struct HomeView: View {
     let item: AppServicesView.Service
     let isSharing: Bool?
     var body: some View {
-      VStack(alignment: .leading) {
-        Image(systemName: item.image).resizable().scaledToFit()
-          .frame(width: 24, height: 24)
-        Text(item.title).lineLimit(2)
-        Text(item.description).secondary().lineLimit(3)
-      }.blockBackground()
+      NavigationLink {
+        AppServicesView.ServicePage(service: item)
+      } label: {
+        VStack(alignment: .leading) {
+          Image(systemName: item.image).resizable().scaledToFit()
+            .frame(width: 24, height: 24)
+          Text(item.title).lineLimit(2)
+          Text(item.description).secondary().lineLimit(3)
+        }.blockBackground()
+      }
     }
   }
   struct SupportView: View {
