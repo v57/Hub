@@ -107,6 +107,7 @@ struct HomeView: View {
             Label("Connect Storage", systemImage: "shippingbox.fill").blockBackground()
           }.buttonStyle(.plain)
         }
+        ShareServicesView()
       }.task(id: task) {
         guard task.isConnected else { return }
         await manager.syncStatus(hub: hub)
@@ -270,6 +271,46 @@ struct HomeView: View {
           showsInstances = true
         }
         try await hub.client.send("launcher/app/cluster", LauncherView.AppView.SetInstances(name: info.name, count: instances))
+      }
+    }
+    struct ShareServicesView: View {
+      @Environment(Hub.self) var hub
+      typealias Service = AppServicesView.Service
+      var body: some View {
+        VStack(alignment: .leading) {
+          Text("Share Services")
+          LazyVGrid(columns: [.init(.adaptive(minimum: 48))]) {
+            ForEach(Service.allCases, id: \.self) { service in
+              if let publisher = service.servicePublisher(hub: hub) {
+                ServiceToggle(publisher: publisher, service: service)
+              }
+            }
+          }
+        }.blockBackground()
+      }
+      struct ServiceToggle: View {
+        @Environment(Hub.self) var hub
+        let publisher: Published<Bool>.Publisher
+        let service: Service
+        @State var isEnabled: Bool = false
+        var body: some View {
+          Button {
+            withAnimation {
+              isEnabled.toggle()
+            }
+            service.setService(enabled: isEnabled, hub: hub)
+          } label: {
+            ZStack {
+              Image(systemName: service.image)
+            }.frame(maxWidth: .infinity)
+              .padding(.vertical, 6)
+              .background {
+                RoundedRectangle(cornerRadius: 10).fill(Color(.tertiarySystemFill)).strokeBorder(.blue, lineWidth: isEnabled ? 1 : 0)
+              }
+              .font(.body).fontWeight(.medium)
+          }.onReceive(publisher) { isEnabled = $0 }
+            .buttonStyle(.plain)
+        }
       }
     }
   }
