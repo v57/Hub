@@ -65,20 +65,7 @@ struct HomeView: View {
     @State var status = Status(requests: 0, services: [])
     var body: some View {
       let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hasLauncher)
-      HStack {
-        Text(hub.settings.name).sectionTitle(padding: false)
-        if hub.permissions.contains("owner") {
-          Text("owner").secondary()
-        }
-        Spacer()
-        if hub.permissions.contains("owner") {
-          NavigationLink {
-            StoreView().environment(manager).environment(hub)
-          } label: {
-            Label("Get apps", systemImage: "arrow.down.circle.fill")
-          }
-        }
-      }.padding(.top, 16).padding(.trailing)
+      Title(manager: manager).padding(.top, 16)
       LazyVGrid(columns: [.init(.adaptive(minimum: 180))]) {
         if hub.permissions.contains("owner") {
           if !status.services.isEmpty {
@@ -119,6 +106,51 @@ struct HomeView: View {
         hasLauncher = status.contains(service: "launcher")
       }.hubStream("hub/permissions/pending", initial: [], to: $pending)
         .hubStream("hub/status", initial: Status(requests: 0, services: []), to: $status)
+    }
+    struct Title: View {
+      @Environment(Hub.self) var hub
+      let manager: LauncherView.Manager
+      @State var addingOwner = false
+      @State var ownerKey = ""
+      var body: some View {
+        VStack {
+          HStack {
+            Text(hub.settings.name).sectionTitle(padding: false)
+            if hub.permissions.contains("owner") {
+              Text("owner").secondary()
+            }
+            Spacer()
+            if hub.isOwner && !addingOwner {
+              Button("Add owner", systemImage: "person.fill.badge.plus") {
+                addingOwner = true
+              }
+            }
+            if hub.permissions.contains("owner") {
+              NavigationLink {
+                StoreView().environment(manager).environment(hub)
+              } label: {
+                Label("Get apps", systemImage: "arrow.down.circle.fill")
+              }
+            }
+          }
+          HStack {
+            if hub.isOwner && addingOwner {
+              SecureField("Key", text: $ownerKey)
+              AsyncButton("Add") {
+                addingOwner = false
+                let key = ownerKey
+                ownerKey = ""
+                try await hub.addOwner(key)
+              }.disabled(ownerKey.isEmpty)
+              AsyncButton("Cancel") {
+                addingOwner = false
+                ownerKey = ""
+              }
+            }
+          }
+        }.frame(maxWidth: .infinity, alignment: .trailing).padding(.leading, 10)
+          .padding(.bottom, 4)
+      }
     }
     struct ServicesView: View {
       @Environment(Hub.self) var hub
