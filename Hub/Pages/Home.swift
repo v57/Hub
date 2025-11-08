@@ -153,21 +153,25 @@ struct HomeView: View {
       @Environment(Hub.self) var hub
       let pending: [SecurityView.PendingAuthorization]
       var body: some View {
-        VStack(alignment: .leading) {
-          Text("Service requests")
-          ForEach(pending.prefix(3), id: \.id) { item in
-            HStack {
-              VStack(alignment: .leading) {
-                Text(item.name).foregroundStyle(.primary).secondary()
-                Text(item.id.prefix(8)).secondary()
+        NavigationLink {
+          SecurityView().environment(hub)
+        } label: {
+          VStack(alignment: .leading) {
+            Text("Service requests")
+            ForEach(pending.prefix(3), id: \.id) { item in
+              HStack {
+                VStack(alignment: .leading) {
+                  Text(item.name).foregroundStyle(.primary).secondary()
+                  Text(item.id.prefix(8)).secondary()
+                }
+                Spacer()
+                AsyncButton("Allow", systemImage: "plus.capsule.fill") {
+                  try await hub.client.send("hub/permissions/add", SecurityView.Allow(services: item.pending, permission: item.id))
+                }.labelStyle(.iconOnly)
               }
-              Spacer()
-              AsyncButton("Allow", systemImage: "plus.capsule.fill") {
-                try await hub.client.send("hub/permissions/add", SecurityView.Allow(services: item.pending, permission: item.id))
-              }.labelStyle(.iconOnly)
             }
-          }
-        }.blockBackground()
+          }.blockBackground()
+        }
       }
     }
     struct AppView: View {
