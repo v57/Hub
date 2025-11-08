@@ -237,6 +237,7 @@ struct HomeView: View {
       }
       @State private var instances: Int = 0
       @State private var showsInstances = false
+      @State private var editing: Hub.Launcher.AppInfo?
       var body: some View {
         HStack(alignment: .top) {
           VStack(alignment: .leading) {
@@ -288,6 +289,11 @@ struct HomeView: View {
               AsyncButton("Restart", systemImage: "arrow.clockwise") {
                 try await hub.launcher.app(id: app.id).restart()
               }
+              if let app = app.info {
+                Button("Settings", systemImage: "gear") {
+                  editing = app
+                }
+              }
               AsyncButton("Stop", systemImage: "stop.fill") {
                 try await hub.launcher.app(id: app.id).stop()
               }
@@ -295,11 +301,18 @@ struct HomeView: View {
               AsyncButton("Start", systemImage: "play.fill") {
                 try await hub.launcher.app(id: app.id).start()
               }
+              if let app = app.info {
+                Button("Settings", systemImage: "gear") {
+                  editing = app
+                }
+              }
               AsyncButton("Uninstall", systemImage: "trash.fill", role: .destructive) {
                 try await hub.launcher.app(id: app.id).uninstall()
               }
             }
           }
+        }.sheet(item: $editing) {
+          EditApp(app: $0).environment(hub).frame(minHeight: 300)
         }.labelStyle(.titleAndIcon).task(id: app.info?.instances) {
           guard let info = app.info else { return }
           instances = info.instances
