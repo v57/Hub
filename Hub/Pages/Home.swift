@@ -9,14 +9,13 @@ import SwiftUI
 import HubClient
 
 struct HomeView: View {
+  typealias StatusBadges = ContentView.StatusBadges
   enum TextFieldFocus: Hashable {
     case joinHubAddress
     case joinHubName
   }
   @FocusState var focus: TextFieldFocus?
-  var isFocusing: Bool {
-    focus == .joinHubAddress || focus == .joinHubName
-  }
+  var isFocusing: Bool { focus == .joinHubAddress || focus == .joinHubName }
   @State var hubs = Hubs.main
   @State var merging: Hub?
   var body: some View {
@@ -63,6 +62,7 @@ struct HomeView: View {
     @State var hasLauncher: Bool = false
     @State var pending: [SecurityView.PendingAuthorization] = []
     @State var status = Status(requests: 0, services: [])
+    @State var statusBadges = StatusBadges()
     var body: some View {
       let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hasLauncher)
       Title(manager: manager).padding(.top, 16)
@@ -96,6 +96,15 @@ struct HomeView: View {
           }.buttonStyle(.plain)
         }
         ShareServicesView()
+        if let apps = statusBadges.apps, !apps.isEmpty {
+          ForEach(apps) { app in
+            NavigationLink(value: app) {
+              Text(app.name).foregroundStyle(app.isOnline ? .primary : .tertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .blockBackground()
+            }.buttonStyle(.plain)
+          }
+        }
       }.task(id: task) {
         guard task.isConnected else { return }
         await manager.syncStatus(hub: hub)
@@ -106,6 +115,10 @@ struct HomeView: View {
         hasLauncher = status.contains(service: "launcher")
       }.hubStream("hub/permissions/pending", initial: [], to: $pending)
         .hubStream("hub/status", initial: Status(requests: 0, services: []), to: $status)
+        .hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges)
+        .navigationDestination(for: AppHeader.self) { app in
+          ServiceView(header: app).environment(hub)
+        }
     }
     struct Title: View {
       @Environment(Hub.self) var hub
@@ -352,7 +365,6 @@ struct HomeView: View {
     }
   }
   struct HubView: View {
-    typealias StatusBadges = ContentView.StatusBadges
     let hub: Hub
     @State var statusBadges = StatusBadges()
     @Binding var merging: Hub?
