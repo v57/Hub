@@ -18,6 +18,7 @@ struct HomeView: View {
     focus == .joinHubAddress || focus == .joinHubName
   }
   @State var hubs = Hubs.main
+  @State var merging: Hub?
   var body: some View {
     NavigationStack {
       ScrollView {
@@ -37,7 +38,7 @@ struct HomeView: View {
               Text("Make your own").blockBackground()
             }.buttonStyle(.plain)
             ForEach(Hubs.main.list) { hub in
-              HubView(hub: hub).blockBackground()
+              HubView(hub: hub, merging: $merging)
             }
           }.animation(.smooth, value: isFocusing)
           ForEach(Hubs.main.list) { hub in
@@ -322,6 +323,11 @@ struct HomeView: View {
     typealias StatusBadges = ContentView.StatusBadges
     let hub: Hub
     @State var statusBadges = StatusBadges()
+    @Binding var merging: Hub?
+    var canBeMerged: Bool {
+      guard let merging else { return false }
+      return !merging.isMerged(to: hub) && !hub.isMerged(to: merging)
+    }
     var body: some View {
       VStack(alignment: .leading) {
         Text(hub.settings.name)
@@ -333,6 +339,27 @@ struct HomeView: View {
         }.fontWeight(.medium).secondary()
         .hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges)
         .environment(hub)
+        if let merging, merging.id != hub.id && hub.isOwner {
+          Spacer()
+          if merging.isMerged(to: hub) {
+            AsyncButton("Leave") {
+              try await merging.unmerge(other: hub)
+            }
+          } else if canBeMerged {
+            AsyncButton("Join") {
+              try await merging.merge(other: hub)
+            }
+          }
+        }
+      }.blockBackground().contextMenu {
+        if hub.isOwner && merging == nil {
+          Button("Merge") {
+            merging = hub
+          }
+        }
+        Button("Remove") {
+          Hubs.main.remove(with: hub.settings)
+        }
       }
     }
   }
@@ -445,6 +472,13 @@ extension View {
     }.padding().frame(maxHeight: .infinity, alignment: .top)
       .frame(maxWidth: .infinity, alignment: .leading)
       .background(Color(.secondarySystemFill), in: RoundedRectangle(cornerRadius: 16))
+      .modifier {
+        #if os(macOS)
+        $0
+        #else
+        $0.contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 16))
+        #endif
+      }
       .transition(.blurReplace)
   }
 }

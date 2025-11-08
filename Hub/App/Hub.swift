@@ -26,6 +26,7 @@ extension KeyChain {
   var permissions = Set<String>()
   var merge: [Hub.MergeStatus] = []
   var appServices: AppServices!
+  var isOwner: Bool { permissions.contains("owner") }
   init(settings: Settings) {
     self.settings = settings
     self.client = HubClient(settings.address, keyChain: .main)
