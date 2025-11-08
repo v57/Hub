@@ -272,7 +272,7 @@ struct HomeView: View {
               }.buttonStyle(.borderedProminent)
             }
           }
-        }.overlay(alignment: .topTrailing) {
+        }.frame(maxWidth: .infinity, alignment: .leading).overlay(alignment: .topTrailing) {
           if let installationStatus {
             Text(installationStatus).badgeStyle()
           }
@@ -283,6 +283,9 @@ struct HomeView: View {
                 Button("Cluster", systemImage: "list.number") {
                   showsInstances = true
                 }
+              }
+              AsyncButton("Restart", systemImage: "arrow.clockwise") {
+                try await hub.launcher.app(id: app.id).restart()
               }
               AsyncButton("Stop", systemImage: "stop.fill") {
                 try await hub.launcher.app(id: app.id).stop()

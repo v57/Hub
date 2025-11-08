@@ -35,6 +35,9 @@ extension Hub {
       func stop() async throws {
         try await hub.client.send("launcher/app/stop", id)
       }
+      func restart() async throws {
+        try await hub.client.send("launcher/app/restart", id)
+      }
       func start() async throws {
         try await hub.client.send("launcher/app/start", id)
       }
