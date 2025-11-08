@@ -260,7 +260,8 @@ struct HomeView: View {
               }
               if (app.status?.processes?.count ?? 0) > 0 {
                 if let date = app.status?.started {
-                  Text(date, style: .offset)
+                  Spacer()
+                  Text(date, style: .relative)
                 }
               } else {
                 Text("Not running")
