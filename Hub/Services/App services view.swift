@@ -57,7 +57,11 @@ struct AppServicesView: View {
         ContentUnavailableView("Service not available", systemImage: "photo.fill", description: Text("Image encoder interface is not available on Apple Watch and Apple TV but you can still use it as a service"))
 #endif
       case .videoEncoder:
+#if os(macOS) || os(iOS)
+        VideoEncoderView()
+#else
         ContentUnavailableView("Service not available", systemImage: "photo.fill", description: Text("Video encoder interface is not available yet but you can still use it as a service"))
+#endif
       case .translate:
 #if os(macOS) || os(iOS)
         if #available(macOS 15.0, iOS 18.0, *) {
