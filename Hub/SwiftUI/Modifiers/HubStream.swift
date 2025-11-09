@@ -14,16 +14,12 @@ extension View {
   }
   func hubStream<T: Decodable>(_ path: String, initial: T? = nil, to: Binding<T>, animation: Animation? = nil) -> some View {
     hubStream(path, initial: initial) { (value: T) in
-      withAnimation(animation) {
-        to.wrappedValue = value
-      }
+      to.wrappedValue = value
     }
   }
   func hubStream<T: Decodable>(_ path: String, initial: T?, to: Binding<T?>, animation: Animation? = nil) -> some View {
     hubStream(path, initial: initial) { (value: T) in
-      withAnimation(animation) {
-        to.wrappedValue = value
-      }
+      to.wrappedValue = value
     }
   }
   // MARK: With body
@@ -34,17 +30,13 @@ extension View {
   func hubStream<T: Decodable, Body>(_ path: String, _ body: Body, initial: T? = nil, to: Binding<T>, animation: Animation? = nil) -> some View
   where Body: Encodable & Sendable & Hashable {
     hubStream(path, body, initial: initial) { (value: T) in
-      withAnimation(animation) {
-        to.wrappedValue = value
-      }
+      to.wrappedValue = value
     }
   }
   func hubStream<T: Decodable, Body>(_ path: String, _ body: Body, initial: T?, to: Binding<T?>, animation: Animation? = nil) -> some View
   where Body: Encodable & Sendable & Hashable {
     hubStream(path, body, initial: initial) { (value: T) in
-      withAnimation(animation) {
-        to.wrappedValue = value
-      }
+      to.wrappedValue = value
     }
   }
 }
@@ -62,7 +54,9 @@ private struct HubStreamModifier<T: Decodable>: ViewModifier {
       guard hub.isConnected else { return }
       do {
         for try await value: T in hub.client.values(path) {
-          action(value)
+          EventDelayManager.main.execute {
+            action(value)
+          }
         }
       } catch is CancellationError {
         
@@ -86,7 +80,9 @@ private struct HubStreamBodyModifier<T: Decodable, Body: Encodable & Hashable & 
       guard hub.isConnected else { return }
       do {
         for try await value: T in hub.client.values(path, body) {
-          action(value)
+          EventDelayManager.main.execute {
+            action(value)
+          }
         }
       } catch is CancellationError {
         
@@ -113,5 +109,27 @@ extension Hub {
     var id: Hub.ID
     var isConnected: Bool
     var body: Body
+  }
+}
+
+@MainActor class EventDelayManager {
+  static let main = EventDelayManager()
+  var isWaiting = false
+  var pending: [() -> ()] = []
+  func execute(_ action: @escaping () -> ()) {
+    pending.append(action)
+    if !isWaiting {
+      isWaiting = true
+      Task { try await wait() }
+    }
+  }
+  func wait() async throws {
+    try await Task.sleep(for: .milliseconds(500))
+    isWaiting = false
+    let pending = self.pending
+    self.pending = []
+    withAnimation(.home) {
+      pending.forEach { $0() }
+    }
   }
 }

@@ -41,7 +41,7 @@ extension KeyChain {
       if isConnected {
         Task {
           let permissions: Set<String> = try await client.send("hub/permissions")
-          withAnimation(.home) {
+          EventDelayManager.main.execute {
             self.permissions = permissions
           }
         }

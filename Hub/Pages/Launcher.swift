@@ -32,7 +32,7 @@ struct LauncherView: View {
             }
           }
           if isChanged {
-            withAnimation(.home) {
+            EventDelayManager.main.execute {
               self.apps = array
             }
           }
@@ -55,7 +55,7 @@ struct LauncherView: View {
             array[index].status = status
           }
           if isChanged {
-            withAnimation(.home) {
+            EventDelayManager.main.execute {
               self.apps = array
             }
           }

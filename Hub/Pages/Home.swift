@@ -39,7 +39,7 @@ struct HomeView: View {
             ForEach(Hubs.main.list) { hub in
               HubView(hub: hub, merging: $merging)
             }
-          }.animation(.home, value: isFocusing)
+          }
           ForEach(Hubs.main.list) { hub in
             HubSection().environment(hub).transition(.home)
           }
@@ -51,8 +51,10 @@ struct HomeView: View {
           }
           Text("Support this Project").sectionTitle()
           SupportView()
-        }.animation(.home, value: hubs.list.count)
-      }.safeAreaPadding(.horizontal).navigationTitle("Home").scrollDismissesKeyboard(.immediately)
+        }.animation(.home, value: isFocusing)
+          .animation(.home, value: hubs.list.count)
+          .safeAreaPadding(.horizontal)
+      }.navigationTitle("Home").scrollDismissesKeyboard(.immediately)
         .contentTransition(.numericText())
     }
   }
@@ -104,7 +106,7 @@ struct HomeView: View {
         await hub.manager.syncApps(hub: hub)
       }
       .hubStream("hub/status") { (status: Status) in
-        withAnimation(.home) {
+        EventDelayManager.main.execute {
           hub.hasLauncher = status.contains(service: "launcher")
         }
       }
@@ -464,11 +466,11 @@ struct HomeView: View {
             }
           }
         }
-//        TextField("Address", text: $address).focused(focus, equals: .joinHubAddress)
-//        if !address.isEmpty {
-//          TextField(url?.name ?? "Name", text: $name).focused(focus, equals: .joinHubAddress)
-//            .transition(.home)
-//        }
+        TextField("Address", text: $address).focused(focus, equals: .joinHubAddress)
+        if !address.isEmpty {
+          TextField(url?.name ?? "Name", text: $name).focused(focus, equals: .joinHubAddress)
+            .transition(.home)
+        }
       }.animation(.home, value: address.isEmpty).textFieldStyle(.roundedBorder).blockBackground()
     }
     struct Create: View {
@@ -548,7 +550,7 @@ extension View {
       .frame(maxHeight: .infinity, alignment: .top)
       .frame(maxWidth: .infinity, alignment: .leading)
       .background(RoundedRectangle(cornerRadius: 16).strokeBorder(.primary.opacity(0.1), lineWidth: 1))
-      .background(Color(.secondarySystemFill), in: RoundedRectangle(cornerRadius: 16))
+      .background(BackgroundColor(), in: RoundedRectangle(cornerRadius: 16))
       .modifier {
         #if os(macOS)
         $0
@@ -557,6 +559,16 @@ extension View {
         #endif
       }
       .transition(.home)
+  }
+}
+
+struct BackgroundColor: ShapeStyle {
+  func resolve(in environment: EnvironmentValues) -> Color {
+    if environment.colorScheme == .dark {
+      Color(red: 0.2, green: 0.2, blue: 0.24)
+    } else {
+      Color(hue: 0, saturation: 0, brightness: 0.92)
+    }
   }
 }
 
