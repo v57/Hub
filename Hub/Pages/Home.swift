@@ -82,19 +82,7 @@ struct HomeView: View {
         ForEach(manager.apps) { app in
           AppView(app: app)
         }
-        if status.hasStorage {
-          NavigationLink {
-            StorageView().environment(hub)
-          } label: {
-            Label("Files", systemImage: "folder.fill").blockBackground()
-          }.buttonStyle(.plain)
-        } else if hub.permissions.contains("owner") {
-          NavigationLink {
-            InstallS3().environment(hub)
-          } label: {
-            Label("Connect Storage", systemImage: "shippingbox.fill").blockBackground()
-          }.buttonStyle(.plain)
-        }
+        Files(status: status)
         ShareServicesView()
         if let apps = statusBadges.apps, !apps.isEmpty {
           ForEach(apps) { app in
@@ -340,6 +328,25 @@ struct HomeView: View {
         try await hub.client.send("launcher/app/cluster", LauncherView.AppView.SetInstances(name: info.name, count: instances))
       }
     }
+    struct Files: View {
+      @Environment(Hub.self) var hub
+      let status: Status
+      var body: some View {
+        if status.hasStorage {
+          NavigationLink {
+            StorageView().environment(hub)
+          } label: {
+            Label("Files", systemImage: "folder.fill").blockBackground()
+          }.buttonStyle(.plain)
+        } else if hub.permissions.contains("owner") {
+          NavigationLink {
+            InstallS3().environment(hub)
+          } label: {
+            Label("Connect Storage", systemImage: "shippingbox.fill").blockBackground()
+          }.buttonStyle(.plain)
+        }
+      }
+    }
     struct ShareServicesView: View {
       @Environment(Hub.self) var hub
       typealias Service = AppServicesView.Service
@@ -527,12 +534,13 @@ extension View {
   func sectionTitle(padding: Bool = true) -> some View {
     font(.title3).fontWeight(.medium).padding(.leading, 5).padding(.top, padding ? 16 : 0)
   }
-  func blockBackground() -> some View {
+  func blockBackground(color: Color = colors.randomElement()!) -> some View {
     VStack(alignment: .leading) {
       self
     }.padding().frame(maxHeight: .infinity, alignment: .top)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .background(Color(.secondarySystemFill), in: RoundedRectangle(cornerRadius: 16))
+      .background(RoundedRectangle(cornerRadius: 16).strokeBorder(.primary.opacity(0.2), lineWidth: 1))
+      .background(color, in: RoundedRectangle(cornerRadius: 16))
       .modifier {
         #if os(macOS)
         $0
@@ -543,6 +551,8 @@ extension View {
       .transition(.blurReplace)
   }
 }
+
+let colors: [Color] = [.red, .green, .blue, .cyan, .orange, .pink, .gray, .purple]
 
 #Preview {
   HomeView()
