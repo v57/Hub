@@ -58,6 +58,8 @@ struct InstallS3: View {
             .padding(.vertical, 4)
             .background(Color(.secondarySystemFill).opacity(0.4), in: .capsule)
         }.fontWeight(.medium)
+        Text("Hub is not associated with Wasabi")
+        Text("I think Wasabi is the cheapest S3 service on the market. If you know any better, please leave a message in Discord and i will replace it in the next update!")
       }
       Section(number: 1, title: "Create account") {
         Text("""
@@ -215,7 +217,8 @@ struct InstallS3: View {
           minio server ~/Storage
           """)
       }
-      
+      Text("Enter address that can be accessed by your clients and services")
+        .secondary().padding(.leading)
       TextField("Address", text: $endpoint)
       TextField("Bucket name", text: $bucketName)
       TextField("Access Key", text: $accessKey)
@@ -237,6 +240,7 @@ struct InstallS3: View {
     @State var accessKey: String = ""
     @State var secretKey: String = ""
     var body: some View {
+      Text("Use this page if you use other S3 services like AWS, Azure, Google Cloud and so on")
       TextField("Endpoint", text: $endpoint)
       TextField("Region", text: $region)
       TextField("Bucket name", text: $bucketName)
@@ -245,7 +249,7 @@ struct InstallS3: View {
       CreationButtons(settings: settings)
     }
     var isReady: Bool {
-      !bucketName.isEmpty && !region.isEmpty && !endpoint.isEmpty && !accessKey.isEmpty && !secretKey.isEmpty
+      !bucketName.isEmpty && !endpoint.isEmpty && !accessKey.isEmpty && !secretKey.isEmpty
     }
     var settings: Hub.Launcher.AppSettings? {
       return isReady ? .s3(access: accessKey, secret: secretKey, region: region, endpoint: endpoint, bucket: bucketName) : nil
