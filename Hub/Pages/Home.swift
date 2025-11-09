@@ -57,35 +57,36 @@ struct HomeView: View {
     }
   }
   struct HubSection: View {
-    typealias App = Hub.Launcher.App
     @Environment(Hub.self) var hub
-    @State var manager = LauncherView.Manager()
-    @State var hasLauncher: Bool = false
-    @State var pending: [SecurityView.PendingAuthorization] = []
-    @State var status = Status(requests: 0, services: [])
-    @State var statusBadges = StatusBadges()
     var body: some View {
-      let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hasLauncher)
-      Title(manager: manager).padding(.top, 16)
+      HubSectionContent(hub: hub)
+    }
+  }
+  struct HubSectionContent: View {
+    typealias App = Hub.Launcher.App
+    @Bindable var hub: Hub
+    var body: some View {
+      let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hub.hasLauncher)
+      Title(manager: hub.manager).padding(.top, 16)
       LazyVGrid(columns: [.init(.adaptive(minimum: 180))]) {
         if hub.permissions.contains("owner") {
-          if !status.services.isEmpty {
+          if !hub.status.services.isEmpty {
             NavigationLink {
               Services().environment(hub)
             } label: {
-              ServicesView(status: status)
+              ServicesView(status: hub.status)
             }.buttonStyle(.plain).transition(.home)
           }
-          if !pending.isEmpty {
-            PermissionsView(pending: pending).transition(.home)
+          if !hub.pending.isEmpty {
+            PermissionsView(pending: hub.pending).transition(.home)
           }
         }
-        ForEach(manager.apps) { app in
+        ForEach(hub.manager.apps) { app in
           AppView(app: app)
         }
-        Files(status: status)
+        Files(status: hub.status)
         ShareServicesView()
-        if let apps = statusBadges.apps, !apps.isEmpty {
+        if let apps = hub.statusBadges.apps, !apps.isEmpty {
           ForEach(apps) { app in
             NavigationLink(value: app) {
               Text(app.name).foregroundStyle(app.isOnline ? .primary : .tertiary)
@@ -97,19 +98,19 @@ struct HomeView: View {
       }
       .task(id: task) {
         guard task.isConnected else { return }
-        await manager.syncStatus(hub: hub)
+        await hub.manager.syncStatus(hub: hub)
       }.task(id: task) {
         guard task.isConnected else { return }
-        await manager.syncApps(hub: hub)
+        await hub.manager.syncApps(hub: hub)
       }
       .hubStream("hub/status") { (status: Status) in
         withAnimation(.home) {
-          hasLauncher = status.contains(service: "launcher")
+          hub.hasLauncher = status.contains(service: "launcher")
         }
       }
-      .hubStream("hub/permissions/pending", initial: [], to: $pending, animation: .home)
-        .hubStream("hub/status", initial: Status(requests: 0, services: []), to: $status, animation: .home)
-        .hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges, animation: .home)
+      .hubStream("hub/permissions/pending", to: $hub.pending, animation: .home)
+      .hubStream("hub/status", to: $hub.status, animation: .home)
+      .hubStream("hub/status/badges", to: $hub.statusBadges, animation: .home)
         .navigationDestination(for: AppHeader.self) { app in
           ServiceView(header: app).environment(hub)
         }
