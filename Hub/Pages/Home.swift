@@ -534,13 +534,14 @@ extension View {
   func sectionTitle(padding: Bool = true) -> some View {
     font(.title3).fontWeight(.medium).padding(.leading, 5).padding(.top, padding ? 16 : 0)
   }
-  func blockBackground(color: Color = colors.randomElement()!) -> some View {
+  func blockBackground() -> some View {
     VStack(alignment: .leading) {
       self
-    }.padding().frame(maxHeight: .infinity, alignment: .top)
+    }.padding()
+      .frame(maxHeight: .infinity, alignment: .top)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .background(RoundedRectangle(cornerRadius: 16).strokeBorder(.primary.opacity(0.2), lineWidth: 1))
-      .background(color, in: RoundedRectangle(cornerRadius: 16))
+      .background(RoundedRectangle(cornerRadius: 16).strokeBorder(.primary.opacity(0.1), lineWidth: 1))
+      .background(Color(.secondarySystemFill), in: RoundedRectangle(cornerRadius: 16))
       .modifier {
         #if os(macOS)
         $0
@@ -552,7 +553,6 @@ extension View {
   }
 }
 
-let colors: [Color] = [.red, .green, .blue, .cyan, .orange, .pink, .gray, .purple]
 
 #Preview {
   HomeView()
