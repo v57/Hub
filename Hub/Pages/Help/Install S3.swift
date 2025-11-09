@@ -8,9 +8,10 @@
 import SwiftUI
 
 struct InstallS3: View {
+  typealias CodeView = InstallationGuide.CodeView
   @Environment(Hub.self) var hub
   enum Guide {
-    case wasabi, manual
+    case wasabi, local, manual
   }
   @State var installer = Installer()
   @State var guide: Guide = .manual
@@ -18,6 +19,8 @@ struct InstallS3: View {
     ScrollView {
       VStack(alignment: .leading) {
         switch guide {
+        case .local:
+          Local()
         case .wasabi:
           Wasabi()
         case .manual:
@@ -26,6 +29,7 @@ struct InstallS3: View {
       }.frame(maxWidth: .infinity, alignment: .leading).toolbar {
         Picker("Storage Options", selection: $guide) {
           Text("Wasabi").tag(Guide.wasabi)
+          Text("Local").tag(Guide.local)
           Text("Manual").tag(Guide.manual)
         }.pickerStyle(.segmented)
       }.safeAreaPadding(.horizontal)
@@ -41,21 +45,6 @@ struct InstallS3: View {
     @State var secretKey: String = ""
     var isReady: Bool {
       !bucketName.isEmpty && region != nil && !accessKey.isEmpty && !secretKey.isEmpty
-    }
-    struct Section<Content: View>: View {
-      let number: Int
-      let title: LocalizedStringKey
-      @ViewBuilder let content: Content
-      var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-          Text("\(number).").font(.title3).fontWeight(.bold)
-          VStack(alignment: .leading) {
-            Text(title).font(.title3).fontWeight(.bold)
-              .padding(.bottom, 2)
-            content
-          }
-        }.padding(.top)
-      }
     }
     var body: some View {
       Section(number: 0, title: "Wasabi Pricing") {
@@ -180,6 +169,66 @@ struct InstallS3: View {
       }
     }
   }
+  struct Section<Content: View>: View {
+    let number: Int
+    let title: LocalizedStringKey
+    @ViewBuilder let content: Content
+    var body: some View {
+      HStack(alignment: .firstTextBaseline) {
+        Text("\(number).").font(.title3).fontWeight(.bold)
+        VStack(alignment: .leading) {
+          Text(title).font(.title3).fontWeight(.bold)
+            .padding(.bottom, 2)
+          content
+        }
+      }.padding(.top)
+    }
+  }
+  struct Local: View {
+    @Environment(Installer.self) var installer
+    @State var bucketName: String = "Hub"
+    @State var endpoint: String = "http://127.0.0.1:9000"
+    @State var accessKey: String = "minioadmin"
+    @State var secretKey: String = "minioadmin"
+    var body: some View {
+      Section(number: 0, title: "Install locally using minio") {
+        HStack {
+          Text("Free")
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(Color(.secondarySystemFill).opacity(0.4), in: .capsule)
+        }.fontWeight(.medium)
+        Text("[Documentation for installation](https://www.min.io/download)")
+      }
+      Section(number: 1, title: "Install MinIO (macOS)") {
+        CodeView("brew install minio/aistor/minio")
+      }
+      Section(number: 2, title: "Start MinIO (macOS)") {
+        Button("Generate random password", systemImage: "dice.fill") {
+          accessKey = .random()
+          secretKey = .random()
+        }
+        CodeView("""
+          MINIO_ROOT_USER=\(accessKey)
+          MINIO_ROOT_PASSWORD=\(secretKey)
+          mkdir -p ~/Storage/Hub
+          minio server ~/Storage
+          """)
+      }
+      
+      TextField("Address", text: $endpoint)
+      TextField("Bucket name", text: $bucketName)
+      TextField("Access Key", text: $accessKey)
+      TextField("Secret Key", text: $secretKey)
+      CreationButtons(settings: settings)
+    }
+    var isReady: Bool {
+      !bucketName.isEmpty && !endpoint.isEmpty && !accessKey.isEmpty && !secretKey.isEmpty
+    }
+    var settings: Hub.Launcher.AppSettings? {
+      return isReady ? .s3(access: accessKey, secret: secretKey, region: "", endpoint: endpoint, bucket: bucketName) : nil
+    }
+  }
   struct Manual: View {
     @Environment(Installer.self) var installer
     @State var bucketName: String = ""
@@ -281,14 +330,34 @@ struct InstallS3: View {
   }
 }
 
+extension Data {
+  static func random(_ length: Int) -> Data {
+    var data = Data(repeating: 0, count: length)
+    _ = data.withUnsafeMutableBytes { (pointer: UnsafeMutableRawBufferPointer) in
+      SecRandomCopyBytes(kSecRandomDefault, length, pointer.baseAddress!)
+    }
+    return data
+  }
+}
+extension String {
+  static func random() -> String {
+    Data.random(32).base64EncodedString().replacingOccurrences(of: "+", with: "")
+      .replacingOccurrences(of: "/", with: "")
+      .replacingOccurrences(of: "=", with: "")
+  }
+}
+
 extension Hub.Launcher.AppSettings {
   static func s3(access: String, secret: String, region: String, endpoint: String, bucket: String) -> Self {
-    Hub.Launcher.AppSettings(env: [
+    var data: [String: String] = [
       "S3_ACCESS_KEY_ID": access,
-      "S3_REGION": region,
       "S3_ENDPOINT": endpoint,
       "S3_BUCKET": bucket
-    ], secrets: [
+    ]
+    if !region.isEmpty {
+      data["S3_REGION"] = region
+    }
+    return Hub.Launcher.AppSettings(env: data, secrets: [
       "S3_SECRET_ACCESS_KEY": secret
     ])
   }
