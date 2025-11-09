@@ -667,6 +667,9 @@ extension URL {
   var fileSize: Int64 {
     (try? FileManager.default.attributesOfItem(atPath: path(percentEncoded: false))[FileAttributeKey.size] as? Int64) ?? 0
   }
+  func delete() {
+    try? FileManager.default.removeItem(at: self)
+  }
 }
 extension Int {
   var bytesString: String {

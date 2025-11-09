@@ -30,7 +30,9 @@ extension HubService.Group {
 #if os(macOS) || os(iOS) || os(visionOS)
   func sensitiveContentService() -> Self {
     post("image/sensitive") { (url: URL) -> Bool in
-      try await Self.download(from: url).isSensitive()
+      let file = try await Self.download(from: url)
+      defer { file.delete() }
+      return await file.isSensitive()
     }
   }
 #endif
@@ -44,13 +46,16 @@ extension HubService.Group {
   }
   static func encodeVideo(from: URL, to: URL) async throws {
     let url = try await download(from: from)
+    defer { url.delete() }
     let asset = AVURLAsset(url: url)
     let target = URL.temporaryDirectory.appending(path: UUID().uuidString + ".mov", directoryHint: .notDirectory)
+    defer { target.delete() }
     try await VideoEncoder().encode(from: asset, to: target, settings: .hevc(quality: 0.6, size: nil, frameReordering: true)) { _, _ in }
     try await upload(file: target, to: to)
   }
   static func download(from: URL) async throws -> URL {
     let (tempDownload, _) = try await URLSession.shared.download(from: from)
+    defer { tempDownload.delete() }
     let url = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).\(from.lastPathComponent.components(separatedBy: ".").last!)", directoryHint: .notDirectory)
     try FileManager.default.moveItem(at: tempDownload, to: url)
     return url
