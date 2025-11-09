@@ -8,6 +8,7 @@
 import Foundation
 import HubClient
 import Combine
+import SwiftUI
 
 extension KeyChain {
   static let main = KeyChain(keyChain: "dev.v57.hub")
@@ -33,7 +34,12 @@ extension KeyChain {
     connectionTask = client.isConnected.sink { [unowned self] isConnected in
       self.isConnected = isConnected
       if isConnected {
-        Task { permissions = try await client.send("hub/permissions") }
+        Task {
+          let permissions: Set<String> = try await client.send("hub/permissions")
+          withAnimation(.home) {
+            self.permissions = permissions
+          }
+        }
       }
     }
     appServices = AppServices(hub: self)

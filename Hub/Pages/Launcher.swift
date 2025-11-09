@@ -32,7 +32,9 @@ struct LauncherView: View {
             }
           }
           if isChanged {
-            self.apps = array
+            withAnimation(.home) {
+              self.apps = array
+            }
           }
         }
       } catch is CancellationError {
@@ -53,7 +55,9 @@ struct LauncherView: View {
             array[index].status = status
           }
           if isChanged {
-            self.apps = array
+            withAnimation(.home) {
+              self.apps = array
+            }
           }
         }
       } catch is CancellationError {

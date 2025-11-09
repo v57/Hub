@@ -39,9 +39,9 @@ struct HomeView: View {
             ForEach(Hubs.main.list) { hub in
               HubView(hub: hub, merging: $merging)
             }
-          }.animation(.smooth, value: isFocusing)
+          }.animation(.home, value: isFocusing)
           ForEach(Hubs.main.list) { hub in
-            HubSection().environment(hub)
+            HubSection().environment(hub).transition(.home)
           }
           Text("My Apps").sectionTitle()
           LazyVGrid(columns: [.init(.adaptive(minimum: 180))]) {
@@ -51,8 +51,9 @@ struct HomeView: View {
           }
           Text("Support this Project").sectionTitle()
           SupportView()
-        }.animation(.smooth, value: hubs.list.count)
+        }.animation(.home, value: hubs.list.count)
       }.safeAreaPadding(.horizontal).navigationTitle("Home").scrollDismissesKeyboard(.immediately)
+        .contentTransition(.numericText())
     }
   }
   struct HubSection: View {
@@ -73,10 +74,10 @@ struct HomeView: View {
               Services().environment(hub)
             } label: {
               ServicesView(status: status)
-            }.buttonStyle(.plain)
+            }.buttonStyle(.plain).transition(.home)
           }
           if !pending.isEmpty {
-            PermissionsView(pending: pending)
+            PermissionsView(pending: pending).transition(.home)
           }
         }
         ForEach(manager.apps) { app in
@@ -90,20 +91,25 @@ struct HomeView: View {
               Text(app.name).foregroundStyle(app.isOnline ? .primary : .tertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .blockBackground()
-            }.buttonStyle(.plain)
+            }.buttonStyle(.plain).transition(.home)
           }
         }
-      }.task(id: task) {
+      }
+      .task(id: task) {
         guard task.isConnected else { return }
         await manager.syncStatus(hub: hub)
       }.task(id: task) {
         guard task.isConnected else { return }
         await manager.syncApps(hub: hub)
-      }.hubStream("hub/status") { (status: Status) in
-        hasLauncher = status.contains(service: "launcher")
-      }.hubStream("hub/permissions/pending", initial: [], to: $pending)
-        .hubStream("hub/status", initial: Status(requests: 0, services: []), to: $status)
-        .hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges)
+      }
+      .hubStream("hub/status") { (status: Status) in
+        withAnimation(.home) {
+          hasLauncher = status.contains(service: "launcher")
+        }
+      }
+      .hubStream("hub/permissions/pending", initial: [], to: $pending, animation: .home)
+        .hubStream("hub/status", initial: Status(requests: 0, services: []), to: $status, animation: .home)
+        .hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges, animation: .home)
         .navigationDestination(for: AppHeader.self) { app in
           ServiceView(header: app).environment(hub)
         }
@@ -124,29 +130,29 @@ struct HomeView: View {
             if hub.isOwner && !addingOwner {
               Button("Add owner", systemImage: "person.fill.badge.plus") {
                 addingOwner = true
-              }
+              }.transition(.home)
             }
             if hub.permissions.contains("owner") {
               NavigationLink {
                 StoreView().environment(manager).environment(hub)
               } label: {
                 Label("Get apps", systemImage: "arrow.down.circle.fill")
-              }
+              }.transition(.home)
             }
           }
           HStack {
             if hub.isOwner && addingOwner {
-              SecureField("Key", text: $ownerKey)
+              SecureField("Key", text: $ownerKey).transition(.home)
               AsyncButton("Add") {
                 addingOwner = false
                 let key = ownerKey
                 ownerKey = ""
                 try await hub.addOwner(key)
-              }.disabled(ownerKey.isEmpty)
+              }.disabled(ownerKey.isEmpty).transition(.home)
               AsyncButton("Cancel") {
                 addingOwner = false
                 ownerKey = ""
-              }
+              }.transition(.home)
             }
           }
         }.frame(maxWidth: .infinity, alignment: .trailing).padding(.leading, 10)
@@ -337,13 +343,13 @@ struct HomeView: View {
             StorageView().environment(hub)
           } label: {
             Label("Files", systemImage: "folder.fill").blockBackground()
-          }.buttonStyle(.plain)
+          }.buttonStyle(.plain).transition(.home)
         } else if hub.permissions.contains("owner") {
           NavigationLink {
             InstallS3().environment(hub)
           } label: {
             Label("Connect Storage", systemImage: "shippingbox.fill").blockBackground()
-          }.buttonStyle(.plain)
+          }.buttonStyle(.plain).transition(.home)
         }
       }
     }
@@ -369,7 +375,7 @@ struct HomeView: View {
         @State var isEnabled: Bool = false
         var body: some View {
           Button {
-            withAnimation {
+            withAnimation(.home) {
               isEnabled.toggle()
             }
             service.setService(enabled: isEnabled, hub: hub)
@@ -405,7 +411,7 @@ struct HomeView: View {
             Text("\(security) service requests").foregroundStyle(.green)
           }
         }.fontWeight(.medium).secondary()
-        .hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges)
+          .hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges, animation: .home)
         .environment(hub)
         if let merging, merging.id != hub.id && hub.isOwner {
           Spacer()
@@ -457,12 +463,12 @@ struct HomeView: View {
             }
           }
         }
-        TextField("Address", text: $address).focused(focus, equals: .joinHubAddress)
-        if !address.isEmpty {
-          TextField(url?.name ?? "Name", text: $name).focused(focus, equals: .joinHubAddress)
-            .transition(.blurReplace)
-        }
-      }.animation(.smooth, value: address.isEmpty).textFieldStyle(.roundedBorder).blockBackground()
+//        TextField("Address", text: $address).focused(focus, equals: .joinHubAddress)
+//        if !address.isEmpty {
+//          TextField(url?.name ?? "Name", text: $name).focused(focus, equals: .joinHubAddress)
+//            .transition(.home)
+//        }
+      }.animation(.home, value: address.isEmpty).textFieldStyle(.roundedBorder).blockBackground()
     }
     struct Create: View {
       @State private var name = ""
@@ -549,10 +555,19 @@ extension View {
         $0.contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 16))
         #endif
       }
-      .transition(.blurReplace)
+      .transition(.home)
   }
 }
 
+extension AnyTransition {
+  static var home: AnyTransition {
+    AnyTransition.scale
+  }
+}
+
+extension Animation {
+  static var home: Animation { .spring(response: 0.5, dampingFraction: 0.7) }
+}
 
 #Preview {
   HomeView()
