@@ -14,7 +14,9 @@ struct HubApp: App {
 #endif
   var body: some Scene {
     WindowGroup {
-      Toolbar()
+      if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == nil {
+        Toolbar()
+      }
     }
   }
 }
