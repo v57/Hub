@@ -122,6 +122,7 @@ struct HomeView: View {
       let manager: LauncherView.Manager
       @State var addingOwner = false
       @State var ownerKey = ""
+      @State var openPermissions = false
       var body: some View {
         VStack {
           HStack {
@@ -134,6 +135,9 @@ struct HomeView: View {
               Button("Add owner", systemImage: "person.fill.badge.plus") {
                 addingOwner = true
               }.transition(.home)
+            }
+            Button("Permissions", systemImage: "lock.shield.fill") {
+              openPermissions.toggle()
             }
             if hub.permissions.contains("owner") {
               NavigationLink {
@@ -160,6 +164,9 @@ struct HomeView: View {
           }
         }.frame(maxWidth: .infinity, alignment: .trailing).padding(.leading, 10)
           .padding(.bottom, 4)
+          .sheet(isPresented: $openPermissions) {
+            
+          }
       }
     }
     struct ServicesView: View {
