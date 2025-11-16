@@ -214,7 +214,7 @@ struct HomeView: View {
               }
             }
           }.blockBackground()
-        }
+        }.buttonStyle(.plain)
       }
     }
     struct AppView: View {
