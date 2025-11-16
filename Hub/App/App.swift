@@ -14,7 +14,7 @@ struct HubApp: App {
 #endif
   var body: some Scene {
     WindowGroup {
-      if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == nil {
+      if !ProcessInfo.isPreviews {
         Toolbar()
       }
     }
@@ -31,3 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 }
 #endif
+
+extension ProcessInfo {
+  static let isPreviews: Bool = processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != nil
+}
