@@ -97,6 +97,7 @@ extension LanguageAvailability {
   }
   func pairs() async -> Pairs {
     var pairs = Pairs()
+    guard !ProcessInfo.isPreviews else { return pairs }
     let languages = await supportedLanguages
     let sendable = LanguageAvailability()
     for i in 0..<languages.count - 1 {
