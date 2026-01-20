@@ -11,11 +11,13 @@ struct PermissionGroups: View {
   @Environment(Hub.self) var hub
   @State var adding = false
   @State var name: String = ""
-  @State var permissions: PermissionList?
+  @State var permissions = PermissionList()
+  @State var groups = GroupList()
   @State var selected = Set<String>()
+  @State var editing: String?
   var body: some View {
-    List {
-      if let permissions {
+    ScrollView {
+      if adding {
         ForEach(permissions.sections) { section in
           Section {
             ForEach(section.permissions, id: \.self) { (name: String) in
@@ -25,8 +27,58 @@ struct PermissionGroups: View {
             Toggle(section.name, isOn: $selected.toggle(section.permissions.map { "\(section.name)/\($0)" }))
           }
         }
+      } else {
+        ForEach($groups.groups) { $group in
+          let isEditing = group.name == editing
+          LazyVStack(alignment: .leading, pinnedViews: .sectionHeaders) {
+            Section {
+              ForEach(permissions.sections) { section in
+                let isSelected = $group.permissions.toggle(section.permissions.map { "\(section.name)/\($0)" })
+                if isEditing || isSelected.wrappedValue {
+                  HStack {
+                    if isEditing {
+                      Toggle(section.name, isOn: isSelected)
+                    }
+                    Text(section.name)
+                  }
+                  ForEach(section.permissions, id: \.self) { (name: String) in
+                    let isSelected = $group.permissions.toggle("\(section.name)/\(name)")
+                    if isEditing || isSelected.wrappedValue {
+                      HStack {
+                        if isEditing {
+                          Toggle(name, isOn: isSelected)
+                        }
+                        Text(name)
+                      }.padding(.leading)
+                    }
+                  }
+                }
+              }
+            } header: {
+              HStack {
+                Text(group.name).padding(.horizontal).padding(.vertical, 4)
+                  .fontWeight(.bold)
+                  .background(.regularMaterial, in: .capsule)
+                Spacer()
+                if isEditing {
+                  Button("Save") {
+                    withAnimation {
+                      editing = nil
+                    }
+                  }
+                } else {
+                  Button("Edit") {
+                    withAnimation {
+                      editing = group.name
+                    }
+                  }
+                }
+              }
+            }.labelsHidden()
+          }
+        }.padding(.horizontal)
       }
-    }.safeAreaInset(edge: .bottom) {
+    }.frame(maxWidth: .infinity).safeAreaInset(edge: .bottom) {
       HStack {
         if adding {
           TextField("Name", text: $name.animation()).frame(maxWidth: 150)
@@ -42,6 +94,7 @@ struct PermissionGroups: View {
           }
         }.buttonStyle(.borderedProminent).contentTransition(.numericText())
       }.padding().hubStream("hub/groups/permissions", to: $permissions)
+        .hubStream("hub/groups/list", to: $groups)
     }
   }
   var createTitle: LocalizedStringKey {
@@ -56,6 +109,9 @@ struct PermissionGroups: View {
 typealias RawPermissionList = [String: [String: [String]]]
 struct PermissionList: Decodable {
   var sections: [Section]
+  init() {
+    sections = []
+  }
   init(from decoder: any Decoder) throws {
     sections = try decoder.singleValueContainer()
       .decode([String: [String: [String]]].self)
@@ -67,6 +123,30 @@ struct PermissionList: Decodable {
     var id: String { name }
     var name: String
     var permissions: [String]
+    func visible(selected: Set<String>, isEditing: Bool) -> [String] {
+      if isEditing {
+        permissions
+      } else {
+        permissions.filter(selected.contains)
+      }
+    }
+  }
+}
+struct GroupList: Decodable {
+  var groups: [Group]
+  init() {
+    groups = []
+  }
+  init(from decoder: any Decoder) throws {
+    groups = try decoder.singleValueContainer()
+      .decode([String: Set<String>].self)
+      .map { Group(name: $0.key, permissions: $0.value) }
+      .sorted(by: { $0.name < $1.name })
+  }
+  struct Group: Identifiable {
+    var id: String { name }
+    let name: String
+    var permissions: Set<String>
   }
 }
 
