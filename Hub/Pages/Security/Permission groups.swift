@@ -39,7 +39,7 @@ struct PermissionGroups: View {
                     if isEditing {
                       Toggle(section.name, isOn: isSelected)
                     }
-                    Text(section.name)
+                    Text(section.name).fontWeight(.semibold)
                   }
                   ForEach(section.permissions, id: \.self) { (name: String) in
                     let isSelected = $group.permissions.toggle("\(section.name)/\(name)")
@@ -48,8 +48,8 @@ struct PermissionGroups: View {
                         if isEditing {
                           Toggle(name, isOn: isSelected)
                         }
-                        Text(name)
-                      }.padding(.leading)
+                        Text(name).font(isEditing ? .body : .caption)
+                      }.padding(.leading, isEditing ? nil : 0)
                     }
                   }
                 }
