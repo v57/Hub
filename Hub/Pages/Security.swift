@@ -31,12 +31,18 @@ struct SecurityView: View {
         if hub.permissions.contains("owner") {
           if addingOwner {
             SecureField("Key", text: $ownerKey)
-            AsyncButton("Add") {
-              addingOwner = false
-              let key = ownerKey
-              ownerKey = ""
-              try await hub.addOwner(key)
-            }.disabled(ownerKey.isEmpty)
+            if ownerKey.isEmpty {
+              Button("Cancel") {
+                addingOwner = false
+              }
+            } else {
+              AsyncButton("Add") {
+                addingOwner = false
+                let key = ownerKey
+                ownerKey = ""
+                try await hub.addOwner(key)
+              }.disabled(ownerKey.isEmpty)
+            }
           } else {
             Button("Add owner") {
               addingOwner = true
