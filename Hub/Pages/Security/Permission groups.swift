@@ -57,6 +57,14 @@ struct PermissionGroups: View {
             } header: {
               HStack {
                 Text(group.name).font(.title)
+                if isEditing {
+                  AsyncButton("Delete Group", role: .destructive) {
+                    try await hub.client.send("hub/groups/remove", group.name)
+                    withAnimation {
+                      editing = nil
+                    }
+                  }
+                }
                 Spacer()
                 if isEditing {
                   AsyncButton("Save") {
