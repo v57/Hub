@@ -18,15 +18,19 @@ struct PermissionGroups: View {
   var body: some View {
     ScrollView {
       if adding {
-        ForEach(permissions.sections) { section in
-          Section {
-            ForEach(section.permissions, id: \.self) { (name: String) in
-              Toggle(name, isOn: $selected.toggle("\(section.name)/\(name)"))
+        LazyVStack(alignment: .leading, pinnedViews: .sectionHeaders) {
+          ForEach(permissions.sections) { section in
+            Section {
+              ForEach(section.permissions, id: \.self) { (name: String) in
+                Toggle(name, isOn: $selected.toggle("\(section.name)/\(name)"))
+                  .padding(.leading)
+              }
+            } header: {
+              Toggle(section.name, isOn: $selected.toggle(section.permissions.map { "\(section.name)/\($0)" }))
+                .fontWeight(.semibold)
             }
-          } header: {
-            Toggle(section.name, isOn: $selected.toggle(section.permissions.map { "\(section.name)/\($0)" }))
           }
-        }
+        }.padding(.horizontal)
       } else {
         ForEach($groups.groups) { $group in
           let isEditing = group.name == editing
