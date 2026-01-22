@@ -10,7 +10,7 @@ import HubClient
 
 struct UserConnections: View {
   @Environment(Hub.self) var hub
-  @State var users: [User] = []
+  let users: [User]
   var body: some View {
     List(users) { user in
       VStack(alignment: .leading) {
@@ -35,8 +35,6 @@ struct UserConnections: View {
           }
         }.secondary()
       }
-    }.hubStream("hub/connections") { users in
-      self.users = users
     }
   }
   struct User: Decodable, Identifiable {
@@ -60,7 +58,13 @@ struct UserConnections: View {
       }
     }
   }
+  struct Loader: View {
+    @State var users: [User] = []
+    var body: some View {
+      UserConnections(users: users).hubStream("hub/connections", to: $users)
+    }
+  }
 }
 #Preview {
-  UserConnections().environment(Hub.test)
+  UserConnections.Loader().environment(Hub.test)
 }

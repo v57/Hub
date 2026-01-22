@@ -8,27 +8,33 @@
 import SwiftUI
 
 struct SecurityView: View {
-  @Environment(Hub.self) var hub
-  @State var pending: [PendingAuthorization] = []
-  @State var ownerKey: String = ""
-  @State var addingOwner: Bool = false
+  @Environment(Hub.self) private var hub
+  @State private var pending: [PendingAuthorization] = []
+  @State private var ownerKey: String = ""
+  @State private var addingOwner: Bool = false
+  @State private var page: Page = .pending
+  @State private var users: [UserConnections.User] = []
+  enum Page {
+    case pending, connections
+  }
   var body: some View {
-    List(pending) { item in
-      HStack {
-        VStack(alignment: .leading) {
-          Text(item.name)
-          Text(item.id).secondary()
-            .textScale(.secondary)
-            .fontDesign(.monospaced)
-        }.lineLimit(2)
-        Spacer()
-        AsyncButton("Allow") {
-          try await hub.client.send("hub/permissions/add", Allow(services: item.pending, permission: item.id))
-        }
+    ZStack {
+      switch page {
+      case .pending:
+        PendingList(pending: pending)
+      case .connections:
+        UserConnections(users: users)
       }
     }.safeAreaInset(edge: .top) {
-      HStack {
-        if hub.permissions.contains("owner") {
+      if hub.permissions.contains("owner") {
+        HStack {
+          if !addingOwner {
+            Picker("Page", selection: $page) {
+              Text("Requests").tag(Page.pending)
+              Text("Connections").tag(Page.connections)
+            }.pickerStyle(.segmented).labelsHidden()
+            Spacer()
+          }
           if addingOwner {
             SecureField("Key", text: $ownerKey)
             if ownerKey.isEmpty {
@@ -48,9 +54,31 @@ struct SecurityView: View {
               addingOwner = true
             }
           }
+        }.padding(.horizontal)
+      }
+    }.navigationTitle("Security")
+      .hubStream("hub/permissions/pending", initial: [], to: $pending)
+      .hubStream("hub/connections", to: $users)
+  }
+  struct PendingList: View {
+    @Environment(Hub.self) private var hub
+    let pending: [PendingAuthorization]
+    var body: some View {
+      List(pending) { item in
+        HStack {
+          VStack(alignment: .leading) {
+            Text(item.name)
+            Text(item.id).secondary()
+              .textScale(.secondary)
+              .fontDesign(.monospaced)
+          }.lineLimit(2)
+          Spacer()
+          AsyncButton("Allow") {
+            try await hub.client.send("hub/permissions/add", Allow(services: item.pending, permission: item.id))
+          }
         }
-      }.frame(maxWidth: .infinity, alignment: .trailing).padding(.horizontal)
-    }.navigationTitle("Security").hubStream("hub/permissions/pending", initial: [], to: $pending)
+      }
+    }
   }
   struct Allow: Encodable {
     let services: [String]
@@ -72,6 +100,6 @@ struct SecurityView: View {
 }
 
 #Preview {
-  SecurityView().frame(width: 400, height: 200)
+  SecurityView()//.frame(width: 400, height: 200)
     .environment(Hub.test)
 }
