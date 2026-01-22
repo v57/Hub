@@ -56,12 +56,11 @@ struct PermissionGroups: View {
               }
             } header: {
               HStack {
-                Text(group.name).padding(.horizontal).padding(.vertical, 4)
-                  .fontWeight(.bold)
-                  .background(.regularMaterial, in: .capsule)
+                Text(group.name).font(.title)
                 Spacer()
                 if isEditing {
-                  Button("Save") {
+                  AsyncButton("Save") {
+                    try await hub.client.send("hub/groups/add", AddGroup(name: group.name, permissions: Array(group.permissions)))
                     withAnimation {
                       editing = nil
                     }
