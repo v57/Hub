@@ -11,8 +11,8 @@ struct PermissionGroups: View {
   @Environment(Hub.self) var hub
   @State var adding = false
   @State var name: String = ""
-  @State var permissions = PermissionList()
-  @State var groups = GroupList()
+  let permissions: PermissionList
+  @Binding var groups: GroupList
   @State var selected = Set<String>()
   @State var editing: String?
   var body: some View {
@@ -89,7 +89,7 @@ struct PermissionGroups: View {
           }
         }.padding(.horizontal)
       }
-    }.frame(maxWidth: .infinity).safeAreaInset(edge: .bottom) {
+    }.lineLimit(2).frame(maxWidth: .infinity).safeAreaInset(edge: .bottom) {
       HStack {
         if adding {
           TextField("Name", text: $name.animation()).frame(maxWidth: 150)
@@ -104,8 +104,7 @@ struct PermissionGroups: View {
             adding.toggle()
           }
         }.buttonStyle(.borderedProminent).contentTransition(.numericText())
-      }.padding().hubStream("hub/groups/permissions", to: $permissions)
-        .hubStream("hub/groups/list", to: $groups)
+      }.padding()
     }
   }
   var createTitle: LocalizedStringKey {
@@ -114,6 +113,15 @@ struct PermissionGroups: View {
   struct AddGroup: Encodable {
     let name: String
     let permissions: [String]
+  }
+  struct Loader: View {
+    @State private var permissions = PermissionList()
+    @State private var groups = GroupList()
+    var body: some View {
+      PermissionGroups(permissions: permissions, groups: $groups)
+        .hubStream("hub/groups/permissions", to: $permissions)
+        .hubStream("hub/groups/list", to: $groups)
+    }
   }
 }
 
@@ -191,5 +199,5 @@ extension Binding where Value: SetAlgebra & Sendable {
 }
 
 #Preview {
-  PermissionGroups().environment(Hub.test)
+  PermissionGroups.Loader().environment(Hub.test)
 }

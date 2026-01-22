@@ -14,8 +14,10 @@ struct SecurityView: View {
   @State private var addingOwner: Bool = false
   @State private var page: Page = .pending
   @State private var users: [UserConnections.User] = []
+  @State private var permissions = PermissionList()
+  @State private var groups = GroupList()
   enum Page {
-    case pending, connections
+    case pending, connections, permissions
   }
   var body: some View {
     ZStack {
@@ -24,6 +26,8 @@ struct SecurityView: View {
         PendingList(pending: pending)
       case .connections:
         UserConnections(users: users)
+      case .permissions:
+        PermissionGroups(permissions: permissions, groups: $groups)
       }
     }.safeAreaInset(edge: .top) {
       if hub.permissions.contains("owner") {
@@ -32,6 +36,7 @@ struct SecurityView: View {
             Picker("Page", selection: $page) {
               Text("Requests").tag(Page.pending)
               Text("Connections").tag(Page.connections)
+              Text("Permissions").tag(Page.permissions)
             }.pickerStyle(.segmented).labelsHidden()
             Spacer()
           }
@@ -59,6 +64,8 @@ struct SecurityView: View {
     }.navigationTitle("Security")
       .hubStream("hub/permissions/pending", initial: [], to: $pending)
       .hubStream("hub/connections", to: $users)
+      .hubStream("hub/groups/permissions", to: $permissions)
+      .hubStream("hub/groups/list", to: $groups)
   }
   struct PendingList: View {
     @Environment(Hub.self) private var hub
