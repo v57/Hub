@@ -119,7 +119,7 @@ struct PermissionGroups: View {
     @State private var groups = GroupList()
     var body: some View {
       PermissionGroups(permissions: permissions, groups: $groups)
-        .hubStream("hub/groups/permissions", to: $permissions)
+        .hubStream("hub/group/names", to: $permissions)
         .hubStream("hub/groups/list", to: $groups)
     }
   }
@@ -132,11 +132,27 @@ struct PermissionList: Decodable {
     sections = []
   }
   init(from decoder: any Decoder) throws {
-    sections = try decoder.singleValueContainer()
-      .decode([String: [String: [String]]].self)
-      .map { name, permissions in
-        Section(name: name, permissions: permissions.map { $0.key }.sorted())
-      }.sorted(by: { $0.name < $1.name })
+    let names = try decoder.singleValueContainer()
+      .decode([String: String].self)
+    var data = [String: Set<String>]()
+    names.forEach { path, name in
+      let split = name.components(separatedBy: ": ")
+      let parent: String
+      let permission: String
+      if split.count == 1 {
+        parent = "Other"
+        permission = name
+      } else {
+        parent = split[0]
+        permission = split[1...].joined(separator: ": ")
+      }
+      var array = data[parent] ?? []
+      array.insert(permission)
+      data[parent] = array
+    }
+    sections = data.map { name, permissions in
+      Section(name: name, permissions: permissions.sorted())
+    }.sorted(by: { $0.name < $1.name })
   }
   struct Section: Identifiable {
     var id: String { name }
