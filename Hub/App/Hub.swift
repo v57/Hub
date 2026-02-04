@@ -22,9 +22,10 @@ extension KeyChain {
   let client: HubClient
   var service: HubService { client.service }
   var isConnected: Bool = false
-  @ObservationIgnored
-  var connectionTask: AnyCancellable?
+  @ObservationIgnored var connectionTask: AnyCancellable?
+  @ObservationIgnored var apiTask: AnyCancellable?
   var permissions = Set<String>()
+  var api = Set<String>()
   var merge: [Hub.MergeStatus] = []
   var appServices: AppServices!
   var isOwner: Bool { permissions.contains("owner") }
@@ -38,15 +39,14 @@ extension KeyChain {
     self.client = HubClient(settings.address, keyChain: .main)
     connectionTask = client.isConnected.sink { [unowned self] isConnected in
       self.isConnected = isConnected
-      if isConnected {
-        Task {
-          let permissions: Set<String> = try await client.send("hub/permissions")
-          EventDelayManager.main.execute {
-            self.permissions = permissions
-          }
+    }
+    apiTask = Task {
+      for try await api: Set<String> in client.values("hub/api") {
+        EventDelayManager.main.execute {
+          self.api = api
         }
       }
-    }
+    }.cancellable()
     appServices = AppServices(hub: self)
   }
   struct Settings: Codable, Identifiable, Hashable {
@@ -144,5 +144,13 @@ class Hubs {
       let data = try JSONEncoder().encode(list.map(\.settings))
       UserDefaults.standard.set(data, forKey: "hubs")
     } catch { }
+  }
+}
+
+extension Task {
+  func cancellable() -> AnyCancellable {
+    AnyCancellable {
+      self.cancel()
+    }
   }
 }
