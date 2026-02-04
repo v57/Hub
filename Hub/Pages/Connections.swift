@@ -79,14 +79,11 @@ struct ConnectionsView: View {
       return !merging.isMerged(to: hub) && !hub.isMerged(to: merging)
     }
     var body: some View {
-      let isOwner = hub.isConnected && hub.permissions.contains("owner")
+      let canMerge = hub.require(permissions: "hub/merge/add")
       HStack {
         VStack(alignment: .leading, spacing: 0) {
           HStack(spacing: 6) {
             Text(hub.settings.name)
-            if isOwner {
-              Text("owner").secondary()
-            }
             hub.onlineStatus.view
           }
           Text(hub.settings.address.description).secondary()
@@ -94,7 +91,7 @@ struct ConnectionsView: View {
             Text(status.address).secondary()
           }
         }.hubStream("hub/merge/status") { hub.merge = $0 }
-        if let merging, merging.id != hub.id && isOwner {
+        if let merging, merging.id != hub.id && canMerge {
           Spacer()
           if merging.isMerged(to: hub) {
             AsyncButton("Leave") {
@@ -107,7 +104,7 @@ struct ConnectionsView: View {
           }
         }
       }.contextMenu {
-        if isOwner && merging == nil {
+        if canMerge && merging == nil {
           Button("Merge") {
             merging = hub
           }

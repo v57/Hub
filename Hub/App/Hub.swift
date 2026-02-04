@@ -24,11 +24,9 @@ extension KeyChain {
   var isConnected: Bool = false
   @ObservationIgnored var connectionTask: AnyCancellable?
   @ObservationIgnored var apiTask: AnyCancellable?
-  var permissions = Set<String>()
   var api = Set<String>()
   var merge: [Hub.MergeStatus] = []
   var appServices: AppServices!
-  var isOwner: Bool { permissions.contains("owner") }
   var manager = LauncherView.Manager()
   var hasLauncher: Bool = false
   var pending: [SecurityView.PendingAuthorization] = []
@@ -53,6 +51,9 @@ extension KeyChain {
     var id: URL { address }
     var name: String
     var address: URL
+  }
+  func require(permissions: String...) -> Bool {
+    !permissions.contains { !api.contains($0) }
   }
 }
 

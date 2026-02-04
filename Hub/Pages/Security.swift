@@ -30,37 +30,35 @@ struct SecurityView: View {
         PermissionGroups(permissions: permissions, groups: $groups)
       }
     }.safeAreaInset(edge: .top) {
-      if hub.permissions.contains("owner") {
-        HStack {
-          if !addingOwner {
-            Picker("Page", selection: $page) {
-              Text("Requests").tag(Page.pending)
-              Text("Connections").tag(Page.connections)
-              Text("Permissions").tag(Page.permissions)
-            }.pickerStyle(.segmented).labelsHidden()
-            Spacer()
-          }
-          if addingOwner {
-            SecureField("Key", text: $ownerKey)
-            if ownerKey.isEmpty {
-              Button("Cancel") {
-                addingOwner = false
-              }
-            } else {
-              AsyncButton("Add") {
-                addingOwner = false
-                let key = ownerKey
-                ownerKey = ""
-                try await hub.addOwner(key)
-              }.disabled(ownerKey.isEmpty)
+      HStack {
+        if !addingOwner {
+          Picker("Page", selection: $page) {
+            Text("Requests").tag(Page.pending)
+            Text("Connections").tag(Page.connections)
+            Text("Permissions").tag(Page.permissions)
+          }.pickerStyle(.segmented).labelsHidden()
+          Spacer()
+        }
+        if addingOwner {
+          SecureField("Key", text: $ownerKey)
+          if ownerKey.isEmpty {
+            Button("Cancel") {
+              addingOwner = false
             }
           } else {
-            Button("Add owner") {
-              addingOwner = true
-            }
+            AsyncButton("Add") {
+              addingOwner = false
+              let key = ownerKey
+              ownerKey = ""
+              try await hub.addOwner(key)
+            }.disabled(ownerKey.isEmpty)
           }
-        }.padding(.horizontal)
-      }
+        } else {
+          Button("Add owner") {
+            addingOwner = true
+          }
+        }
+      }.padding(.horizontal)
     }.navigationTitle("Security")
       .hubStream("hub/permissions/pending", initial: [], to: $pending)
       .hubStream("hub/connections", to: $users)

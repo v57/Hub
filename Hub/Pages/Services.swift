@@ -31,11 +31,6 @@ struct Services: View {
         }
       }
     }.navigationTitle(hub.isConnected ? "\(status?.requests ?? 0) requests" : "Disconnected").toolbar {
-      if hub.isConnected {
-        ForEach(hub.permissions.sorted(), id: \.self) { permission in
-          PermissionView(permission: permission)
-        }
-      }
       Button("Copy Key", systemImage: "key.fill") {
         KeyChain.main.publicKey().copyToClipboard()
       }

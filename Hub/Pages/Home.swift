@@ -71,17 +71,15 @@ struct HomeView: View {
       let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hub.hasLauncher)
       Title(manager: hub.manager).padding(.top, 16)
       LazyVGrid(columns: [.init(.adaptive(minimum: 180))]) {
-        if hub.permissions.contains("owner") {
-          if !hub.status.services.isEmpty {
-            NavigationLink {
-              Services().environment(hub)
-            } label: {
-              ServicesView(status: hub.status)
-            }.buttonStyle(.plain).transition(.home)
-          }
-          if !hub.pending.isEmpty {
-            PermissionsView(pending: hub.pending).transition(.home)
-          }
+        if !hub.status.services.isEmpty {
+          NavigationLink {
+            Services().environment(hub)
+          } label: {
+            ServicesView(status: hub.status)
+          }.buttonStyle(.plain).transition(.home)
+        }
+        if !hub.pending.isEmpty {
+          PermissionsView(pending: hub.pending).transition(.home)
         }
         ForEach(hub.manager.apps) { app in
           AppView(app: app)
@@ -127,19 +125,11 @@ struct HomeView: View {
         VStack {
           HStack {
             Text(hub.settings.name).sectionTitle(padding: false)
-            if hub.permissions.contains("owner") {
-              Text("owner").secondary()
-            }
             Spacer()
-            if hub.isOwner && !addingOwner {
-              Button("Add owner", systemImage: "person.fill.badge.plus") {
-                addingOwner = true
-              }.transition(.home)
-            }
             Button("Permissions", systemImage: "lock.shield.fill") {
               openPermissions.toggle()
             }
-            if hub.permissions.contains("owner") {
+            if hub.require(permissions: "launcher/app/create") {
               NavigationLink {
                 StoreView().environment(manager).environment(hub)
               } label: {
@@ -148,7 +138,7 @@ struct HomeView: View {
             }
           }
           HStack {
-            if hub.isOwner && addingOwner {
+            if addingOwner {
               SecureField("Key", text: $ownerKey).transition(.home)
               AsyncButton("Add") {
                 addingOwner = false
@@ -354,7 +344,7 @@ struct HomeView: View {
           } label: {
             Label("Files", systemImage: "folder.fill").blockBackground()
           }.buttonStyle(.plain).transition(.home)
-        } else if hub.permissions.contains("owner") {
+        } else if hub.require(permissions: "launcher/app/create") {
           NavigationLink {
             InstallS3().environment(hub)
           } label: {
@@ -413,6 +403,7 @@ struct HomeView: View {
       return !merging.isMerged(to: hub) && !hub.isMerged(to: merging)
     }
     var body: some View {
+      let canMerge = hub.require(permissions: "hub/merge/add")
       VStack(alignment: .leading) {
         Text(hub.settings.name)
         VStack(alignment: .leading) {
@@ -423,7 +414,7 @@ struct HomeView: View {
         }.fontWeight(.medium).secondary()
           .hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges, animation: .home)
         .environment(hub)
-        if let merging, merging.id != hub.id && hub.isOwner {
+        if let merging, merging.id != hub.id && canMerge {
           Spacer()
           if merging.isMerged(to: hub) {
             AsyncButton("Leave") {
@@ -436,7 +427,7 @@ struct HomeView: View {
           }
         }
       }.blockBackground().contextMenu {
-        if hub.isOwner && merging == nil {
+        if canMerge && merging == nil {
           Button("Merge") {
             merging = hub
           }

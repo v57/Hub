@@ -47,11 +47,11 @@ private struct HubStreamModifier<T: Decodable>: ViewModifier {
   let action: @MainActor (T) -> Void
   @Environment(Hub.self) private var hub
   func body(content: Content) -> some View {
-    content.task(id: hub.taskId) {
+    content.task(id: hub.taskId(path: path)) {
       if let initial {
         action(initial)
       }
-      guard hub.isConnected else { return }
+      guard hub.isConnected && hub.api.contains(path) else { return }
       do {
         for try await value: T in hub.client.values(path) {
           EventDelayManager.main.execute {
@@ -73,11 +73,11 @@ private struct HubStreamBodyModifier<T: Decodable, Body: Encodable & Hashable & 
   let action: @MainActor (T) -> Void
   @Environment(Hub.self) private var hub
   func body(content: Content) -> some View {
-    content.task(id: hub.taskId(body: body)) {
+    content.task(id: hub.taskId(path: path, body: body)) {
       if let initial {
         action(initial)
       }
-      guard hub.isConnected else { return }
+      guard hub.isConnected && hub.api.contains(path) else { return }
       do {
         for try await value: T in hub.client.values(path, body) {
           EventDelayManager.main.execute {
@@ -93,11 +93,11 @@ private struct HubStreamBodyModifier<T: Decodable, Body: Encodable & Hashable & 
   }
 }
 extension Hub {
-  var taskId: TaskId {
-    TaskId(id: id, isConnected: isConnected)
+  func taskId(path: String) -> TaskId {
+    TaskId(id: id, isConnected: isConnected && api.contains(path))
   }
-  func taskId<Body: Hashable>(body: Body) -> TaskBodyId<Body> {
-    TaskBodyId(id: id, isConnected: isConnected, body: body)
+  func taskId<Body: Hashable>(path: String, body: Body) -> TaskBodyId<Body> {
+    TaskBodyId(id: id, isConnected: isConnected && api.contains(path), body: body)
   }
   @MainActor
   struct TaskId: Hashable {
