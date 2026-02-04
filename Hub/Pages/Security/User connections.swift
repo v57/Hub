@@ -10,7 +10,8 @@ import HubClient
 
 struct UserConnections: View {
   @Environment(Hub.self) var hub
-  let users: [User]
+  @Binding var users: [User]
+  let groups: GroupList
   var body: some View {
     List(users) { user in
       VStack(alignment: .leading) {
@@ -34,10 +35,20 @@ struct UserConnections: View {
             Text("\(user.apps) apps")
           }
         }.secondary()
+      }.contextMenu {
+        if let key = user.key {
+          Menu("Group") {
+            ForEach(groups.groups) { group in
+              AsyncButton(group.name) {
+                try await hub.add(key: key, group: group.name)
+              }
+            }
+          }
+        }
       }
     }
   }
-  struct User: Decodable, Identifiable {
+  struct User: Hashable, Decodable, Identifiable {
     var uuid = UUID()
     var id: String { key ?? uuid.uuidString }
     var key: String?
@@ -60,8 +71,11 @@ struct UserConnections: View {
   }
   struct Loader: View {
     @State var users: [User] = []
+    @State private var groups = GroupList()
     var body: some View {
-      UserConnections(users: users).hubStream("hub/connections", to: $users)
+      UserConnections(users: $users, groups: groups)
+        .hubStream("hub/connections", to: $users)
+        .hubStream("hub/groups/list", to: $groups)
     }
   }
 }

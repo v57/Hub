@@ -252,6 +252,9 @@ extension Hub {
   func addOwner(_ key: String) async throws {
     try await client.send("auth/keys/add", KeyAdd(key: key, type: .key, permissions: ["owner"]))
   }
+  func add(key: String, group: String) async throws {
+    try await client.send("auth/permissions/add", KeyAdd(key: key, type: .key, permissions: [group]))
+  }
   func merge(other: Hub) async throws {
     let key: String = try await client.send("hub/key")
     try await other.client.send("auth/keys/add", KeyAdd(key: key, type: .key, permissions: ["merge"]))

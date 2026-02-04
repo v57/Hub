@@ -25,7 +25,7 @@ struct SecurityView: View {
       case .pending:
         PendingList(pending: pending)
       case .connections:
-        UserConnections(users: users)
+        UserConnections(users: $users, groups: groups)
       case .permissions:
         PermissionGroups(permissions: permissions, groups: $groups)
       }
