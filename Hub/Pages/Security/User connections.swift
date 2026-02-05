@@ -74,7 +74,7 @@ struct UserConnections: View {
     var body: some View {
       UserConnections(users: $users, groups: groups)
         .hubStream("hub/connections", to: $users)
-        .hubStream("hub/groups/list", to: $groups)
+        .hubStream("hub/group/list", to: $groups)
     }
   }
 }

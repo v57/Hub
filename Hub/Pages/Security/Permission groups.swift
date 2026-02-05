@@ -63,7 +63,7 @@ struct PermissionGroups: View {
                 Text(group.name).font(.title)
                 if isEditing {
                   AsyncButton("Delete Group", role: .destructive) {
-                    try await hub.client.send("hub/groups/remove", group.name)
+                    try await hub.client.send("hub/group/remove", group.name)
                     withAnimation {
                       editing = nil
                     }
@@ -72,7 +72,7 @@ struct PermissionGroups: View {
                 Spacer()
                 if isEditing {
                   AsyncButton("Save") {
-                    try await hub.client.send("hub/groups/add", AddGroup(name: group.name, permissions: Array(group.permissions)))
+                    try await hub.client.send("hub/group/update", UpdateGroup(group: group.name, set: Array(group.permissions)))
                     withAnimation {
                       editing = nil
                     }
@@ -90,29 +90,31 @@ struct PermissionGroups: View {
         }.padding(.horizontal)
       }
     }.lineLimit(2).frame(maxWidth: .infinity).safeAreaInset(edge: .bottom) {
-      HStack {
-        if adding {
-          TextField("Name", text: $name.animation()).frame(maxWidth: 150)
-            .transition(.blurReplace)
-        }
-        AsyncButton(createTitle) {
-          if adding && !name.isEmpty {
-            try await hub.client.send("hub/groups/add", AddGroup(name: name, permissions: Array(selected)))
+      if hub.require(permissions: "hub/group/update") {
+        HStack {
+          if adding {
+            TextField("Name", text: $name.animation()).frame(maxWidth: 150)
+              .transition(.blurReplace)
           }
-          name = ""
-          withAnimation {
-            adding.toggle()
-          }
-        }.buttonStyle(.borderedProminent).contentTransition(.numericText())
-      }.padding()
+          AsyncButton(createTitle) {
+            if adding && !name.isEmpty {
+              try await hub.client.send("hub/group/update", UpdateGroup(group: name, set: Array(selected)))
+            }
+            name = ""
+            withAnimation {
+              adding.toggle()
+            }
+          }.buttonStyle(.borderedProminent).contentTransition(.numericText())
+        }.padding()
+      }
     }
   }
   var createTitle: LocalizedStringKey {
     adding ? name.isEmpty ? "Cancel" : "Create" : "Create group"
   }
-  struct AddGroup: Encodable {
-    let name: String
-    let permissions: [String]
+  struct UpdateGroup: Encodable {
+    let group: String
+    let set: [String]
   }
   struct Loader: View {
     @State private var permissions = PermissionList()
@@ -120,7 +122,7 @@ struct PermissionGroups: View {
     var body: some View {
       PermissionGroups(permissions: permissions, groups: $groups)
         .hubStream("hub/group/names", to: $permissions)
-        .hubStream("hub/groups/list", to: $groups)
+        .hubStream("hub/group/list", to: $groups)
     }
   }
 }

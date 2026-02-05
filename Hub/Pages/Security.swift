@@ -62,8 +62,8 @@ struct SecurityView: View {
     }.navigationTitle("Security")
       .hubStream("hub/permissions/pending", initial: [], to: $pending)
       .hubStream("hub/connections", to: $users)
-      .hubStream("hub/groups/permissions", to: $permissions)
-      .hubStream("hub/groups/list", to: $groups)
+      .hubStream("hub/group/permissions", to: $permissions)
+      .hubStream("hub/group/list", to: $groups)
   }
   struct PendingList: View {
     @Environment(Hub.self) private var hub
