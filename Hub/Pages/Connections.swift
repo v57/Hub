@@ -250,7 +250,7 @@ extension Hub {
     try await client.send("auth/keys/add", KeyAdd(key: key, type: .key, permissions: ["owner"]))
   }
   func add(key: String, group: String) async throws {
-    try await client.send("auth/permissions/add", KeyAdd(key: key, type: .key, permissions: [group]))
+    try await client.send("hub/group/update/users", EditGroupUsers(group: group, add: [key], remove: nil))
   }
   func merge(other: Hub) async throws {
     let key: String = try await client.send("hub/key")
@@ -269,6 +269,9 @@ extension Hub {
     let key: String
     let type: KeyType
     let permissions: [String]
+  }
+  struct EditGroupUsers: Encodable {
+    let group: String, add: [String]?, remove: [String]?
   }
   struct MergeStatus: Decodable, Equatable {
     let address: String
