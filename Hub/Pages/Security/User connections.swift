@@ -12,25 +12,10 @@ struct UserConnections: View {
   @Environment(Hub.self) var hub
   @Binding var users: [User]
   let groups: GroupList
+  let me: String = KeyChain.main.publicKey()
   var body: some View {
     List(users) { user in
-      VStack(alignment: .leading) {
-        HStack {
-          if let key = user.key {
-            Text(key)
-          } else {
-            Text("Unauthorized")
-          }
-        }
-        HStack {
-          if user.services > 0 {
-            Text("\(user.services) services")
-          }
-          if user.apps > 0 {
-            Text("\(user.apps) apps")
-          }
-        }.secondary()
-      }.contextMenu {
+      UserView(user: user, isMe: user.key == me).contextMenu {
         if let key = user.key {
           Menu("Group") {
             ForEach(groups.groups) { group in
@@ -44,19 +29,43 @@ struct UserConnections: View {
     }
   }
   struct User: Hashable, Decodable, Identifiable {
-    var uuid = UUID()
-    var id: String { key ?? uuid.uuidString }
+    var id: String
     var key: String?
     var services: Int
     var apps: Int
     enum CodingKeys: CodingKey {
-      case id, services, apps, permissions
+      case id, key, services, apps, permissions
     }
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
-      key = try container.decodeIfPresent(.id)
+      id = try container.decode(.id)
+      key = try container.decodeIfPresent(.key)
       services = container.decodeIfPresent(.services, 0)
       apps = container.decodeIfPresent(.apps, 0)
+    }
+  }
+  struct UserView: View {
+    let user: User
+    let isMe: Bool
+    var body: some View {
+      VStack(alignment: .leading) {
+        if isMe {
+          Text("You")
+        } else if let key = user.key {
+          Text(key.prefix(8)).secondary()
+        } else {
+          Text("Unauthorized")
+        }
+        Text(user.id).secondary()
+        HStack {
+          if user.services > 0 {
+            Text("\(user.services) services")
+          }
+          if user.apps > 0 {
+            Text("\(user.apps) apps")
+          }
+        }.secondary()
+      }.lineLimit(1)
     }
   }
   struct Loader: View {
