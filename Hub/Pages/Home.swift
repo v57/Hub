@@ -155,7 +155,7 @@ struct HomeView: View {
         }.frame(maxWidth: .infinity, alignment: .trailing).padding(.leading, 10)
           .padding(.bottom, 4)
           .sheet(isPresented: $openPermissions) {
-            
+            SecurityView().safeAreaPadding(.top).frame(minHeight: 400)
           }
       }
     }
