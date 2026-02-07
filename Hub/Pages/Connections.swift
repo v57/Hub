@@ -74,6 +74,7 @@ struct ConnectionsView: View {
     @Binding var merging: Hub?
     
     @Environment(Hub.self) private var hub
+    @HubState(\.merge) var merge
     var canBeMerged: Bool {
       guard let merging else { return false }
       return !merging.isMerged(to: hub) && !hub.isMerged(to: merging)
@@ -87,10 +88,10 @@ struct ConnectionsView: View {
             hub.onlineStatus.view
           }
           Text(hub.settings.address.description).secondary()
-          ForEach(hub.merge, id: \.address) { status in
+          ForEach(merge, id: \.address) { status in
             Text(status.address).secondary()
           }
-        }.hubStream("hub/merge/status") { hub.merge = $0 }
+        }
         if let merging, merging.id != hub.id && canMerge {
           Spacer()
           if merging.isMerged(to: hub) {
@@ -237,7 +238,7 @@ extension Hub {
     return isMerged(address: settings.address.absoluteString, addresses: &addresses)
   }
   private func isMerged(address: String, addresses: inout Set<String>) -> Bool {
-    for status in merge {
+    for status in state.merge.value {
       guard addresses.insert(status.address).inserted else { continue }
       guard let hub = Hubs.main.list.first(where: { $0.settings.address.absoluteString == status.address })
       else { continue }

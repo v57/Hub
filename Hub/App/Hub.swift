@@ -26,7 +26,6 @@ extension KeyChain {
   @ObservationIgnored var connectionTask: AnyCancellable?
   @ObservationIgnored var apiTask: AnyCancellable?
   var api = Set<String>()
-  var merge: [Hub.MergeStatus] = []
   var appServices: AppServices!
   var manager = LauncherView.Manager()
   var hasLauncher: Bool { require(permissions: "launcher/info") }

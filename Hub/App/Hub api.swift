@@ -16,6 +16,7 @@ struct HubStateStorage {
   let permissions = Sync("hub/group/names", PermissionList())
   let statusBadges = Sync("hub/status/badges", ContentView.StatusBadges())
   let status = Sync("hub/status", Status(requests: 0, services: []))
+  let merge = Sync("hub/merge/status", [Hub.MergeStatus]())
   
   @MainActor @Observable
   class Sync<T: Decodable> {
