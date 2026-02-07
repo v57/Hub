@@ -13,6 +13,7 @@ import SwiftUI
 struct HubStateStorage {
   let users = Sync("hub/connections", [UserConnections.User]())
   let groups = Sync("hub/group/list", GroupList())
+  let permissions = Sync("hub/group/names", PermissionList())
   
   @MainActor @Observable
   class Sync<T: Decodable> {

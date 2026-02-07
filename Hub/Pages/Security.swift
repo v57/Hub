@@ -13,7 +13,6 @@ struct SecurityView: View {
   @State private var ownerKey: String = ""
   @State private var addingOwner: Bool = false
   @State private var page: Page = .pending
-  @State private var permissions = PermissionList()
   enum Page {
     case pending, connections, permissions
   }
@@ -25,7 +24,7 @@ struct SecurityView: View {
       case .connections:
         UserConnections()
       case .permissions:
-        PermissionGroups(permissions: permissions)
+        PermissionGroups()
       }
     }.safeAreaInset(edge: .top) {
       HStack {
@@ -59,7 +58,6 @@ struct SecurityView: View {
       }.padding(.horizontal)
     }.navigationTitle("Security")
       .hubStream("hub/permissions/pending", initial: [], to: $pending)
-      .hubStream("hub/group/permissions", to: $permissions)
   }
   struct PendingList: View {
     @Environment(Hub.self) private var hub

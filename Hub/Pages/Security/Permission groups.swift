@@ -11,7 +11,7 @@ struct PermissionGroups: View {
   @Environment(Hub.self) var hub
   @State var adding = false
   @State var name: String = ""
-  let permissions: PermissionList
+  @HubState(\.permissions) private var permissions
   @HubState(\.groups) private var groups
   @State var selected = Set<String>()
   @State var editing: String?
@@ -116,13 +116,6 @@ struct PermissionGroups: View {
     let group: String
     let set: [String]
   }
-  struct Loader: View {
-    @State private var permissions = PermissionList()
-    var body: some View {
-      PermissionGroups(permissions: permissions)
-        .hubStream("hub/group/names", to: $permissions)
-    }
-  }
 }
 
 typealias RawPermissionList = [String: [String: [String]]]
@@ -215,5 +208,5 @@ extension Binding where Value: SetAlgebra & Sendable {
 }
 
 #Preview {
-  PermissionGroups.Loader().environment(Hub.test)
+  PermissionGroups().environment(Hub.test)
 }
