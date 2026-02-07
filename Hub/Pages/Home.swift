@@ -18,6 +18,7 @@ struct HomeView: View {
   var isFocusing: Bool { focus == .joinHubAddress || focus == .joinHubName }
   @State var hubs = Hubs.main
   @State var merging: Hub?
+  @State private var copied = false
   var body: some View {
     NavigationStack {
       ScrollView {
@@ -25,8 +26,17 @@ struct HomeView: View {
           HStack {
             Text("Hubs").sectionTitle()
             Spacer()
-            Button("Copy Key", systemImage: "key.fill") {
-              KeyChain.main.publicKey().copyToClipboard()
+            Button(copied ? "Copied" : "My Key", systemImage: copied ? "checkmark.circle.fill" : "key.fill") {
+              Task {
+                withAnimation {
+                  copied = true
+                }
+                KeyChain.main.publicKey().copyToClipboard()
+                try await Task.sleep(for: .seconds(3))
+                withAnimation {
+                  copied = false
+                }
+              }
             }
           }
           LazyVGrid(columns: [.init(.adaptive(minimum: isFocusing ? 360 : 180))]) {
