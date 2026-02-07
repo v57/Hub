@@ -32,6 +32,8 @@ extension KeyChain {
   var pending: [SecurityView.PendingAuthorization] = []
   var status = Status(requests: 0, services: [])
   var statusBadges = ContentView.StatusBadges()
+  @ObservationIgnored
+  var state = HubStateStorage()
   init(settings: Settings) {
     self.settings = settings
     self.client = HubClient(settings.address, keyChain: .main)
