@@ -22,19 +22,17 @@ extension String {
 
 struct Services: View {
   @Environment(Hub.self) var hub
-  @State var status: Status?
+  @HubState(\.status) var status
   var body: some View {
     List {
-      if let status {
-        ForEach(status.services, id: \.name) { service in
-          Service(service: service)
-        }
+      ForEach(status.services, id: \.name) { service in
+        Service(service: service)
       }
-    }.navigationTitle(hub.isConnected ? "\(status?.requests ?? 0) requests" : "Disconnected").toolbar {
+    }.navigationTitle(hub.isConnected ? "\(status.requests) requests" : "Disconnected").toolbar {
       Button("Copy Key", systemImage: "key.fill") {
         KeyChain.main.publicKey().copyToClipboard()
       }
-    }.hubStream("hub/status", initial: Status(requests: 0, services: []), to: $status)
+    }
   }
   struct PermissionView: View {
     let permission: String

@@ -67,16 +67,17 @@ struct HomeView: View {
   struct HubSectionContent: View {
     typealias App = Hub.Launcher.App
     @HubState(\.statusBadges) var statusBadges
+    @HubState(\.status) var status
     @Bindable var hub: Hub
     var body: some View {
       let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hub.hasLauncher)
       Title(manager: hub.manager).padding(.top, 16)
       LazyVGrid(columns: [.init(.adaptive(minimum: 180))]) {
-        if !hub.status.services.isEmpty {
+        if !status.services.isEmpty {
           NavigationLink {
             Services().environment(hub)
           } label: {
-            ServicesView(status: hub.status)
+            ServicesView()
           }.buttonStyle(.plain).transition(.home)
         }
         if !hub.pending.isEmpty {
@@ -85,7 +86,7 @@ struct HomeView: View {
         ForEach(hub.manager.apps) { app in
           AppView(app: app)
         }
-        Files(status: hub.status)
+        Files()
         ShareServicesView()
         if let apps = statusBadges.apps, !apps.isEmpty {
           ForEach(apps) { app in
@@ -104,13 +105,7 @@ struct HomeView: View {
         guard task.isConnected else { return }
         await hub.manager.syncApps(hub: hub)
       }
-      .hubStream("hub/status") { (status: Status) in
-        EventDelayManager.main.execute {
-          hub.hasLauncher = status.contains(service: "launcher")
-        }
-      }
       .hubStream("hub/permissions/pending", to: $hub.pending, animation: .home)
-      .hubStream("hub/status", to: $hub.status, animation: .home)
         .navigationDestination(for: AppHeader.self) { app in
           ServiceView(header: app).environment(hub)
         }
@@ -160,8 +155,7 @@ struct HomeView: View {
       }
     }
     struct ServicesView: View {
-      @Environment(Hub.self) var hub
-      let status: Status
+      @HubState(\.status) var status
       var body: some View {
         VStack(alignment: .leading) {
           Text("Services")
@@ -336,7 +330,7 @@ struct HomeView: View {
     }
     struct Files: View {
       @Environment(Hub.self) var hub
-      let status: Status
+      @HubState(\.status) var status
       var body: some View {
         if status.hasStorage {
           NavigationLink {

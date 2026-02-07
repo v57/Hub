@@ -15,6 +15,7 @@ struct HubStateStorage {
   let groups = Sync("hub/group/list", GroupList())
   let permissions = Sync("hub/group/names", PermissionList())
   let statusBadges = Sync("hub/status/badges", ContentView.StatusBadges())
+  let status = Sync("hub/status", Status(requests: 0, services: []))
   
   @MainActor @Observable
   class Sync<T: Decodable> {

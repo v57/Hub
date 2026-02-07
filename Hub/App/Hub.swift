@@ -28,9 +28,8 @@ extension KeyChain {
   var merge: [Hub.MergeStatus] = []
   var appServices: AppServices!
   var manager = LauncherView.Manager()
-  var hasLauncher: Bool = false
+  var hasLauncher: Bool { require(permissions: "launcher/info") }
   var pending: [SecurityView.PendingAuthorization] = []
-  var status = Status(requests: 0, services: [])
   @ObservationIgnored
   var state = HubStateStorage()
   init(settings: Settings) {

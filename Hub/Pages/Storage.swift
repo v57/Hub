@@ -9,7 +9,6 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct StorageView: View {
-  @State var hasService: Bool = false
   @Environment(Hub.self) var hub
   @State var list = FileList(count: 0, files: [], directories: [])
   @State var selected: Set<String> = []
@@ -87,9 +86,7 @@ struct StorageView: View {
     }.dropDestination { (files: [URL], point: CGPoint) -> Bool in
       add(files: files)
       return true
-    }.navigationTitle("Storage").hubStream("hub/status") { (status: Status) in
-      hasService = status.contains(service: "s3")
-    }.hubStream("s3/list", path, to: $list)
+    }.navigationTitle("Storage").hubStream("s3/list", path, to: $list)
       .environment(uploadManager).contentTransition(.symbolEffect(.replace))
       .progressDraw()
 #endif

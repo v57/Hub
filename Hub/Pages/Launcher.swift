@@ -74,7 +74,7 @@ struct LauncherView: View {
   @Environment(Hub.self) var hub
   @State var editing: Hub.Launcher.AppInfo?
   @State var manager = Manager()
-  @State var hasLauncher: Bool = false
+  var hasLauncher: Bool { hub.hasLauncher }
   @State var creating = false
   @State var openStore = false
   var body: some View {
@@ -117,8 +117,6 @@ struct LauncherView: View {
     }.task(id: task) {
       guard task.isConnected else { return }
       await manager.syncApps(hub: hub)
-    }.hubStream("hub/status") { (status: Status) in
-      hasLauncher = status.contains(service: "launcher")
     }.environment(manager)
   }
   struct ListView: View {
