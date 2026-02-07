@@ -93,6 +93,14 @@ struct ContentView: View {
   var listContent: some View {
     NavigationLink("Connections", value: SideView.cluster)
     if let hub = hubs.selectedHub {
+      HubSection().environment(hub)
+    }
+    NavigationLink("My Apps", value: SideView.local)
+  }
+  struct HubSection: View {
+    @Environment(Hub.self) private var hub
+    @HubState(\.statusBadges) var statusBadges
+    var body: some View {
       Section(hub.settings.name) {
 #if os(tvOS)
         NavigationLink("Services", value: SideView.services)
@@ -109,7 +117,7 @@ struct ContentView: View {
           .badgeProminence(.increased)
 #endif
         NavigationLink("Storage", value: SideView.storage)
-      }.hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges)
+      }
         .environment(hub)
       
       if let apps = statusBadges.apps, !apps.isEmpty {
@@ -121,7 +129,6 @@ struct ContentView: View {
         }
       }
     }
-    NavigationLink("My Apps", value: SideView.local)
   }
   struct StatusBadges: Decodable {
     var services: Int = 0

@@ -37,7 +37,7 @@ struct HomeView: View {
               Text("Make your own").blockBackground()
             }.buttonStyle(.plain)
             ForEach(Hubs.main.list) { hub in
-              HubView(hub: hub, merging: $merging)
+              HubView(merging: $merging).environment(hub)
             }
           }
           ForEach(Hubs.main.list) { hub in
@@ -66,6 +66,7 @@ struct HomeView: View {
   }
   struct HubSectionContent: View {
     typealias App = Hub.Launcher.App
+    @HubState(\.statusBadges) var statusBadges
     @Bindable var hub: Hub
     var body: some View {
       let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hub.hasLauncher)
@@ -86,7 +87,7 @@ struct HomeView: View {
         }
         Files(status: hub.status)
         ShareServicesView()
-        if let apps = hub.statusBadges.apps, !apps.isEmpty {
+        if let apps = statusBadges.apps, !apps.isEmpty {
           ForEach(apps) { app in
             NavigationLink(value: app) {
               Text(app.name).foregroundStyle(app.isOnline ? .primary : .tertiary)
@@ -110,7 +111,6 @@ struct HomeView: View {
       }
       .hubStream("hub/permissions/pending", to: $hub.pending, animation: .home)
       .hubStream("hub/status", to: $hub.status, animation: .home)
-      .hubStream("hub/status/badges", to: $hub.statusBadges, animation: .home)
         .navigationDestination(for: AppHeader.self) { app in
           ServiceView(header: app).environment(hub)
         }
@@ -395,8 +395,8 @@ struct HomeView: View {
     }
   }
   struct HubView: View {
-    let hub: Hub
-    @State var statusBadges = StatusBadges()
+    @Environment(Hub.self) var hub
+    @HubState(\.statusBadges) var statusBadges
     @Binding var merging: Hub?
     var canBeMerged: Bool {
       guard let merging else { return false }
@@ -412,7 +412,6 @@ struct HomeView: View {
             Text("\(security) service requests").foregroundStyle(.green)
           }
         }.fontWeight(.medium).secondary()
-          .hubStream("hub/status/badges", initial: StatusBadges(), to: $statusBadges, animation: .home)
         .environment(hub)
         if let merging, merging.id != hub.id && canMerge {
           Spacer()
