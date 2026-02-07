@@ -200,7 +200,7 @@ struct HomeView: View {
                 }
                 Spacer()
                 AsyncButton("Allow", systemImage: "plus.capsule.fill") {
-                  try await hub.client.send("hub/permissions/add", SecurityView.Allow(services: item.pending, permission: item.id))
+                  try await hub.client.send("hub/permissions/add", PendingListView.Allow(services: item.pending, permission: item.id))
                 }.labelStyle(.iconOnly)
               }
             }
