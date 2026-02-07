@@ -29,7 +29,6 @@ extension KeyChain {
   var appServices: AppServices!
   var manager = LauncherView.Manager()
   var hasLauncher: Bool { require(permissions: "launcher/info") }
-  var pending: [SecurityView.PendingAuthorization] = []
   @ObservationIgnored
   var state = HubStateStorage()
   init(settings: Settings) {

@@ -68,6 +68,7 @@ struct HomeView: View {
     typealias App = Hub.Launcher.App
     @HubState(\.statusBadges) var statusBadges
     @HubState(\.status) var status
+    @HubState(\.hostPending) var hostPending
     @Bindable var hub: Hub
     var body: some View {
       let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hub.hasLauncher)
@@ -80,8 +81,8 @@ struct HomeView: View {
             ServicesView()
           }.buttonStyle(.plain).transition(.home)
         }
-        if !hub.pending.isEmpty {
-          PermissionsView(pending: hub.pending).transition(.home)
+        if !hostPending.list.isEmpty {
+          PermissionsView().transition(.home)
         }
         ForEach(hub.manager.apps) { app in
           AppView(app: app)
@@ -105,7 +106,6 @@ struct HomeView: View {
         guard task.isConnected else { return }
         await hub.manager.syncApps(hub: hub)
       }
-      .hubStream("hub/permissions/pending", to: $hub.pending, animation: .home)
         .navigationDestination(for: AppHeader.self) { app in
           ServiceView(header: app).environment(hub)
         }
@@ -185,14 +185,14 @@ struct HomeView: View {
     }
     struct PermissionsView: View {
       @Environment(Hub.self) var hub
-      let pending: [SecurityView.PendingAuthorization]
+      @HubState(\.hostPending) var hostPending
       var body: some View {
         NavigationLink {
           SecurityView().environment(hub)
         } label: {
           VStack(alignment: .leading) {
             Text("Service requests")
-            ForEach(pending.prefix(3), id: \.id) { item in
+            ForEach(hostPending.list.prefix(3), id: \.id) { item in
               HStack {
                 VStack(alignment: .leading) {
                   Text(item.name).foregroundStyle(.primary).secondary()

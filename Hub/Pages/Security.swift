@@ -9,7 +9,6 @@ import SwiftUI
 
 struct SecurityView: View {
   @Environment(Hub.self) private var hub
-  @State private var pending: [PendingAuthorization] = []
   @State private var ownerKey: String = ""
   @State private var addingOwner: Bool = false
   @State private var page: Page = .pending
@@ -20,7 +19,7 @@ struct SecurityView: View {
     ZStack {
       switch page {
       case .pending:
-        PendingList(pending: pending)
+        PendingList()
       case .connections:
         UserConnections()
       case .permissions:
@@ -57,13 +56,12 @@ struct SecurityView: View {
         }
       }.padding(.horizontal)
     }.navigationTitle("Security")
-      .hubStream("hub/permissions/pending", initial: [], to: $pending)
   }
   struct PendingList: View {
     @Environment(Hub.self) private var hub
-    let pending: [PendingAuthorization]
+    @HubState(\.hostPending) private var hostPending
     var body: some View {
-      List(pending) { item in
+      List(hostPending.list) { item in
         HStack {
           VStack(alignment: .leading) {
             Text(item.name)
@@ -86,15 +84,6 @@ struct SecurityView: View {
   struct AddPermissions: Encodable {
     let key: String
     let permissions: [String]
-  }
-  struct PendingAuthorization: Identifiable, Decodable {
-    let id: String
-    let pending: [String]
-    var name: String {
-      var set = Set<String>()
-      pending.forEach { set.insert($0.components(separatedBy: "/")[0]) }
-      return set.sorted().joined(separator: " & ")
-    }
   }
 }
 

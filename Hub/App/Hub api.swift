@@ -17,6 +17,7 @@ struct HubStateStorage {
   let statusBadges = Sync("hub/status/badges", ContentView.StatusBadges())
   let status = Sync("hub/status", Status(requests: 0, services: []))
   let merge = Sync("hub/merge/status", [Hub.MergeStatus]())
+  let hostPending = Sync("hub/host/pending", PendingList())
   
   @MainActor @Observable
   class Sync<T: Decodable> {
@@ -76,6 +77,28 @@ struct HubState<T: Decodable>: DynamicProperty {
       guard self.hub?.id != hub.id else { return }
       self.hub = hub
       subscription = hub.state[keyPath: path].subscribe(hub: hub)
+    }
+  }
+}
+
+struct PendingList: Decodable {
+  var list: [Item]
+  init() {
+    list = []
+  }
+  init(from decoder: any Decoder) throws {
+    list = try decoder.singleValueContainer()
+      .decode([String: [String]].self)
+      .map { Item(id: $0.key, pending: $0.value.sorted()) }
+      .sorted(by: { $0.id < $1.id })
+  }
+  struct Item: Identifiable {
+    let id: String
+    let pending: [String]
+    var name: String {
+      var set = Set<String>()
+      pending.forEach { set.insert($0.components(separatedBy: "/")[0]) }
+      return set.sorted().joined(separator: " & ")
     }
   }
 }

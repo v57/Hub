@@ -290,7 +290,7 @@ struct InstallS3: View {
     }
     var storageInstalled = false
     var serviceAvailable = false
-    var permission: SecurityView.PendingAuthorization?
+    var permission: PendingList.Item?
     static var s3: String { "S3 Storage" }
     @MainActor
     func set(hub: Hub) {
@@ -308,8 +308,8 @@ struct InstallS3: View {
           }
         },
         Task {
-          for try await permissions: [SecurityView.PendingAuthorization] in hub.client.values("hub/permissions/pending") {
-            permission = permissions.last(where: { $0.pending.contains(where: { $0.starts(with: "s3/") }) })
+          for try await permissions: PendingList in hub.client.values("hub/host/pending") {
+            permission = permissions.list.last(where: { $0.pending.contains(where: { $0.starts(with: "s3/") }) })
           }
         },
       ]
