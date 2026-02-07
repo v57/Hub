@@ -9,10 +9,10 @@ import SwiftUI
 import HubClient
 
 struct UserConnections: View {
-  @Environment(Hub.self) var hub
-  @Binding var users: [User]
-  let groups: GroupList
-  let me: String = KeyChain.main.publicKey()
+  @Environment(Hub.self) private var hub
+  @HubState(\.users) private var users
+  @HubState(\.groups) private var groups
+  @State var me: String = KeyChain.main.publicKey()
   var body: some View {
     List(users) { user in
       UserView(user: user, isMe: user.key == me).contextMenu {
@@ -68,16 +68,7 @@ struct UserConnections: View {
       }.lineLimit(1)
     }
   }
-  struct Loader: View {
-    @State var users: [User] = []
-    @State private var groups = GroupList()
-    var body: some View {
-      UserConnections(users: $users, groups: groups)
-        .hubStream("hub/connections", to: $users)
-        .hubStream("hub/group/list", to: $groups)
-    }
-  }
 }
 #Preview {
-  UserConnections.Loader().environment(Hub.test)
+  UserConnections().environment(Hub.test)
 }

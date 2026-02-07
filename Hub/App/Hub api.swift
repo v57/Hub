@@ -11,6 +11,9 @@ import SwiftUI
 
 @MainActor
 struct HubStateStorage {
+  let users = Sync("hub/connections", [UserConnections.User]())
+  let groups = Sync("hub/group/list", GroupList())
+  
   @MainActor @Observable
   class Sync<T: Decodable> {
     @ObservationIgnored let path: String
@@ -54,6 +57,9 @@ struct HubState<T: Decodable>: DynamicProperty {
   var wrappedValue: T {
     storage.subscribeIfNeeded(hub: hub, path: path)
     return hub.state[keyPath: path].value
+  }
+  var projectedValue: Binding<T> {
+    Binding(get: { hub.state[keyPath: path].value }, set: { hub.state[keyPath: path].value = $0 })
   }
   init(_ path: Path) {
     self.path = path

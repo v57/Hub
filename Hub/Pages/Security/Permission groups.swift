@@ -12,7 +12,7 @@ struct PermissionGroups: View {
   @State var adding = false
   @State var name: String = ""
   let permissions: PermissionList
-  @Binding var groups: GroupList
+  @HubState(\.groups) private var groups
   @State var selected = Set<String>()
   @State var editing: String?
   var body: some View {
@@ -118,11 +118,9 @@ struct PermissionGroups: View {
   }
   struct Loader: View {
     @State private var permissions = PermissionList()
-    @State private var groups = GroupList()
     var body: some View {
-      PermissionGroups(permissions: permissions, groups: $groups)
+      PermissionGroups(permissions: permissions)
         .hubStream("hub/group/names", to: $permissions)
-        .hubStream("hub/group/list", to: $groups)
     }
   }
 }
