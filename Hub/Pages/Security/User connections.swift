@@ -12,10 +12,9 @@ struct UserConnections: View {
   @Environment(Hub.self) private var hub
   @HubState(\.users) private var users
   @HubState(\.groups) private var groups
-  @State var me: String = KeyChain.main.publicKey()
   var body: some View {
     List(users) { user in
-      UserView(user: user, isMe: user.key == me).contextMenu {
+      UserView(user: user, isMe: user.key == hub.key).contextMenu {
         if let key = user.key {
           Menu("Group") {
             ForEach(groups.groups) { group in

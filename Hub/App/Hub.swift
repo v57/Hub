@@ -19,6 +19,7 @@ extension KeyChain {
   static let test = Hub(settings: Settings(name: "Local", address: URL(string: "ws://localhost:1997")!))
   var id: Settings.ID { settings.id }
   var settings: Settings
+  let key: String
   let client: HubClient
   var service: HubService { client.service }
   var isConnected: Bool = false
@@ -34,6 +35,7 @@ extension KeyChain {
   var state = HubStateStorage()
   init(settings: Settings) {
     self.settings = settings
+    key = KeyChain.main.publicKey()
     self.client = HubClient(settings.address, keyChain: .main)
     connectionTask = client.isConnected.sink { [unowned self] isConnected in
       self.isConnected = isConnected
