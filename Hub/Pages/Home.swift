@@ -115,14 +115,24 @@ struct HomeView: View {
       let manager: LauncherView.Manager
       @State var addingOwner = false
       @State var ownerKey = ""
-      @State var openPermissions = false
+      @State private var sheet: Sheet?
+      enum Sheet: Identifiable {
+        var id: Sheet { self }
+        case pending, connections, permissions
+      }
       var body: some View {
         VStack {
           HStack {
             Text(hub.settings.name).sectionTitle(padding: false)
             Spacer()
+            Button("Connections", systemImage: "wifi") {
+              sheet = .connections
+            }
+            Button("Pending Requests", systemImage: "wifi.exclamationmark") {
+              sheet = .pending
+            }
             Button("Permissions", systemImage: "lock.shield.fill") {
-              openPermissions.toggle()
+              sheet = .permissions
             }
             if hub.require(permissions: "launcher/app/create") {
               NavigationLink {
@@ -149,8 +159,18 @@ struct HomeView: View {
           }
         }.frame(maxWidth: .infinity, alignment: .trailing).padding(.leading, 10)
           .padding(.bottom, 4)
-          .sheet(isPresented: $openPermissions) {
-            SecurityView().safeAreaPadding(.top).frame(minHeight: 400)
+          .sheet(item: $sheet) { sheet in
+            switch sheet {
+            case .pending:
+              PendingListView()
+                .safeAreaPadding(.top).frame(minHeight: 400)
+            case .connections:
+              ConnectionsView()
+                .safeAreaPadding(.top).frame(minHeight: 400)
+            case .permissions:
+              PermissionsView()
+                .safeAreaPadding(.top).frame(minHeight: 400)
+            }
           }
       }
     }
