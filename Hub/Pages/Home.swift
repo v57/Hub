@@ -97,7 +97,6 @@ struct HomeView: View {
     typealias App = Hub.Launcher.App
     @HubState(\.statusBadges) var statusBadges
     @HubState(\.status) var status
-    @HubState(\.hostPending) var hostPending
     @Bindable var hub: Hub
     @State private var sheet: Sheet?
     enum Sheet: Identifiable {
@@ -139,9 +138,6 @@ struct HomeView: View {
             AppIcon(title: "Get Apps", systemImage: "arrow.down.circle.fill")
           }.buttonStyle(.plain).transition(.home)
         }
-        if !hostPending.list.isEmpty {
-          PermissionsView().transition(.home)
-        }
         ForEach(hub.manager.apps) { app in
           AppView(app: app)
         }
@@ -168,15 +164,18 @@ struct HomeView: View {
       }
       .navigationDestination(item: $sheet) { sheet in
         switch sheet {
-        case .pending:
-          PendingListView()
-            .safeAreaPadding(.top).frame(minHeight: 400)
         case .connections:
           UserConnections()
             .safeAreaPadding(.top).frame(minHeight: 400)
-        case .permissions:
-          PermissionsView()
+            .environment(hub)
+        case .pending:
+          PendingListView()
             .safeAreaPadding(.top).frame(minHeight: 400)
+            .environment(hub)
+        case .permissions:
+          PermissionGroups()
+            .safeAreaPadding(.top).frame(minHeight: 400)
+            .environment(hub)
         }
       }
     }
@@ -216,31 +215,6 @@ struct HomeView: View {
             configuration.title
           }
         }
-      }
-    }
-    struct PermissionsView: View {
-      @Environment(Hub.self) var hub
-      @HubState(\.hostPending) var hostPending
-      var body: some View {
-        NavigationLink {
-          SecurityView().environment(hub)
-        } label: {
-          VStack(alignment: .leading) {
-            Text("Service requests")
-            ForEach(hostPending.list.prefix(3), id: \.id) { item in
-              HStack {
-                VStack(alignment: .leading) {
-                  Text(item.name).foregroundStyle(.primary).secondary()
-                  Text(item.id.prefix(8)).secondary()
-                }
-                Spacer()
-                AsyncButton("Allow", systemImage: "plus.capsule.fill") {
-                  try await hub.client.send("hub/permissions/add", PendingListView.Allow(services: item.pending, permission: item.id))
-                }.labelStyle(.iconOnly)
-              }
-            }
-          }.blockBackground()
-        }.buttonStyle(.plain)
       }
     }
     struct AppView: View {
