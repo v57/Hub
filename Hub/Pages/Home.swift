@@ -138,10 +138,10 @@ struct HomeView: View {
             AppIcon(title: "Get Apps", systemImage: "arrow.down.circle.fill")
           }.buttonStyle(.plain).transition(.home)
         }
+        Files()
         ForEach(hub.manager.apps) { app in
           AppView(app: app)
         }
-        Files()
         ShareServicesView().gridSize(.x22)
         if let apps = statusBadges.apps, !apps.isEmpty {
           ForEach(apps) { app in
@@ -345,7 +345,7 @@ struct HomeView: View {
           NavigationLink {
             StorageView().environment(hub)
           } label: {
-            Label("Files", systemImage: "folder.fill").blockBackground()
+            AppIcon(title: "Files", systemImage: "folder").blockBackground()
           }.buttonStyle(.plain).transition(.home)
         } else if hub.require(permissions: "launcher/app/create") {
           NavigationLink {
