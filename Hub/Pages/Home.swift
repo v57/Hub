@@ -17,46 +17,12 @@ struct HomeView: View {
   @FocusState var focus: TextFieldFocus?
   var isFocusing: Bool { focus == .joinHubAddress || focus == .joinHubName }
   @State var hubs = Hubs.main
-  @State var merging: Hub?
-  @State var address: String = ""
-  @State private var copied = false
   var body: some View {
     NavigationStack {
       GeometryReader { view in
         ScrollView {
           VStack(alignment: .leading) {
-//            HomeGrid {
-//              JoinHubView(address: $address.animation(), focus: $focus).gridSize(address.isEmpty ? .x21 : .x42)
-//              NavigationLink {
-//                InstallationGuide()
-//              } label: {
-//                ZStack {
-//                  Text("Make your own").font(.callout.weight(.semibold))
-//                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-//                  Text("Learn how to host your own Hub")
-//                    .secondary()
-//                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-//                }.padding(8).blockBackground()
-//              }.buttonStyle(.plain).gridSize(.x21)
-//              ForEach(Hubs.main.list) { hub in
-//                HubView(merging: $merging).environment(hub)
-//                  .gridSize(.x21)
-//              }
-//              Button {
-//                Task {
-//                  withAnimation {
-//                    copied = true
-//                  }
-//                  KeyChain.main.publicKey().copyToClipboard()
-//                  try await Task.sleep(for: .seconds(3))
-//                  withAnimation {
-//                    copied = false
-//                  }
-//                }
-//              } label: {
-//                AppIcon(title: copied ? "Copied" : "My Key", systemImage: copied ? "checkmark.circle.fill" : "key")
-//              }.buttonStyle(.plain)
-//            }
+            HeaderSection(focus: $focus)
             ForEach(Hubs.main.list) { hub in
               HubSection().environment(hub).transition(.home)
             }
@@ -78,6 +44,47 @@ struct HomeView: View {
         .toolbarTitleDisplayMode(.inline)
         .contentTransition(.numericText())
         .scrollIndicators(.hidden)
+    }
+  }
+  struct HeaderSection: View {
+    @FocusState.Binding var focus: TextFieldFocus?
+    @State private var copied = false
+    @State var address: String = ""
+    @State var merging: Hub?
+    var body: some View {
+      HomeGrid {
+        JoinHubView(address: $address.animation(), focus: $focus)
+          .gridSize(address.isEmpty ? .x21 : .x42)
+        NavigationLink {
+          InstallationGuide()
+        } label: {
+          ZStack {
+            Text("Make your own").font(.callout.weight(.semibold))
+              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            Text("Learn how to host your own Hub")
+              .secondary()
+              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+          }.padding(8).blockBackground()
+        }.buttonStyle(.plain).gridSize(.x21)
+        ForEach(Hubs.main.list) { hub in
+          HubView(merging: $merging).environment(hub)
+            .gridSize(.x21)
+        }
+        Button {
+          Task {
+            withAnimation {
+              copied = true
+            }
+            KeyChain.main.publicKey().copyToClipboard()
+            try await Task.sleep(for: .seconds(3))
+            withAnimation {
+              copied = false
+            }
+          }
+        } label: {
+          AppIcon(title: copied ? "Copied" : "My Key", systemImage: copied ? "checkmark.circle.fill" : "key")
+        }.buttonStyle(.plain)
+      }
     }
   }
   struct HubSection: View {
@@ -165,7 +172,7 @@ struct HomeView: View {
           PendingListView()
             .safeAreaPadding(.top).frame(minHeight: 400)
         case .connections:
-          ConnectionsView()
+          UserConnections()
             .safeAreaPadding(.top).frame(minHeight: 400)
         case .permissions:
           PermissionsView()
