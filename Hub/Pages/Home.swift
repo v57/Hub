@@ -563,7 +563,7 @@ struct HomeView: View {
     }
     func iconBadge(_ value: Int?, color: Color = .blue) -> Self {
       var a = self
-      if let value {
+      if let value, value > 0 {
         a.badge = Text("\(value)")
         a.badgeColor = color
       }

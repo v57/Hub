@@ -40,10 +40,7 @@ struct HubStateStorage {
                 self?.value = value
               }
             }
-          } catch {
-            print("Catch", error)
-          }
-          print("Done")
+          } catch { }
         }.cancellable()
         self.subscription = subscription
         return subscription
@@ -99,6 +96,25 @@ struct PendingList: Decodable {
       var set = Set<String>()
       pending.forEach { set.insert($0.components(separatedBy: "/")[0]) }
       return set.sorted().joined(separator: " & ")
+    }
+  }
+}
+
+extension Hub {
+  var host: HostApi { HostApi(hub: self) }
+  struct HostApi {
+    let hub: Hub
+    @MainActor
+    var canManage: Bool { hub.require(permissions: "hub/host/update") }
+    func allow(key: String, paths: [String]) async throws {
+      guard !paths.isEmpty else { return }
+      try await update(key: key, allow: paths)
+    }
+    private func update(key: String, allow: [String]? = nil, revoke: [String]? = nil) async throws {
+      try await hub.client.send("hub/host/update", UpdateApi(key: key, allow: allow, revoke: revoke))
+    }
+    struct UpdateApi: Encodable {
+      let key: String, allow: [String]?, revoke: [String]?
     }
   }
 }

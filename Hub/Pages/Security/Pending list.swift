@@ -21,14 +21,16 @@ struct PendingListView: View {
             .fontDesign(.monospaced)
         }.lineLimit(2)
         Spacer()
-        AsyncButton("Allow") {
-          try await hub.client.send("hub/permissions/add", Allow(services: item.pending, permission: item.id))
+        if hub.host.canManage {
+          AsyncButton("Allow") {
+            try await hub.host.allow(key: item.id, paths: item.pending)
+          }
         }
       }
     }
   }
-  struct Allow: Encodable {
-    let services: [String]
-    let permission: String
-  }
+}
+
+#Preview {
+  PendingListView().environment(Hub.test)
 }

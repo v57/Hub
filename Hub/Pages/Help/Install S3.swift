@@ -319,7 +319,7 @@ struct InstallS3: View {
     }
     func allow() async throws {
       guard let permission, let hub else { return }
-      try await hub.client.send("hub/permissions/add", PendingListView.Allow(services: permission.pending, permission: permission.id))
+      try await hub.host.allow(key: permission.id, paths: permission.pending)
       self.permission = nil
     }
     func test() async throws -> Bool {
