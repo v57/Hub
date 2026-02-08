@@ -99,6 +99,26 @@ extension Hub {
       var checkingForUpdates: Bool?
       var updating: Bool?
       var crashes: Int?
+      var totalCpu: Double? {
+        processes?.lazy.compactMap(\.cpu).reduce(into: 0, +=)
+      }
+      var manyRunning: Bool {
+        guard let processes, processes.count > 1 else { return false }
+        var found = false
+        for p in processes {
+          if p.memory != nil {
+            if found {
+              return true
+            } else {
+              found = true
+            }
+          }
+        }
+        return false
+      }
+      var totalMemory: Double? {
+        processes?.lazy.compactMap(\.memory).reduce(into: 0, +=)
+      }
       var processes: [ProcessStatus]?
       var started: Date?
     }

@@ -22,7 +22,7 @@ struct HomeView: View {
       GeometryReader { view in
         ScrollView {
           VStack(alignment: .leading) {
-            HeaderSection(focus: $focus)
+//            HeaderSection(focus: $focus)
             ForEach(Hubs.main.list) { hub in
               HubSection().environment(hub).transition(.home)
             }
@@ -232,34 +232,47 @@ struct HomeView: View {
           return nil
         }
       }
-      @State private var instances: Int = 0
+      @State private var targetInstances: Int = 0
       @State private var showsInstances = false
       @State private var editing: Hub.Launcher.AppInfo?
+      var instances: Int { app.info?.instances ?? 0 }
       var body: some View {
+        let showsStepper = showsInstances || instances > 1
         HStack(alignment: .top) {
           VStack(alignment: .leading) {
-            Text(app.id)
-            if showsInstances || (app.info?.instances ?? 0) > 1 {
-              HStack {
-  #if !os(tvOS)
-                Stepper("Instances", value: $instances)
-                  .labelsHidden()
-                  .task(id: instances) { try? await updateInstances() }
-  #endif
-                Text("\(instances)").secondary()
-              }
-            }
-            Spacer()
             HStack(alignment: .firstTextBaseline) {
+              Text(app.id)
+              Spacer()
+              Image(systemName: "terminal")
+            }.font(.callout.weight(.semibold))
+            Spacer()
+            HStack(alignment: .lastTextBaseline) {
               VStack(alignment: .leading) {
-                ForEach(app.status?.processes ?? []) { process in
-                  status(process: process)
+                ForEach(app.status?.processes?.suffix(7) ?? []) { process in
+                  status(process: process)?.transition(.home)
+                }
+                if app.status?.manyRunning == true {
+                  totalStatus()?.foregroundStyle(.primary)
                 }
               }
               if (app.status?.processes?.count ?? 0) > 0 {
                 if let date = app.status?.started {
                   Spacer()
-                  Text(date, style: .relative)
+                  VStack(alignment: .trailing) {
+#if !os(tvOS)
+                    if showsStepper {
+                      HStack(spacing: 4) {
+                        Text("\(targetInstances)").secondary()
+                        Stepper("Instances", value: $targetInstances, in: 1...1024)
+                          .labelsHidden()
+                          .task(id: targetInstances) { try? await updateInstances() }
+                      }.transition(.home)
+                    }
+#endif
+                    TimelineView(.everyMinute) { timeline in
+                      Text(date.shortRelative)
+                    }
+                  }
                 }
               } else {
                 Text("Not running")
@@ -271,7 +284,7 @@ struct HomeView: View {
               }.buttonStyle(.borderedProminent)
             }
           }
-        }.frame(maxWidth: .infinity, alignment: .leading).overlay(alignment: .topTrailing) {
+        }.padding(8).frame(maxWidth: .infinity, alignment: .leading).overlay(alignment: .topTrailing) {
           if let installationStatus {
             Text(installationStatus).badgeStyle()
           }
@@ -280,7 +293,9 @@ struct HomeView: View {
             if info.active {
               if let info = app.info, info.instances == 1 {
                 Button("Cluster", systemImage: "list.number") {
-                  showsInstances = true
+                  withAnimation {
+                    showsInstances.toggle()
+                  }
                 }
               }
               AsyncButton("Restart", systemImage: "arrow.clockwise") {
@@ -312,29 +327,37 @@ struct HomeView: View {
           EditApp(app: $0).environment(hub).frame(minHeight: 300)
         }.labelStyle(.titleAndIcon).task(id: app.info?.instances) {
           guard let info = app.info else { return }
-          instances = info.instances
+          targetInstances = info.instances
+        }.gridSize(showsStepper ? .x22 : .x21)
+      }
+      func totalStatus() -> Text? {
+        guard let mem = app.status?.totalMemory else { return nil }
+        if let cpu = app.status?.totalCpu {
+          return Text("\(Int(cpu))% \(Int(mem))MB")
+        } else {
+          return Text("\(Int(mem))MB")
         }
       }
       func status(process: Hub.Launcher.ProcessStatus) -> Text? {
         if let mem = process.memory {
           if let cpu = process.cpu {
-            return Text("\(Int(cpu))% \(mem.description)MB")
+            return Text("\(Int(cpu))% \(Int(mem))MB")
           } else {
-            return Text("\(mem.description)MB")
+            return Text("\(Int(mem))MB")
           }
         } else {
           return Text("Not running")
         }
       }
       func updateInstances() async throws {
-        guard instances > 0 else { return }
+        guard targetInstances > 0 else { return }
         guard let info = app.info else { return }
-        guard instances != info.instances else { return }
-        guard instances <= 1024 else { return }
+        guard targetInstances != info.instances else { return }
+        guard targetInstances <= 1024 else { return }
         if !showsInstances {
           showsInstances = true
         }
-        try await hub.client.send("launcher/app/cluster", LauncherView.AppView.SetInstances(name: info.name, count: instances))
+        try await hub.client.send("launcher/app/cluster", LauncherView.AppView.SetInstances(name: info.name, count: targetInstances))
       }
     }
     struct Files: View {
@@ -345,7 +368,7 @@ struct HomeView: View {
           NavigationLink {
             StorageView().environment(hub)
           } label: {
-            AppIcon(title: "Files", systemImage: "folder").blockBackground()
+            AppIcon(title: "Files", systemImage: "folder")
           }.buttonStyle(.plain).transition(.home)
         } else if hub.require(permissions: "launcher/app/create") {
           NavigationLink {
@@ -660,6 +683,16 @@ struct BlockStyle: ViewModifier {
   }
 }
 
+extension Date {
+  var shortRelative: String {
+    let offset = -Int(timeIntervalSinceNow) / 60
+    guard offset > -1 else { return "future" }
+    guard offset > 1 else { return "now" }
+    guard offset > 60 else { return "\(offset)m" }
+    return "\(offset / 60)h"
+  }
+}
+
 #Preview {
-  HomeView()
+  HomeView().frame(height: 800)
 }
