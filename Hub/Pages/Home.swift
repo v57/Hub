@@ -18,54 +18,66 @@ struct HomeView: View {
   var isFocusing: Bool { focus == .joinHubAddress || focus == .joinHubName }
   @State var hubs = Hubs.main
   @State var merging: Hub?
+  @State var address: String = ""
   @State private var copied = false
   var body: some View {
     NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading) {
-          HStack {
-            Text("Hubs").sectionTitle()
-            Spacer()
-            Button(copied ? "Copied" : "My Key", systemImage: copied ? "checkmark.circle.fill" : "key.fill") {
-              Task {
-                withAnimation {
-                  copied = true
-                }
-                KeyChain.main.publicKey().copyToClipboard()
-                try await Task.sleep(for: .seconds(3))
-                withAnimation {
-                  copied = false
-                }
+      GeometryReader { view in
+        ScrollView {
+          VStack(alignment: .leading) {
+//            HomeGrid {
+//              JoinHubView(address: $address.animation(), focus: $focus).gridSize(address.isEmpty ? .x21 : .x42)
+//              NavigationLink {
+//                InstallationGuide()
+//              } label: {
+//                ZStack {
+//                  Text("Make your own").font(.callout.weight(.semibold))
+//                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+//                  Text("Learn how to host your own Hub")
+//                    .secondary()
+//                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+//                }.padding(8).blockBackground()
+//              }.buttonStyle(.plain).gridSize(.x21)
+//              ForEach(Hubs.main.list) { hub in
+//                HubView(merging: $merging).environment(hub)
+//                  .gridSize(.x21)
+//              }
+//              Button {
+//                Task {
+//                  withAnimation {
+//                    copied = true
+//                  }
+//                  KeyChain.main.publicKey().copyToClipboard()
+//                  try await Task.sleep(for: .seconds(3))
+//                  withAnimation {
+//                    copied = false
+//                  }
+//                }
+//              } label: {
+//                AppIcon(title: copied ? "Copied" : "My Key", systemImage: copied ? "checkmark.circle.fill" : "key")
+//              }.buttonStyle(.plain)
+//            }
+            ForEach(Hubs.main.list) { hub in
+              HubSection().environment(hub).transition(.home)
+            }
+            Text("My Apps").sectionTitle()
+            HomeGrid {
+              ForEach(AppServicesView.Service.allCases, id: \.self) { item in
+                ServiceContent(item: item, isSharing: nil)
               }
             }
-          }
-          LazyVGrid(columns: [.init(.adaptive(minimum: isFocusing ? 360 : 180))]) {
-            JoinHubView(focus: $focus)
-            NavigationLink {
-              InstallationGuide()
-            } label: {
-              Text("Make your own").blockBackground()
-            }.buttonStyle(.plain)
-            ForEach(Hubs.main.list) { hub in
-              HubView(merging: $merging).environment(hub)
-            }
-          }
-          ForEach(Hubs.main.list) { hub in
-            HubSection().environment(hub).transition(.home)
-          }
-          Text("My Apps").sectionTitle()
-          LazyVGrid(columns: [.init(.adaptive(minimum: 180))]) {
-            ForEach(AppServicesView.Service.allCases, id: \.self) { item in
-              ServiceContent(item: item, isSharing: nil)
-            }
-          }
-          Text("Support this Project").sectionTitle()
-          SupportView()
-        }.animation(.home, value: isFocusing)
-          .animation(.home, value: hubs.list.count)
-          .safeAreaPadding(.horizontal)
-      }.navigationTitle("Home").scrollDismissesKeyboard(.immediately)
+            Text("Support this Project").sectionTitle()
+            SupportView()
+          }.padding(.top).animation(.home, value: isFocusing)
+            .animation(.home, value: hubs.list.count)
+            .safeAreaPadding(.horizontal, 8)
+            .animation(.smooth, value: view.size.width)
+        }.environment(\.homeGridSpacing, HomeGrid.spacing(width: view.size.width - 16))
+      }.navigationTitle("Home")
+        .scrollDismissesKeyboard(.immediately)
+        .toolbarTitleDisplayMode(.inline)
         .contentTransition(.numericText())
+        .scrollIndicators(.hidden)
     }
   }
   struct HubSection: View {
@@ -80,15 +92,44 @@ struct HomeView: View {
     @HubState(\.status) var status
     @HubState(\.hostPending) var hostPending
     @Bindable var hub: Hub
+    @State private var sheet: Sheet?
+    enum Sheet: Identifiable {
+      var id: Sheet { self }
+      case pending, connections, permissions
+    }
     var body: some View {
       let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hub.hasLauncher)
-      Title(manager: hub.manager).padding(.top, 16)
-      LazyVGrid(columns: [.init(.adaptive(minimum: 180))]) {
+      Text(hub.settings.name).sectionTitle()
+      HomeGrid {
         if !status.services.isEmpty {
           NavigationLink {
             Services().environment(hub)
           } label: {
             ServicesView()
+          }.buttonStyle(.plain).transition(.home).gridSize(.x22)
+        }
+        Button {
+          sheet = .connections
+        } label: {
+          AppIcon(title: "Connections", systemImage: "wifi")
+            .iconBadge(statusBadges.connections)
+        }.buttonStyle(.plain)
+        Button {
+          sheet = .pending
+        } label: {
+          AppIcon(title: "Requests", systemImage: "clock")
+            .iconBadge(statusBadges.security)
+        }.buttonStyle(.plain)
+        Button {
+          sheet = .permissions
+        } label: {
+          AppIcon(title: "Permissions", systemImage: "lock")
+        }.buttonStyle(.plain)
+        if hub.require(permissions: "launcher/app/create") {
+          NavigationLink {
+            StoreView().environment(hub.manager).environment(hub)
+          } label: {
+            AppIcon(title: "Get Apps", systemImage: "arrow.down.circle.fill")
           }.buttonStyle(.plain).transition(.home)
         }
         if !hostPending.list.isEmpty {
@@ -98,13 +139,12 @@ struct HomeView: View {
           AppView(app: app)
         }
         Files()
-        ShareServicesView()
+        ShareServicesView().gridSize(.x22)
         if let apps = statusBadges.apps, !apps.isEmpty {
           ForEach(apps) { app in
             NavigationLink(value: app) {
-              Text(app.name).foregroundStyle(app.isOnline ? .primary : .tertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .blockBackground()
+              AppIcon(title: app.name, textIcon: String(app.name.first ?? "A"))
+                .iconBadge(app.isOnline ? nil : "Offline", color: .red)
             }.buttonStyle(.plain).transition(.home)
           }
         }
@@ -116,101 +156,59 @@ struct HomeView: View {
         guard task.isConnected else { return }
         await hub.manager.syncApps(hub: hub)
       }
-        .navigationDestination(for: AppHeader.self) { app in
-          ServiceView(header: app).environment(hub)
-        }
-    }
-    struct Title: View {
-      @Environment(Hub.self) var hub
-      let manager: LauncherView.Manager
-      @State var addingOwner = false
-      @State var ownerKey = ""
-      @State private var sheet: Sheet?
-      enum Sheet: Identifiable {
-        var id: Sheet { self }
-        case pending, connections, permissions
+      .navigationDestination(for: AppHeader.self) { app in
+        ServiceView(header: app).environment(hub)
       }
-      var body: some View {
-        VStack {
-          HStack {
-            Text(hub.settings.name).sectionTitle(padding: false)
-            Spacer()
-            Button("Connections", systemImage: "wifi") {
-              sheet = .connections
-            }
-            Button("Pending Requests", systemImage: "wifi.exclamationmark") {
-              sheet = .pending
-            }
-            Button("Permissions", systemImage: "lock.shield.fill") {
-              sheet = .permissions
-            }
-            if hub.require(permissions: "launcher/app/create") {
-              NavigationLink {
-                StoreView().environment(manager).environment(hub)
-              } label: {
-                Label("Get apps", systemImage: "arrow.down.circle.fill")
-              }.transition(.home)
-            }
-          }
-          HStack {
-            if addingOwner {
-              SecureField("Key", text: $ownerKey).transition(.home)
-              AsyncButton("Add") {
-                addingOwner = false
-                let key = ownerKey
-                ownerKey = ""
-                try await hub.addOwner(key)
-              }.disabled(ownerKey.isEmpty).transition(.home)
-              AsyncButton("Cancel") {
-                addingOwner = false
-                ownerKey = ""
-              }.transition(.home)
-            }
-          }
-        }.frame(maxWidth: .infinity, alignment: .trailing).padding(.leading, 10)
-          .padding(.bottom, 4)
-          .sheet(item: $sheet) { sheet in
-            switch sheet {
-            case .pending:
-              PendingListView()
-                .safeAreaPadding(.top).frame(minHeight: 400)
-            case .connections:
-              ConnectionsView()
-                .safeAreaPadding(.top).frame(minHeight: 400)
-            case .permissions:
-              PermissionsView()
-                .safeAreaPadding(.top).frame(minHeight: 400)
-            }
-          }
+      .navigationDestination(item: $sheet) { sheet in
+        switch sheet {
+        case .pending:
+          PendingListView()
+            .safeAreaPadding(.top).frame(minHeight: 400)
+        case .connections:
+          ConnectionsView()
+            .safeAreaPadding(.top).frame(minHeight: 400)
+        case .permissions:
+          PermissionsView()
+            .safeAreaPadding(.top).frame(minHeight: 400)
+        }
       }
     }
     struct ServicesView: View {
       @HubState(\.status) var status
       var body: some View {
-        VStack(alignment: .leading) {
-          Text("Services")
+        VStack(alignment: .leading, spacing: 8) {
+          Text("Services").font(.callout.weight(.semibold))
+          Spacer()
           ForEach(status.services.sorted(by: { $0.requests > $1.requests }).prefix(3), id: \.name) { service in
-            HStack {
-              VStack(alignment: .leading) {
-                Text(service.name).foregroundStyle(.primary)
-                HStack {
-                  if service.requests > 0 {
-                    Label("\(service.requests)", systemImage: "number")
-                  }
-                  if service.balancerType != .counter {
-                    Image(systemName: service.balancerType.icon).secondary()
-                  }
-                  if let running = service.running, running > 0 {
-                    Label("\(running)", systemImage: "clock.arrow.2.circlepath")
-                  }
-                  if let pending = service.pending, pending > 0 {
-                    Label("\(pending)", systemImage: "tray.full")
-                  }
+            VStack(alignment: .leading) {
+              Text(service.name).foregroundStyle(.primary)
+              HStack(spacing: 4) {
+                if service.requests > 0 {
+                  Label("\(service.requests)", systemImage: "checkmark")
                 }
-              }.secondary()
-            }
+                if service.balancerType != .counter {
+                  Image(systemName: service.balancerType.icon).secondary()
+                }
+                if let running = service.running, running > 0 {
+                  Label("\(running)", systemImage: "bolt.fill")
+                }
+                if let pending = service.pending, pending > 0 {
+                  Label("\(pending)", systemImage: "bolt.badge.clock.fill")
+                }
+              }.labelStyle(LabelStyle())
+            }.secondary()
           }
-        }.blockBackground()
+        }.padding(8)
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+          .blockBackground()
+      }
+      struct LabelStyle: SwiftUI.LabelStyle {
+        func makeBody(configuration: Configuration) -> some View {
+          HStack(spacing: 4) {
+            configuration.icon
+            configuration.title
+          }
+        }
       }
     }
     struct PermissionsView: View {
@@ -382,7 +380,8 @@ struct HomeView: View {
       typealias Service = AppServicesView.Service
       var body: some View {
         VStack(alignment: .leading) {
-          Text("Share Services")
+          Text("Share Services").font(.callout.weight(.semibold))
+          Spacer()
           LazyVGrid(columns: [.init(.adaptive(minimum: 48))]) {
             ForEach(Service.allCases, id: \.self) { service in
               if let publisher = service.servicePublisher(hub: hub) {
@@ -390,7 +389,7 @@ struct HomeView: View {
               }
             }
           }
-        }.blockBackground()
+        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(8).blockBackground()
       }
       struct ServiceToggle: View {
         @Environment(Hub.self) var hub
@@ -429,14 +428,25 @@ struct HomeView: View {
     var body: some View {
       let canMerge = hub.require(permissions: "hub/merge/add")
       VStack(alignment: .leading) {
-        Text(hub.settings.name)
-        VStack(alignment: .leading) {
-          Text("\(statusBadges.services) services")
-          if let security = statusBadges.security, security > 0 {
-            Text("\(security) service requests").foregroundStyle(.green)
+        HStack(spacing: 4) {
+          Text(hub.settings.name)
+          Spacer()
+          if #available(macOS 15.0, iOS 18.0, *) {
+            Image(systemName: "wifi")
+              .symbolEffect(.variableColor.iterative.dimInactiveLayers.reversing, options: .repeat(.continuous), isActive: !hub.isConnected)
           }
-        }.fontWeight(.medium).secondary()
-        .environment(hub)
+        }.font(.callout.weight(.semibold))
+        Spacer()
+        if hub.isConnected {
+          VStack(alignment: .leading) {
+            Text("\(statusBadges.services) services")
+            if let security = statusBadges.security, security > 0 {
+              Text("\(security) service requests").foregroundStyle(.green)
+            }
+          }.fontWeight(.medium).secondary().transition(.blurReplace)
+        } else {
+          Text("Connecting...").secondary().transition(.blurReplace)
+        }
         if let merging, merging.id != hub.id && canMerge {
           Spacer()
           if merging.isMerged(to: hub) {
@@ -449,7 +459,7 @@ struct HomeView: View {
             }
           }
         }
-      }.blockBackground().contextMenu {
+      }.animation(.smooth, value: hub.isConnected).padding(8).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).blockBackground().contextMenu {
         if canMerge && merging == nil {
           Button("Merge") {
             merging = hub
@@ -463,7 +473,7 @@ struct HomeView: View {
   }
   struct JoinHubView: View {
     let hubs = Hubs.main
-    @State var address: String = ""
+    @Binding var address: String
     @State var name: String = ""
     let focus: FocusState<TextFieldFocus?>.Binding
     var url: URL? {
@@ -477,51 +487,33 @@ struct HomeView: View {
     var body: some View {
       VStack(alignment: .leading) {
         HStack {
-          Text(url?.absoluteString ?? "Join Hub")
+          Text(url?.absoluteString ?? "Join Hub").font(.callout.weight(.semibold))
           Spacer()
           if let url, let providedName {
-            Button("Connect") {
+            Button {
               hubs.insert(with: Hub.Settings(name: providedName, address: url))
               self.name = ""
               self.address = ""
-            }
+            } label: {
+              Text("Connect").font(.callout.weight(.medium))
+                .padding(.horizontal, 12).padding(.vertical, 4)
+                .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 8))
+            }.buttonStyle(.plain)
           }
         }
+        Spacer()
         TextField("Address", text: $address).focused(focus, equals: .joinHubAddress)
+          .textFieldStyle(.plain)
+          .padding(.horizontal, 8).padding(.vertical, 4)
+          .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 8))
         if !address.isEmpty {
           TextField(url?.name ?? "Name", text: $name).focused(focus, equals: .joinHubAddress)
+            .textFieldStyle(.plain)
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 8))
             .transition(.home)
         }
-      }.animation(.home, value: address.isEmpty).textFieldStyle(.roundedBorder).blockBackground()
-    }
-    struct Create: View {
-      @State private var name = ""
-      @State private var address = ""
-      @Binding var isCreating: Bool
-      private let hubs = Hubs.main
-      var url: URL? {
-        guard var components = URLComponents(string: address) else { return nil }
-        components.hub()
-        guard let url = components.url else { return nil }
-        guard !url.absoluteString.isEmpty else { return nil }
-        return url
-      }
-      var providedName: String? { name.isEmpty ? url?.name : name }
-      var body: some View {
-        VStack(alignment: .leading) {
-          Text(url?.absoluteString ?? "Add connection").secondary()
-          TextField("Address", text: $address)
-          TextField(url?.name ?? "Name", text: $name)
-          if let url, let providedName {
-            Button("Connect") {
-              hubs.insert(with: Hub.Settings(name: providedName, address: url))
-              self.name = ""
-              self.address = ""
-              self.isCreating = false
-            }
-          }
-        }
-      }
+      }.padding(8).animation(.home, value: address.isEmpty).blockBackground()
     }
   }
   struct ServiceContent: View {
@@ -531,55 +523,117 @@ struct HomeView: View {
       NavigationLink {
         AppServicesView.ServicePage(service: item)
       } label: {
-        VStack(alignment: .leading) {
-          Image(systemName: item.image).resizable().scaledToFit()
-            .frame(width: 24, height: 24)
-          Text(item.title).lineLimit(2)
-          Text(item.description).secondary().lineLimit(3)
-        }.blockBackground()
+        AppIcon(title: item.title, systemImage: item.image)
       }.buttonStyle(.plain)
     }
   }
   struct SupportView: View {
     var body: some View {
-      LazyVGrid(columns: [.init(.adaptive(minimum: 240))]) {
-        Button("Join Discord") { }
-        Button("Patreon") { }
-        Button("Boosty") { }
-        Button("GitHub") { }
-        Button("Buy Me a Coffee") { }
-        Button("Ko-Fi") { }
-        Button("USDT") { }
-        Button("BTC") { }
+      HomeGrid {
+        Button("Discord") { }.lineLimit(1)
+        Button("Patreon") { }.lineLimit(1)
+        Button("Boosty") { }.lineLimit(1)
+        Button("GitHub") { }.lineLimit(1)
+        Button("Buy Me\na Coffee") { }.lineLimit(2)
+        Button("Ko-Fi") { }.lineLimit(1)
+        Button("USDT") { }.lineLimit(1)
+        Button("BTC") { }.lineLimit(1)
       }.buttonStyle(LinkButtonStyle())
     }
   }
   struct LinkButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-      configuration.label.multilineTextAlignment(.leading).blockBackground()
+      configuration.label.multilineTextAlignment(.center)
+        .font(.callout).fontWeight(.semibold)
+        .fontDesign(.rounded)
+        .minimumScaleFactor(0.6)
+        .padding(8)
+        .blockBackground()
     }
+  }
+  struct AppIcon<Icon: View>: View {
+    let title: Text
+    var badge: Text?
+    var badgeColor: Color = .blue
+    @ViewBuilder let icon: Icon
+    var body: some View {
+      ZStack {
+        LinearGradient(colors: [.red, .orange, .green, .blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+          .mask { icon.blur(radius: 8) }
+        icon.opacity(0.8)
+      }
+      .contentTransition(.symbolEffect).font(.system(size: 32, weight: .semibold, design: .rounded))
+      .blockBackground().overlay(alignment: .top) {
+        if let badge {
+          badge.font(.caption.bold()).padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(badgeColor, in: .capsule)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.horizontal, -4)
+            .offset(y: -4)
+        }
+      }.overlay {
+          GeometryReader { view in
+            title.font(.system(size: 10)).offset(y: view.size.height + 4)
+              .multilineTextAlignment(.center)
+              .frame(maxWidth: .infinity)
+          }
+        }
+    }
+    func iconBadge(_ value: Int?, color: Color = .blue) -> Self {
+      var a = self
+      if let value {
+        a.badge = Text("\(value)")
+        a.badgeColor = color
+      }
+      return a
+    }
+    func iconBadge(_ value: LocalizedStringKey?, color: Color = .blue) -> Self {
+      var a = self
+      if let value {
+        a.badge = Text(value)
+        a.badgeColor = color
+      }
+      return a
+    }
+  }
+}
+extension HomeView.AppIcon where Icon == Image {
+  init(title: LocalizedStringKey, systemImage: String) {
+    self.title = Text(title)
+    self.icon = Image(systemName: systemImage)
+  }
+}
+extension HomeView.AppIcon where Icon == Text {
+  init(title: String, textIcon: String) {
+    self.title = Text(title)
+    self.icon = Text(textIcon)
   }
 }
 extension View {
   func sectionTitle(padding: Bool = true) -> some View {
-    font(.title3).fontWeight(.medium).padding(.leading, 5).padding(.top, padding ? 16 : 0)
+    modifier(SectionTitleModifier(padding: padding))
   }
-  func blockBackground() -> some View {
-    VStack(alignment: .leading) {
-      self
-    }.padding()
-      .frame(maxHeight: .infinity, alignment: .top)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background(RoundedRectangle(cornerRadius: 16).strokeBorder(.primary.opacity(0.1), lineWidth: 1))
-      .background(BackgroundColor(), in: RoundedRectangle(cornerRadius: 16))
-      .modifier {
-        #if os(macOS)
-        $0
-        #else
-        $0.contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 16))
-        #endif
-      }
-      .transition(.home)
+  func blockBackground(_ radius: CGFloat = 16) -> some View {
+    self.modifier(BlockStyle(cornerRadius: radius))
+  }
+  func blurBackground(_ radius: CGFloat = 16) -> some View {
+    background {
+      RoundedRectangle(cornerRadius: radius)
+        .fill(.regularMaterial)
+        .strokeBorder(LinearGradient(colors: [.clear, .white.opacity(0.2), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+      
+      .shadow(radius: 12)
+    }
+  }
+}
+struct SectionTitleModifier: ViewModifier {
+  @Environment(\.homeGridSpacing) var spacing
+  let padding: Bool
+  func body(content: Content) -> some View {
+    content.font(.body).fontWeight(.medium)
+      .padding(.leading, spacing + 8)
+      .padding(.top, padding ? 32 : 0)
   }
 }
 
@@ -601,6 +655,28 @@ extension AnyTransition {
 
 extension Animation {
   static var home: Animation { .spring(response: 0.5, dampingFraction: 0.7) }
+}
+
+struct BlockStyle: ViewModifier {
+  let cornerRadius: CGFloat
+  func body(content: Content) -> some View {
+    RoundedRectangle(cornerRadius: cornerRadius)
+      .fill(.regularMaterial)
+      .strokeBorder(LinearGradient(colors: [.clear, .white.opacity(0.2), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+      .overlay {
+        content
+      }
+      .compositingGroup()
+      .shadow(radius: 12)
+      .modifier {
+        #if os(macOS)
+        $0
+        #else
+        $0.contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
+        #endif
+      }
+      .transition(.home)
+  }
 }
 
 #Preview {

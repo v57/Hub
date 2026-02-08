@@ -132,6 +132,7 @@ struct ContentView: View {
   }
   struct StatusBadges: Decodable {
     var services: Int = 0
+    var connections: Int?
     var security: Int?
     var apps: [AppHeader]?
   }
