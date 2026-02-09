@@ -384,7 +384,11 @@ struct HomeView: View {
       typealias Service = AppServicesView.Service
       var body: some View {
         VStack(alignment: .leading) {
-          Text("Share Services").font(.callout.weight(.semibold))
+          HStack {
+            Text("Share Services")
+            Spacer()
+            Image(systemName: "square.and.arrow.up")
+          }.font(.callout.weight(.semibold))
           Spacer()
           LazyVGrid(columns: [.init(.adaptive(minimum: 48))]) {
             ForEach(Service.allCases, id: \.self) { service in
