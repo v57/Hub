@@ -22,7 +22,7 @@ struct HomeView: View {
       GeometryReader { view in
         ScrollView {
           VStack(alignment: .leading) {
-//            HeaderSection(focus: $focus)
+            HeaderSection(focus: $focus)
             ForEach(Hubs.main.list) { hub in
               HubSection().environment(hub).transition(.home)
             }

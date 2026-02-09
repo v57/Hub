@@ -33,7 +33,10 @@ struct HomeGrid: Layout {
   func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> CGSize {
     (cache.width, cache.spacing) = HomeGrid.widthAndSpacing(proposal: proposal)
     cache.reset()
-    
+    for i in 0..<subviews.count {
+      let p = subviews[i][GridSize.self]
+      cache.minHeight = max(p.h, cache.minHeight)
+    }
     for i in 0..<subviews.count {
       let p = subviews[i][GridSize.self]
       cache.fill(index: i, p: p)
@@ -45,8 +48,8 @@ struct HomeGrid: Layout {
   func makeCache(subviews: Subviews) -> Cache {
     Cache()
   }
-  var minSpacing: Int { 12 }
-  var size: Int { 68 }
+  var minSpacing: Int { HomeGrid.minSpacing }
+  var size: Int { HomeGrid.size }
   func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
     let spacing = cache.spacing
     let size = CGFloat(size)
@@ -65,7 +68,8 @@ struct HomeGrid: Layout {
     var width: Int = 6
     var spacing: CGFloat = 0
     var data = [Placement]()
-    var cache = [GridSize: Position]()
+    var cache = [GridSize: GridCache]()
+    var minHeight: Int = 1
     var height: Int {
       for i in (0..<space.count).reversed() where space[i] > 0 {
         let rows = i * 64 / width
@@ -115,28 +119,28 @@ struct HomeGrid: Layout {
     }
     mutating func fill(index: Int, p: GridSize) {
       guard width > 1 else { return }
-      var y = 0
-      var x = 0
+      var c = Iterator(ax: p.ax, ay: p.ay, width: width, blockHeight: minHeight)
       if let position = cache[p] {
-        x = position.x
-        y = position.y
+        c.x = position.x
+        c.ty = position.y
+        c.oy = position.o
+        c.next()
       }
-      while true {
-        while x + p.ax <= width {
-          if !self[x, y, p.w, p.h] {
-            cache[p] = Position(x: x, y: y)
-            data.append(Placement(x: x, y: y, w: p.w, h: p.h))
-            self[x, y, p.w, p.h] = true
-            return
-          }
-          x += p.ax
+      var i = 0
+      while i < 1000 {
+        i += 1
+        if !self[c.x, c.y, p.w, p.h] {
+          cache[p] = GridCache(x: c.x, y: c.ty, o: c.oy)
+          data.append(Placement(x: c.x, y: c.y, w: p.w, h: p.h))
+          self[c.x, c.y, p.w, p.h] = true
+          return
         }
-        x = 0
-        y += p.ay
+        c.next()
       }
       fatalError()
     }
     mutating func reset() {
+      minHeight = 1
       space = [0]
       data = []
       cache = [:]
@@ -154,6 +158,11 @@ struct HomeGrid: Layout {
       let x: Int
       let y: Int
     }
+    struct GridCache {
+      let x: Int
+      let y: Int
+      let o: Int
+    }
   }
   struct GridSize: Hashable, LayoutValueKey {
     static var defaultValue: GridSize { GridSize(w: 1, h: 1) }
@@ -161,6 +170,29 @@ struct HomeGrid: Layout {
     let h: Int
     var ax: Int { w }
     var ay: Int { h }
+  }
+  struct Iterator {
+    var x = 0
+    var y: Int { ty + oy }
+    var ty = 0
+    var oy: Int = 0
+    var ax: Int
+    var ay: Int
+    var width: Int
+    var blockHeight: Int
+    mutating func next() {
+      if oy + ay < blockHeight {
+        oy += ay
+      } else {
+        oy = 0
+        if x + ax < width {
+          x += ax
+        } else {
+          x = 0
+          ty += blockHeight
+        }
+      }
+    }
   }
   enum PositionPreset {
     case x11, x12, x21, x22, x41, x42, x24, x44
