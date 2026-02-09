@@ -183,7 +183,11 @@ struct HomeView: View {
       @HubState(\.status) var status
       var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-          Text("Services").font(.callout.weight(.semibold))
+          HStack {
+            Text("Services")
+            Spacer()
+            Image(systemName: "circle.hexagongrid.fill")
+          }.font(.callout.weight(.semibold))
           Spacer()
           ForEach(status.services.sorted(by: { $0.requests > $1.requests }).prefix(3), id: \.name) { service in
             VStack(alignment: .leading) {
