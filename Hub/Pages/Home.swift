@@ -206,6 +206,10 @@ struct HomeView: View {
                   Label("\(pending)", systemImage: "bolt.badge.clock.fill")
                 }
               }.labelStyle(LabelStyle())
+            }
+              .frame(maxWidth: .infinity, alignment: .leading).background {
+              RoundedRectangle(cornerRadius: 4)
+                .fill(.background).padding(.horizontal, -4).padding(.vertical, -2)
             }.secondary()
           }
         }.padding(8)
