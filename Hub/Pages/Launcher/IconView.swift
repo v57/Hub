@@ -10,9 +10,40 @@ import SwiftUI
 struct Icon: Codable, Hashable {
   var symbol: SFSymbolIcon?
   var text: TextIcon?
+  init(symbol: SFSymbolIcon? = nil, text: TextIcon? = nil) {
+    self.symbol = symbol
+    self.text = text
+  }
+  init(from decoder: any Decoder) throws {
+    do {
+      let container = try decoder.singleValueContainer()
+      let text = try container.decode(String.self)
+      self.text = .init(name: text)
+    } catch {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      symbol = container.decodeIfPresent(.symbol)
+      text = container.decodeIfPresent(.text)
+    }
+  }
   struct SFSymbolIcon: Codable, Hashable {
     var name: String
     var colors: IconColors?
+    init(from decoder: any Decoder) throws {
+      do {
+        let container = try decoder.singleValueContainer()
+        let text = try container.decode(String.self)
+        self.name = text
+      } catch {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(.name)
+        colors = container.decodeIfPresent(.colors)
+      }
+    }
+    init(name: String, colors: IconColors? = nil) {
+      self.name = name
+      self.colors = colors
+    }
+    
     fileprivate func body(dark: Bool) -> some View {
       GeometryReader { view in
         if let color = colors?.background(dark: dark)?.color {
@@ -30,6 +61,22 @@ struct Icon: Codable, Hashable {
   struct TextIcon: Codable, Hashable {
     var name: String
     var colors: IconColors?
+    init(from decoder: any Decoder) throws {
+      do {
+        let container = try decoder.singleValueContainer()
+        let text = try container.decode(String.self)
+        self.name = text
+      } catch {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(.name)
+        colors = container.decodeIfPresent(.colors)
+      }
+    }
+    init(name: String, colors: IconColors? = nil) {
+      self.name = name
+      self.colors = colors
+    }
+    
     fileprivate func body(dark: Bool) -> some View {
       GeometryReader { view in
         if let color = colors?.background(dark: dark)?.color {
