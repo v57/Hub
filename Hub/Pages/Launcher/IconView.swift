@@ -119,7 +119,7 @@ struct IconColors: Codable, Hashable {
 struct IconView: View {
   let icon: Icon
   var cornerRadius: CGFloat = 12
-  @Environment(\.colorScheme) var colorScheme
+  @Environment(\.colorScheme) private var colorScheme
   var body: some View {
     icon.body(dark: colorScheme == .dark)
       .clipShape(RoundedRectangle(cornerRadius: cornerRadius))

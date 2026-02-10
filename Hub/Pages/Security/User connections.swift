@@ -31,9 +31,11 @@ struct UserConnections: View {
     var id: String
     var key: String?
     var services: Int
+    var name: String
+    var icon: Icon
     var apps: Int
     enum CodingKeys: CodingKey {
-      case id, key, services, apps, permissions
+      case id, key, services, apps, permissions, name, icon
     }
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -41,30 +43,40 @@ struct UserConnections: View {
       key = container.decodeIfPresent(.key)
       services = container.decodeIfPresent(.services, 0)
       apps = container.decodeIfPresent(.apps, 0)
+      name = container.decodeIfPresent(.name, "")
+      icon = container.decodeIfPresent(.icon) ?? Icon(symbol: .init(name: "hexagon"))
     }
   }
   struct UserView: View {
     let user: User
     let isMe: Bool
     var body: some View {
-      VStack(alignment: .leading) {
-        if isMe {
-          Text("You")
-        } else if let key = user.key {
-          Text(key.prefix(8)).secondary()
-        } else {
-          Text("Unauthorized")
-        }
-        Text(user.id).secondary()
-        HStack {
-          if user.services > 0 {
-            Text("\(user.services) services")
+      HStack {
+        IconView(icon: user.icon).frame(width: 44, height: 44)
+        VStack(alignment: .leading) {
+          HStack(alignment: .firstTextBaseline, spacing: 4) {
+            if !user.name.isEmpty {
+              Text(user.name)
+            }
+            if let key = user.key {
+              Text(isMe ? "\(key.suffix(8)) (You)" : key.suffix(8)).secondary()
+                .textSelection()
+            } else {
+              Text("Unauthorized")
+            }
           }
-          if user.apps > 0 {
-            Text("\(user.apps) apps")
+          if user.services > 0 || user.apps > 0 {
+            HStack {
+              if user.services > 0 {
+                Text("\(user.services) services")
+              }
+              if user.apps > 0 {
+                Text("\(user.apps) apps")
+              }
+            }.secondary()
           }
-        }.secondary()
-      }.lineLimit(1)
+        }.lineLimit(1)
+      }
     }
   }
 }
