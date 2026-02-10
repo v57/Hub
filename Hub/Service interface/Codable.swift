@@ -166,8 +166,8 @@ extension KeyedDecodingContainer {
     try decode(T.self, forKey: key)
   }
   @inlinable
-  func decodeIfPresent<T: Decodable>(_ key: K) throws -> T? {
-    try decodeIfPresent(T.self, forKey: key)
+  func decodeIfPresent<T: Decodable>(_ key: K) -> T? {
+    try? decodeIfPresent(T.self, forKey: key)
   }
   @inlinable
   func decodeIfPresent<T: Decodable>(_ key: K, _ defalutValue: @autoclosure () -> (T)) -> T {

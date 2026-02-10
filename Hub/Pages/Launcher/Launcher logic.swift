@@ -83,7 +83,7 @@ extension Hub {
         restarts = container.decodeIfPresent(.restarts, false)
         updateAvailable = container.decodeIfPresent(.updateAvailable, false)
         instances = container.decodeIfPresent(.instances, 1)
-        settings = try container.decodeIfPresent(.settings)
+        settings = container.decodeIfPresent(.settings)
       }
     }
     struct AppSettings: Codable, Hashable {
@@ -151,7 +151,7 @@ extension Hub {
         active = try container.decode(.active)
         restarts = try container.decode(.restarts)
         setup = try Setup(from: decoder)
-        settings = try container.decodeIfPresent(.settings)
+        settings = container.decodeIfPresent(.settings)
       }
       
       func encode(to encoder: any Encoder) throws {

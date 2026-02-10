@@ -38,7 +38,7 @@ struct UserConnections: View {
     init(from decoder: any Decoder) throws {
       let container = try decoder.container(keyedBy: CodingKeys.self)
       id = try container.decode(.id)
-      key = try container.decodeIfPresent(.key)
+      key = container.decodeIfPresent(.key)
       services = container.decodeIfPresent(.services, 0)
       apps = container.decodeIfPresent(.apps, 0)
     }
