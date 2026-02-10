@@ -31,6 +31,9 @@ extension View {
     }
     #endif
   }
+  func modifier<Content: View>(@ViewBuilder _ modifiy: (Self) -> Content) -> Content {
+    modifiy(self)
+  }
 }
 
 struct ActionButtonStyle: ButtonStyle {
