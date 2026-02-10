@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HubClient
 
 struct StoreItem: Identifiable, Codable {
   var id: String
