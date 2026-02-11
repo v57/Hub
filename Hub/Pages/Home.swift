@@ -382,7 +382,7 @@ struct HomeView: View {
           NavigationLink {
             InstallS3().environment(hub)
           } label: {
-            Label("Connect Storage", systemImage: "shippingbox.fill").blockBackground()
+            AppIcon(title: "Files", systemImage: "folder")
           }.buttonStyle(.plain).transition(.home)
         }
       }
