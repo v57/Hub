@@ -114,23 +114,29 @@ struct HomeView: View {
             ServicesView()
           }.buttonStyle(.plain).transition(.home).gridSize(.x22)
         }
-        Button {
-          sheet = .connections
-        } label: {
-          AppIcon(title: "Connections", systemImage: "wifi")
-            .iconBadge(statusBadges.connections)
-        }.buttonStyle(.plain)
-        Button {
-          sheet = .pending
-        } label: {
-          AppIcon(title: "Requests", systemImage: "clock")
-            .iconBadge(statusBadges.security)
-        }.buttonStyle(.plain)
-        Button {
-          sheet = .permissions
-        } label: {
-          AppIcon(title: "Permissions", systemImage: "lock")
-        }.buttonStyle(.plain)
+        if hub.require(permissions: "hub/connections") {
+          Button {
+            sheet = .connections
+          } label: {
+            AppIcon(title: "Connections", systemImage: "wifi")
+              .iconBadge(statusBadges.connections)
+          }.buttonStyle(.plain)
+        }
+        if hub.require(permissions: "hub/host/pending") {
+          Button {
+            sheet = .pending
+          } label: {
+            AppIcon(title: "Requests", systemImage: "clock")
+              .iconBadge(statusBadges.security)
+          }.buttonStyle(.plain)
+        }
+        if hub.require(permissions: "hub/group/list", "hub/group/names") {
+          Button {
+            sheet = .permissions
+          } label: {
+            AppIcon(title: "Permissions", systemImage: "lock")
+          }.buttonStyle(.plain)
+        }
         if hub.require(permissions: "launcher/app/create") {
           NavigationLink {
             StoreView().environment(hub.manager).environment(hub)
