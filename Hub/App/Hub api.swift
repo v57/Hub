@@ -18,6 +18,8 @@ struct HubStateStorage {
   let status = Sync("hub/status", Status(requests: 0, services: []))
   let merge = Sync("hub/merge/status", [Hub.MergeStatus]())
   let hostPending = Sync("hub/host/pending", PendingList())
+  let launcherInfo = Sync("launcher/info", Hub.Launcher.Apps())
+  let launcherStatus = Sync("launcher/status", Hub.Launcher.Status())
   
   @MainActor @Observable
   class Sync<T: Decodable> {

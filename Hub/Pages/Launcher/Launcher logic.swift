@@ -48,16 +48,22 @@ extension Hub {
         try await hub.client.send("launcher/app/settings", UpdateSettings(app: id, settings: settings))
       }
     }
-    struct App: Identifiable, Hashable {
-      let id: String
-      var info: AppInfo?
-      var status: AppStatus?
-    }
     struct Apps: Decodable, Hashable {
-      var apps: [AppInfo]
+      var apps: [AppInfo] = []
     }
     struct Status: Decodable, Hashable {
-      var apps: [AppStatus]
+      var apps: [String: AppStatus] = [:]
+      enum CodingKeys: CodingKey {
+        case apps
+      }
+      init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let apps: [AppStatus] = try container.decode([AppStatus].self, forKey: CodingKeys.apps)
+        for app in apps {
+          self.apps[app.name] = app
+        }
+      }
+      init() { }
     }
     struct AppInfo: Identifiable, Decodable, Hashable {
       var id: String { name }

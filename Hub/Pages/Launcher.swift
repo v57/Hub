@@ -9,71 +9,11 @@ import SwiftUI
 import HubClient
 
 struct LauncherView: View {
-  typealias App = Hub.Launcher.App
-  @MainActor
-  @Observable class Manager {
-    var apps: [App] = []
-    var active: Set<String> = []
-    func syncApps(hub: Hub) async {
-      do {
-        for try await apps: Hub.Launcher.Apps in hub.client.values("launcher/info") {
-          active = Set(apps.apps.map(\.name))
-          var array = self.apps.filter { active.contains($0.id) }
-          var isChanged = array.count != self.apps.count
-          apps.apps.forEach { info in
-            if let index = array.firstIndex(where: { $0.id == info.name }) {
-              if array[index].info != info {
-                isChanged = true
-                array[index].info = info
-              }
-            } else {
-              isChanged = true
-              array.append(.init(id: info.name, info: info))
-            }
-          }
-          if isChanged {
-            EventDelayManager.main.execute {
-              self.apps = array
-            }
-          }
-        }
-      } catch is CancellationError {
-        
-      } catch {
-        print("syncApps", error)
-      }
-    }
-    func syncStatus(hub: Hub) async {
-      do {
-        for try await apps: Hub.Launcher.Status in hub.client.values("launcher/status") {
-          var array = self.apps
-          var isChanged = false
-          apps.apps.forEach { status in
-            guard let index = array.firstIndex(where: { $0.id == status.name }) else { return }
-            guard array[index].status != status else { return }
-            isChanged = true
-            array[index].status = status
-          }
-          if isChanged {
-            EventDelayManager.main.execute {
-              self.apps = array
-            }
-          }
-        }
-      } catch is CancellationError {
-        
-      } catch {
-        print("syncStatus", error)
-      }
-    }
-  }
-  
 #if PRO
   var launcher: Launcher { .main }
 #endif
   @Environment(Hub.self) var hub
   @State var editing: Hub.Launcher.AppInfo?
-  @State var manager = Manager()
   var hasLauncher: Bool { hub.hasLauncher }
   @State var creating = false
   @State var openStore = false
@@ -98,7 +38,7 @@ struct LauncherView: View {
     }.sheet(item: $editing) {
       EditApp(app: $0).environment(hub).frame(minHeight: 300)
     }.navigationDestination(isPresented: $openStore) {
-      StoreView().environment(manager).environment(hub)
+      StoreView().environment(hub)
     }.task(id: task) {
 #if PRO
       if task.isConnected {
@@ -111,35 +51,30 @@ struct LauncherView: View {
         }
       }
 #endif
-    }.task(id: task) {
-      guard task.isConnected else { return }
-      await manager.syncStatus(hub: hub)
-    }.task(id: task) {
-      guard task.isConnected else { return }
-      await manager.syncApps(hub: hub)
-    }.environment(manager)
+    }
   }
   struct ListView: View {
-    @Environment(LauncherView.Manager.self) var manager
     @Binding var editing: Hub.Launcher.AppInfo?
+    @HubState(\.launcherInfo) var info
     var body: some View {
-      ForEach(manager.apps) { app in
+      ForEach(info.apps) { app in
         AppView(app: app, editing: $editing)
       }
     }
   }
   struct ToolbarView: View {
     @Environment(Hub.self) var hub
-    @Environment(LauncherView.Manager.self) var manager
     @Binding var creating: Bool
+    @HubState(\.launcherInfo) var info
+    @HubState(\.launcherStatus) var status
     var updateAvailable: Bool {
-      manager.apps.contains(where: { $0.info?.updateAvailable ?? false })
+      info.apps.contains(where: { $0.updateAvailable })
     }
     var isUpdating: Bool {
-      manager.apps.contains(where: { $0.status?.updating ?? false })
+      status.apps.values.contains(where: { $0.updating ?? false })
     }
     var isCheckingForUpdates: Bool {
-      manager.apps.contains(where: { $0.status?.checkingForUpdates ?? false })
+      status.apps.values.contains(where: { $0.checkingForUpdates ?? false })
     }
     var body: some View {
       if updateAvailable && !isUpdating {
@@ -220,24 +155,28 @@ struct LauncherView: View {
   }
   struct AppView: View {
     @Environment(Hub.self) var hub
-    @Environment(Manager.self) var manager
+    var status: Hub.Launcher.AppStatus? {
+      statuses.apps[app.name]
+    }
     var installationStatus: LocalizedStringKey? {
-      guard let status = app.status else { return nil }
+      guard let status else { return nil }
       if status.updating ?? false {
         return "Updating"
       } else if status.checkingForUpdates ?? false {
         return "Checking for updates"
-      } else if app.info?.updateAvailable ?? false {
+      } else if app.updateAvailable {
         return "Update available"
       } else {
         return nil
       }
     }
-    let app: App
+    @HubState(\.launcherStatus) var statuses
+    let app: Hub.Launcher.AppInfo
     @Binding var editing: Hub.Launcher.AppInfo?
     @State var instances: Int = 0
     @State var showsInstances = false
     var body: some View {
+      let status = status
       HStack(alignment: .top) {
         VStack(alignment: .leading) {
           HStack {
@@ -248,19 +187,19 @@ struct LauncherView: View {
           }
           HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading) {
-              ForEach(app.status?.processes ?? []) { process in
-                status(process: process)
+              ForEach(status?.processes ?? []) { process in
+                statusText(process: process)
               }
             }
-            if (app.status?.processes?.count ?? 0) > 0 {
-              if let date = app.status?.started {
+            if (status?.processes?.count ?? 0) > 0 {
+              if let date = status?.started {
                 Text(date, style: .relative)
               }
             }
           }.secondary()
         }
         Spacer()
-        if showsInstances || (app.info?.instances ?? 0) > 1 {
+        if showsInstances || app.instances > 1 {
           HStack {
             Text("\(instances)").secondary()
 #if !os(tvOS)
@@ -276,36 +215,31 @@ struct LauncherView: View {
           }.buttonStyle(.borderedProminent)
         }
       }.contextMenu {
-        if let info = app.info {
-          if info.active {
-            if let info = app.info, info.instances == 1 {
-              Button("Cluster", systemImage: "list.number") {
-                showsInstances = true
-              }
-            }
-            if let app = app.info {
-              Button("Edit", systemImage: "gear") {
-                editing = app
-              }
-            }
-            AsyncButton("Stop", systemImage: "stop.fill") {
-              try await hub.launcher.app(id: app.id).stop()
-            }
-          } else {
-            AsyncButton("Start", systemImage: "play.fill") {
-              try await hub.launcher.app(id: app.id).start()
-            }
-            AsyncButton("Uninstall", systemImage: "trash.fill", role: .destructive) {
-              try await hub.launcher.app(id: app.id).uninstall()
+        if app.active {
+          if app.instances == 1 {
+            Button("Cluster", systemImage: "list.number") {
+              showsInstances = true
             }
           }
+          Button("Edit", systemImage: "gear") {
+            editing = app
+          }
+          AsyncButton("Stop", systemImage: "stop.fill") {
+            try await hub.launcher.app(id: app.id).stop()
+          }
+        } else {
+          AsyncButton("Start", systemImage: "play.fill") {
+            try await hub.launcher.app(id: app.id).start()
+          }
+          AsyncButton("Uninstall", systemImage: "trash.fill", role: .destructive) {
+            try await hub.launcher.app(id: app.id).uninstall()
+          }
         }
-      }.labelStyle(.titleAndIcon).task(id: app.info?.instances) {
-        guard let info = app.info else { return }
-        instances = info.instances
+      }.labelStyle(.titleAndIcon).task(id: app.instances) {
+        instances = app.instances
       }
     }
-    func status(process: Hub.Launcher.ProcessStatus) -> Text? {
+    func statusText(process: Hub.Launcher.ProcessStatus) -> Text? {
       if let mem = process.memory {
         if let cpu = process.cpu {
           return Text("\(Int(cpu))% \(mem.description)MB")
@@ -318,13 +252,12 @@ struct LauncherView: View {
     }
     func updateInstances() async throws {
       guard instances > 0 else { return }
-      guard let info = app.info else { return }
-      guard instances != info.instances else { return }
+      guard instances != app.instances else { return }
       guard instances <= 1024 else { return }
       if !showsInstances {
         showsInstances = true
       }
-      try await hub.client.send("launcher/app/cluster", SetInstances(name: info.name, count: instances))
+      try await hub.client.send("launcher/app/cluster", SetInstances(name: app.name, count: instances))
     }
     struct SetInstances: Encodable {
       let name: String

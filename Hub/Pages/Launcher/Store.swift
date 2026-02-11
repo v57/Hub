@@ -154,13 +154,13 @@ struct StoreView: View {
     }
   }
   struct ItemView: View {
-    @Environment(LauncherView.Manager.self) var manager
     @Environment(Hub.self) var hub
     let item: StoreItem
     @State var isInstalling = false
     @State var isInstalled = false
+    @HubState(\.launcherInfo) var launcherInfo
     var body: some View {
-      let isInstalled = manager.active.contains(item.name)
+      let isInstalled = launcherInfo.apps.contains { $0.name == item.name }
       HStack {
         IconView(icon: item.icon).frame(width: 44, height: 44)
         VStack(alignment: .leading) {
@@ -239,6 +239,6 @@ struct StoreView: View {
               name: "NginX config",
               shortDescription: "Setup your NginX", type: .app),
   ])
-    .environment(Hub.test).environment(LauncherView.Manager())
+    .environment(Hub.test)
 }
 #endif

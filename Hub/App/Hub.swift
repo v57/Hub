@@ -23,14 +23,14 @@ extension KeyChain {
   let client: HubClient
   var service: HubService { client.service }
   var isConnected: Bool = false
+  var api = Set<String>()
+  var hasLauncher: Bool { require(permissions: "launcher/info") }
+  
+  @ObservationIgnored var appServices: AppServices!
   @ObservationIgnored var connectionTask: AnyCancellable?
   @ObservationIgnored var apiTask: AnyCancellable?
-  var api = Set<String>()
-  var appServices: AppServices!
-  var manager = LauncherView.Manager()
-  var hasLauncher: Bool { require(permissions: "launcher/info") }
-  @ObservationIgnored
-  var state = HubStateStorage()
+  @ObservationIgnored var state = HubStateStorage()
+  
   init(settings: Settings) {
     self.settings = settings
     key = KeyChain.main.publicKey()

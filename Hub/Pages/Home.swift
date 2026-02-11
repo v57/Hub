@@ -94,9 +94,9 @@ struct HomeView: View {
     }
   }
   struct HubSectionContent: View {
-    typealias App = Hub.Launcher.App
     @HubState(\.statusBadges) var statusBadges
     @HubState(\.status) var status
+    @HubState(\.launcherInfo) var launcherInfo
     @Bindable var hub: Hub
     @State private var sheet: Sheet?
     enum Sheet: Identifiable {
@@ -104,7 +104,6 @@ struct HomeView: View {
       case pending, connections, permissions
     }
     var body: some View {
-      let task = LauncherView.TaskId(hub: hub.id, isConnected: hub.isConnected && hub.hasLauncher)
       Text(hub.settings.name).sectionTitle()
       HomeGrid {
         if !status.services.isEmpty {
@@ -139,13 +138,13 @@ struct HomeView: View {
         }
         if hub.require(permissions: "launcher/app/create") {
           NavigationLink {
-            StoreView().environment(hub.manager).environment(hub)
+            StoreView().environment(hub)
           } label: {
             AppIcon(title: "Get Apps", systemImage: "arrow.down.circle.fill")
           }.buttonStyle(.plain).transition(.home)
         }
         Files()
-        ForEach(hub.manager.apps) { app in
+        ForEach(launcherInfo.apps) { app in
           AppView(app: app)
         }
         ShareServicesView().gridSize(.x22)
@@ -157,13 +156,6 @@ struct HomeView: View {
             }.buttonStyle(.plain).transition(.home)
           }
         }
-      }
-      .task(id: task) {
-        guard task.isConnected else { return }
-        await hub.manager.syncStatus(hub: hub)
-      }.task(id: task) {
-        guard task.isConnected else { return }
-        await hub.manager.syncApps(hub: hub)
       }
       .navigationDestination(for: AppHeader.self) { app in
         ServiceView(header: app).environment(hub)
@@ -233,14 +225,18 @@ struct HomeView: View {
     }
     struct AppView: View {
       @Environment(Hub.self) var hub
-      let app: App
+      let app: Hub.Launcher.AppInfo
+      @HubState(\.launcherStatus) var statuses
+      var status: Hub.Launcher.AppStatus? {
+        statuses.apps[app.name]
+      }
       var installationStatus: LocalizedStringKey? {
-        guard let status = app.status else { return nil }
+        guard let status else { return nil }
         if status.updating ?? false {
           return "Updating"
         } else if status.checkingForUpdates ?? false {
           return "Checking for updates"
-        } else if app.info?.updateAvailable ?? false {
+        } else if app.updateAvailable {
           return "Update"
         } else {
           return nil
@@ -249,10 +245,11 @@ struct HomeView: View {
       @State private var targetInstances: Int = 0
       @State private var showsInstances = false
       @State private var editing: Hub.Launcher.AppInfo?
-      var instances: Int { app.info?.instances ?? 0 }
+      var instances: Int { app.instances }
       var body: some View {
         let showsStepper = showsInstances || instances > 1
         let canUpgrade = app.id == "Hub Lite"
+        let status = status
         HStack(alignment: .top) {
           VStack(alignment: .leading) {
             HStack(alignment: .firstTextBaseline) {
@@ -263,15 +260,15 @@ struct HomeView: View {
             Spacer()
             HStack(alignment: .lastTextBaseline) {
               VStack(alignment: .leading) {
-                ForEach(app.status?.processes?.suffix(7) ?? []) { process in
-                  status(process: process)?.transition(.home)
+                ForEach(status?.processes?.suffix(7) ?? []) { process in
+                  statusText(process: process)?.transition(.home)
                 }
-                if app.status?.manyRunning == true {
+                if status?.manyRunning == true {
                   totalStatus()?.foregroundStyle(.primary)
                 }
               }
-              if (app.status?.processes?.count ?? 0) > 0 {
-                if let date = app.status?.started {
+              if (status?.processes?.count ?? 0) > 0 {
+                if let date = status?.started {
                   Spacer()
                   VStack(alignment: .trailing) {
 #if !os(tvOS)
@@ -304,56 +301,49 @@ struct HomeView: View {
             Text(installationStatus).badgeStyle()
           }
         }.blockBackground().contextMenu {
-          if let info = app.info {
-            if info.active {
-              if let info = app.info, info.instances == 1 {
-                Button("Cluster", systemImage: "list.number") {
-                  withAnimation {
-                    showsInstances.toggle()
-                  }
+          if app.active {
+            if app.instances == 1 {
+              Button("Cluster", systemImage: "list.number") {
+                withAnimation {
+                  showsInstances.toggle()
                 }
               }
-              AsyncButton("Restart", systemImage: "arrow.clockwise") {
-                try await hub.launcher.app(id: app.id).restart()
-              }
-              if let app = app.info {
-                Button("Settings", systemImage: "gear") {
-                  editing = app
-                }
-              }
-              AsyncButton("Stop", systemImage: "stop.fill") {
-                try await hub.launcher.app(id: app.id).stop()
-              }
-            } else {
-              AsyncButton("Start", systemImage: "play.fill") {
-                try await hub.launcher.app(id: app.id).start()
-              }
-              if let app = app.info {
-                Button("Settings", systemImage: "gear") {
-                  editing = app
-                }
-              }
-              AsyncButton("Uninstall", systemImage: "trash.fill", role: .destructive) {
-                try await hub.launcher.app(id: app.id).uninstall()
-              }
+            }
+            AsyncButton("Restart", systemImage: "arrow.clockwise") {
+              try await hub.launcher.app(id: app.id).restart()
+            }
+            Button("Settings", systemImage: "gear") {
+              editing = app
+            }
+            AsyncButton("Stop", systemImage: "stop.fill") {
+              try await hub.launcher.app(id: app.id).stop()
+            }
+          } else {
+            AsyncButton("Start", systemImage: "play.fill") {
+              try await hub.launcher.app(id: app.id).start()
+            }
+            Button("Settings", systemImage: "gear") {
+              editing = app
+            }
+            AsyncButton("Uninstall", systemImage: "trash.fill", role: .destructive) {
+              try await hub.launcher.app(id: app.id).uninstall()
             }
           }
         }.sheet(item: $editing) {
           EditApp(app: $0).environment(hub).frame(minHeight: 300)
-        }.labelStyle(.titleAndIcon).task(id: app.info?.instances) {
-          guard let info = app.info else { return }
-          targetInstances = info.instances
+        }.labelStyle(.titleAndIcon).task(id: app.instances) {
+          targetInstances = app.instances
         }.gridSize(showsStepper || canUpgrade ? .x22 : .x21)
       }
       func totalStatus() -> Text? {
-        guard let mem = app.status?.totalMemory else { return nil }
-        if let cpu = app.status?.totalCpu {
+        guard let mem = status?.totalMemory else { return nil }
+        if let cpu = status?.totalCpu {
           return Text("\(Int(cpu))% \(Int(mem))MB")
         } else {
           return Text("\(Int(mem))MB")
         }
       }
-      func status(process: Hub.Launcher.ProcessStatus) -> Text? {
+      func statusText(process: Hub.Launcher.ProcessStatus) -> Text? {
         if let mem = process.memory {
           if let cpu = process.cpu {
             return Text("\(Int(cpu))% \(Int(mem))MB")
@@ -366,13 +356,12 @@ struct HomeView: View {
       }
       func updateInstances() async throws {
         guard targetInstances > 0 else { return }
-        guard let info = app.info else { return }
-        guard targetInstances != info.instances else { return }
+        guard targetInstances != app.instances else { return }
         guard targetInstances <= 1024 else { return }
         if !showsInstances {
           showsInstances = true
         }
-        try await hub.client.send("launcher/app/cluster", LauncherView.AppView.SetInstances(name: info.name, count: targetInstances))
+        try await hub.client.send("launcher/app/cluster", LauncherView.AppView.SetInstances(name: app.name, count: targetInstances))
       }
     }
     struct Files: View {
