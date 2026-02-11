@@ -252,6 +252,7 @@ struct HomeView: View {
       var instances: Int { app.info?.instances ?? 0 }
       var body: some View {
         let showsStepper = showsInstances || instances > 1
+        let canUpgrade = app.id == "Hub Lite"
         HStack(alignment: .top) {
           VStack(alignment: .leading) {
             HStack(alignment: .firstTextBaseline) {
@@ -292,7 +293,7 @@ struct HomeView: View {
                 Text("Not running")
               }
             }.secondary()
-            if app.id == "Hub Lite" {
+            if canUpgrade {
               AsyncButton("Upgrade to Pro") {
                 try await hub.launcher.pro(KeyChain.main.publicKey())
               }.buttonStyle(.borderedProminent)
@@ -342,7 +343,7 @@ struct HomeView: View {
         }.labelStyle(.titleAndIcon).task(id: app.info?.instances) {
           guard let info = app.info else { return }
           targetInstances = info.instances
-        }.gridSize(showsStepper ? .x22 : .x21)
+        }.gridSize(showsStepper || canUpgrade ? .x22 : .x21)
       }
       func totalStatus() -> Text? {
         guard let mem = app.status?.totalMemory else { return nil }
