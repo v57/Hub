@@ -60,9 +60,6 @@ extension KeyChain {
 struct Status: Decodable, Hashable {
   let requests: Int
   let services: [Service]
-  var hasStorage: Bool {
-    services.contains(where: { $0.services > 0 && $0.name.starts(with: "s3/") })
-  }
   struct Service: Decodable, Hashable {
     let name: String
     let services: Int

@@ -104,6 +104,8 @@ struct PendingList: Decodable {
 
 extension Hub {
   var host: HostApi { HostApi(hub: self) }
+  var hasStorage: Bool { require(permissions: "s3/read/directory") }
+  var canInstall: Bool { require(permissions: "launcher/app/create") }
   struct HostApi {
     let hub: Hub
     @MainActor

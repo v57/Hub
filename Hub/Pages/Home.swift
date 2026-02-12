@@ -95,7 +95,6 @@ struct HomeView: View {
   }
   struct HubSectionContent: View {
     @HubState(\.statusBadges) var statusBadges
-    @HubState(\.status) var status
     @HubState(\.launcherInfo) var launcherInfo
     @Bindable var hub: Hub
     @State private var sheet: Sheet?
@@ -106,7 +105,7 @@ struct HomeView: View {
     var body: some View {
       Text(hub.settings.name).sectionTitle()
       HomeGrid {
-        if !status.services.isEmpty {
+        if statusBadges.services == 0 {
           NavigationLink {
             Services().environment(hub)
           } label: {
@@ -366,15 +365,14 @@ struct HomeView: View {
     }
     struct Files: View {
       @Environment(Hub.self) var hub
-      @HubState(\.status) var status
       var body: some View {
-        if status.hasStorage {
+        if hub.hasStorage {
           NavigationLink {
             StorageView().environment(hub)
           } label: {
             AppIcon(title: "Files", systemImage: "folder")
           }.buttonStyle(.plain).transition(.home)
-        } else if hub.require(permissions: "launcher/app/create") {
+        } else if hub.canInstall {
           NavigationLink {
             InstallS3().environment(hub)
           } label: {
