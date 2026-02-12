@@ -575,7 +575,7 @@ struct HomeView: View {
       .contentTransition(.symbolEffect).font(.system(size: 32, weight: .semibold, design: .rounded))
       .blockBackground().overlay(alignment: .top) {
         if let badge {
-          badge.font(.caption.bold()).padding(.horizontal, 6)
+          badge.foregroundStyle(.white).font(.caption.bold()).padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(badgeColor, in: .capsule)
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -627,15 +627,6 @@ extension View {
   func blockBackground(_ radius: CGFloat = 16) -> some View {
     self.modifier(BlockStyle(cornerRadius: radius))
   }
-  func blurBackground(_ radius: CGFloat = 16) -> some View {
-    background {
-      RoundedRectangle(cornerRadius: radius)
-        .fill(.regularMaterial)
-        .strokeBorder(LinearGradient(colors: [.clear, .white.opacity(0.2), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
-      
-      .shadow(radius: 12)
-    }
-  }
 }
 struct SectionTitleModifier: ViewModifier {
   @Environment(\.homeGridSpacing) var spacing
@@ -677,7 +668,7 @@ struct BlockStyle: ViewModifier {
         content
       }
       .compositingGroup()
-      .shadow(radius: 12)
+      .shadow(color: .black.opacity(0.2), radius: 12)
       .modifier {
         #if os(macOS)
         $0
