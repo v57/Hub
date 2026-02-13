@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import HubClient
 
 struct UnknownValueError: Error { }
 
