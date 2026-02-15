@@ -36,6 +36,9 @@ class ServiceApp {
         if let body = event.body {
           self.app.body = body
         }
+        if let data = event.data {
+          self.data = data
+        }
       }
     } catch {
       print(error)
