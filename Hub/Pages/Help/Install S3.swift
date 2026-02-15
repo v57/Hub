@@ -11,43 +11,50 @@ struct InstallS3: View {
   typealias CodeView = InstallationGuide.CodeView
   @Environment(Hub.self) var hub
   enum Guide {
-    case wasabi, local, manual
+    case host, local, manual
   }
   @State var installer = Installer()
-  @State var guide: Guide = .manual
+  @State var guide: Guide = .local
+  @State var open = false
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading) {
-        switch guide {
-        case .local:
-          Local()
-        case .wasabi:
-          Wasabi()
-        case .manual:
-          Manual()
-        }
-      }.frame(maxWidth: .infinity, alignment: .leading).toolbar {
-        Picker("Storage Options", selection: $guide) {
-          Text("Wasabi").tag(Guide.wasabi)
-          Text("Local").tag(Guide.local)
-          Text("Manual").tag(Guide.manual)
-        }.pickerStyle(.segmented)
-      }.safeAreaPadding(.horizontal)
-    }.task {
-      installer.set(hub: hub)
-    }.navigationTitle("Connect Storage").environment(installer)
+    if open {
+      StorageView().transition(.blurReplace)
+    } else {
+      ScrollView {
+        VStack(alignment: .leading) {
+          Picker("Storage Options", selection: $guide) {
+            Text("Local").tag(Guide.local)
+            Text("Cloud").tag(Guide.host)
+            Text("Connect").tag(Guide.manual)
+          }.pickerStyle(.segmented).labelsHidden()
+          switch guide {
+          case .local:
+            Share(open: $open)
+          case .manual:
+            Connect(open: $open)
+          case .host:
+            Host(open: $open)
+          }
+        }.frame(maxWidth: .infinity, alignment: .leading).safeAreaPadding(.horizontal)
+      }.task {
+        installer.set(hub: hub)
+      }.navigationTitle("Connect Storage").environment(installer)
+        .transition(.blurReplace)
+    }
   }
-  struct Wasabi: View {
-    @Environment(Installer.self) var installer
-    @State var bucketName: String = ""
-    @State var region: Region?
-    @State var accessKey: String = ""
-    @State var secretKey: String = ""
-    var isReady: Bool {
+  struct Host: View {
+    @Environment(Installer.self) private var installer
+    @State private var bucketName: String = ""
+    @State private var region: Region?
+    @State private var accessKey: String = ""
+    @State private var secretKey: String = ""
+    private var isReady: Bool {
       !bucketName.isEmpty && region != nil && !accessKey.isEmpty && !secretKey.isEmpty
     }
+    
+    @Binding var open: Bool
     var body: some View {
-      Section(number: 0, title: "Wasabi Pricing") {
+      Section(number: 0, title: "Wasabi Cloud Storage") {
         HStack {
           Text("30 day trial")
             .padding(.horizontal, 12)
@@ -58,8 +65,11 @@ struct InstallS3: View {
             .padding(.vertical, 4)
             .background(Color(.secondarySystemFill).opacity(0.4), in: .capsule)
         }.fontWeight(.medium)
-        Text("Hub is not associated with Wasabi")
-        Text("I think Wasabi is the cheapest S3 service on the market. If you know any better, please leave a message in Discord and i will replace it in the next update!")
+        VStack(alignment: .leading) {
+          Text("Hub is not associated with Wasabi")
+          Text("I think Wasabi is the cheapest S3 service on the market")
+          Text("If you know any better, please leave a message in Discord and i will replace it in the next update!")
+        }.secondary()
       }
       Section(number: 1, title: "Create account") {
         Text("""
@@ -186,59 +196,110 @@ struct InstallS3: View {
       }.padding(.top)
     }
   }
-  struct Local: View {
-    @Environment(Installer.self) var installer
-    @State var bucketName: String = "Hub"
-    @State var endpoint: String = "http://127.0.0.1:9000"
-    @State var accessKey: String = "minioadmin"
-    @State var secretKey: String = "minioadmin"
+  struct Share: View {
+    @Environment(Installer.self) private var installer
+    @Environment(Hub.self) private var hub
+    @HubState(\.launcherInfo) private var info
+    @HubState(\.hostPending) private var pending
+    @State private var running = false
+    @State private var testFailed: Bool?
+    
+    @Binding var open: Bool
     var body: some View {
-      Section(number: 0, title: "Install locally using minio") {
-        HStack {
-          Text("Free")
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(Color(.secondarySystemFill).opacity(0.4), in: .capsule)
-        }.fontWeight(.medium)
-        Text("[Documentation for installation](https://www.min.io/download)")
-      }
-      Section(number: 1, title: "Install MinIO (macOS)") {
-        CodeView("brew install minio/aistor/minio")
-      }
-      Section(number: 2, title: "Start MinIO (macOS)") {
-        Button("Generate random password", systemImage: "dice.fill") {
-          accessKey = .random()
-          secretKey = .random()
+      Text("Share your local directory").font(.title3).fontWeight(.bold)
+      Text("Install storage service from your **Hub Launcher**")
+      CodeView(title: "Shared Directory", "~/Hub/Files")
+      Text("Only this directory will be shared")
+      let status = status
+      ZStack {
+        if let error = status.error {
+          Text(error).foregroundStyle(.red).transition(.blurReplace)
+        } else if let title = status.action(running: running) {
+          AsyncButton(title) {
+            try await action(status: status)
+          }.transition(.blurReplace).buttonStyle(.borderedProminent)
         }
-        CodeView("""
-          MINIO_ROOT_USER=\(accessKey)
-          MINIO_ROOT_PASSWORD=\(secretKey)
-          mkdir -p ~/Storage/Hub
-          minio server ~/Storage
-          """)
+      }.contentTransition(.numericText()).animation(.smooth, value: status)
+    }
+    var canCreate: Bool { hub.require(permissions: "launcher/app/create") }
+    var canReadFiles: Bool { hub.require(permissions: "s3/read") }
+    var canAllow: Bool { hub.require(permissions: "hub/host/update") }
+    var pendingItem: PendingList.Item? {
+      pending.list.last(where: { $0.pending.first?.starts(with: "s3") ?? false } )
+    }
+    var status: Status {
+      if canReadFiles {
+        if let testFailed {
+          return testFailed ? .test : .tested
+        } else {
+          return .test
+        }
+      } else {
+        guard canCreate else { return .cantCreate }
+        if let pendingItem {
+          if canAllow {
+            return .allow(pendingItem)
+          } else {
+            return .cantAllow
+          }
+        } else {
+          return .create
+        }
       }
-      Text("Enter address that can be accessed by your clients and services")
-        .secondary().padding(.leading)
-      TextField("Address", text: $endpoint)
-      TextField("Bucket name", text: $bucketName)
-      TextField("Access Key", text: $accessKey)
-      TextField("Secret Key", text: $secretKey)
-      CreationButtons(settings: settings)
     }
-    var isReady: Bool {
-      !bucketName.isEmpty && !endpoint.isEmpty && !accessKey.isEmpty && !secretKey.isEmpty
+    func action(status: Status) async throws {
+      guard !running else { return }
+      running = true
+      testFailed = false
+      defer { running = false }
+      switch status {
+      case .create:
+        try await hub.launcher.createLocal()
+      case .allow(let item):
+        try await hub.host.allow(key: item.id, paths: item.pending)
+      case .test:
+        do {
+          try await hub.client.send("s3/list")
+          testFailed = false
+        } catch {
+          testFailed = true
+        }
+      case .tested:
+        withAnimation {
+          open = true
+        }
+      case .cantCreate: break
+      case .cantAllow: break
+      }
     }
-    var settings: Hub.Launcher.AppSettings? {
-      return isReady ? .s3(access: accessKey, secret: secretKey, region: "", endpoint: endpoint, bucket: bucketName) : nil
+    enum Status: Hashable {
+      case create, allow(PendingList.Item), test, tested, cantCreate, cantAllow
+      func action(running: Bool) -> LocalizedStringKey? {
+        switch self {
+        case .create: running ? "Creating..." : "Create"
+        case .allow: running ? "Allowing..." : "Allow"
+        case .test: running ? "Testing..." : "Test"
+        case .tested: "Open Files"
+        case .cantCreate, .cantAllow: nil
+        }
+      }
+      var error: LocalizedStringKey? {
+        switch self {
+        case .create, .allow, .test, .tested: nil
+        case .cantCreate: "You don't have permissions to install services"
+        case .cantAllow: "Ask hub owner to give access to Local Storage service"
+        }
+      }
     }
   }
-  struct Manual: View {
-    @Environment(Installer.self) var installer
-    @State var bucketName: String = ""
-    @State var region: String = ""
-    @State var endpoint: String = ""
-    @State var accessKey: String = ""
-    @State var secretKey: String = ""
+  struct Connect: View {
+    @Environment(Installer.self) private var installer
+    @State private var bucketName: String = ""
+    @State private var region: String = ""
+    @State private var endpoint: String = ""
+    @State private var accessKey: String = ""
+    @State private var secretKey: String = ""
+    @Binding var open: Bool
     var body: some View {
       Text("Use this page if you use other S3 services like AWS, Azure, Google Cloud and so on")
       TextField("Endpoint", text: $endpoint)
@@ -248,10 +309,10 @@ struct InstallS3: View {
       TextField("Secret Key", text: $secretKey)
       CreationButtons(settings: settings)
     }
-    var isReady: Bool {
+    private var isReady: Bool {
       !bucketName.isEmpty && !endpoint.isEmpty && !accessKey.isEmpty && !secretKey.isEmpty
     }
-    var settings: Hub.Launcher.AppSettings? {
+    private var settings: Hub.Launcher.AppSettings? {
       return isReady ? .s3(access: accessKey, secret: secretKey, region: region, endpoint: endpoint, bucket: bucketName) : nil
     }
   }
@@ -374,6 +435,10 @@ extension Hub.Launcher {
     } else {
       try await create(.init(name: id, active: true, restarts: true, setup: .bun(.init(repo: "v57/hub-s3", commit: nil, command: nil)), settings: settings))
     }
+  }
+  @MainActor
+  func createLocal() async throws {
+    try await create(.init(name: "Local Storage", active: true, restarts: true, setup: .bun(.init(repo: "v57/hub-s3-local", commit: nil, command: nil)), settings: nil))
   }
 }
 

@@ -91,7 +91,7 @@ struct PendingList: Decodable {
       .map { Item(id: $0.key, pending: $0.value.sorted()) }
       .sorted(by: { $0.id < $1.id })
   }
-  struct Item: Identifiable {
+  struct Item: Identifiable, Hashable {
     let id: String
     let pending: [String]
     var name: String {

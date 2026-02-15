@@ -61,9 +61,11 @@ struct InstallationGuide: View {
     }.navigationTitle("Installation Guide")
   }
   struct CodeView: View {
+    let title: LocalizedStringKey
     let code: String
     @State var copied: Bool = false
-    init(_ code: String) {
+    init(title: LocalizedStringKey = "Terminal", _ code: String) {
+      self.title = title
       self.code = code
     }
     var body: some View {
@@ -85,7 +87,7 @@ struct InstallationGuide: View {
           .contentTransition(.symbolEffect)
       }
       .padding().overlay(alignment: .topLeading) {
-        Text("Terminal").padding(.leading).padding(.top, 4)
+        Text(title).padding(.leading).padding(.top, 4)
           .font(.caption2)
           .foregroundStyle(.green.opacity(0.7))
       }.foregroundStyle(.green)
