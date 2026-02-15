@@ -58,6 +58,17 @@ class ServiceApp {
 
 
 extension Element: @retroactive View {
+  struct AppState: DynamicProperty {
+    @Environment(ServiceApp.self) var app
+    @Environment(NestedList.self) var nested: NestedList?
+    func translate(_ value: String) -> String? {
+      value.staticText ?? self.value(value)
+    }
+    func value(_ value: String) -> String? {
+      nested?.data?[value]?.string ?? app.data[value]?.string
+    }
+  }
+  
   @ViewBuilder
   public var body: some View {
     switch self {
@@ -73,16 +84,9 @@ extension Element: @retroactive View {
   }
   struct TextView: View {
     let value: Text
-    @Environment(ServiceApp.self) var app
-    @Environment(NestedList.self) var nested: NestedList?
+    let state = AppState()
     var body: some View {
-      if let text = value.value.staticText {
-        if value.secondary {
-          SwiftUI.Text(text).textSelection().secondary()
-        } else {
-          SwiftUI.Text(text).textSelection()
-        }
-      } else if let text = nested?.data?[value.value]?.string ?? app.data[value.value]?.string {
+      if let text = state.translate(value.value) {
         if value.secondary {
           SwiftUI.Text(text).textSelection().secondary()
         } else {
@@ -96,20 +100,19 @@ extension Element: @retroactive View {
     @State var text: String = ""
     @State var disableUpdates = true
     @Environment(Hub.self) var hub
-    @Environment(ServiceApp.self) var app
-    @Environment(NestedList.self) var nested: NestedList?
+    let state = AppState()
     var body: some View {
-      let state = nested?.data?[value.value]?.string ?? app.data[value.value]?.string
+      let data = state.value(value.value)
       SwiftUI.TextField(value.placeholder, text: $text)
-        .task(id: state) {
-          if let state, state != text {
+        .task(id: data) {
+          if let data, data != text {
             disableUpdates = true
-            text = state
+            text = data
           }
         }.task(id: text) {
           if !disableUpdates {
-            app.store(.string(text), for: value.value, nested: nested)
-            try? await value.action?.perform(hub: hub, app: app, nested: nested)
+            state.app.store(.string(text), for: value.value, nested: state.nested)
+            try? await value.action?.perform(hub: hub, app: state.app, nested: state.nested)
           } else {
             disableUpdates = false
           }
@@ -142,11 +145,12 @@ extension Element: @retroactive View {
   struct ButtonView: View {
     let value: Button
     @Environment(Hub.self) var hub
-    @Environment(ServiceApp.self) var app
-    @Environment(NestedList.self) var nested: NestedList?
+    let state = AppState()
     var body: some View {
-      AsyncButton(value.title) {
-        try await value.action.perform(hub: hub, app: app, nested: nested)
+      if let title = state.translate(value.title) {
+        AsyncButton(title) {
+          try await value.action.perform(hub: hub, app: state.app, nested: state.nested)
+        }
       }
     }
   }
