@@ -442,8 +442,8 @@ struct HomeView: View {
           Text(hub.settings.name)
           Spacer()
           if #available(macOS 15.0, iOS 18.0, *) {
-            Image(systemName: "wifi")
-              .symbolEffect(.variableColor.iterative.dimInactiveLayers.reversing, options: .repeat(.continuous), isActive: !hub.isConnected)
+            Image(systemName: "wifi", variableValue: hub.isConnected ? 1 : 0)
+              .symbolEffect(.variableColor.iterative.dimInactiveLayers.reversing, options: .repeat(3), isActive: !hub.isConnected)
           }
         }.font(.callout.weight(.semibold))
         Spacer()
@@ -581,6 +581,7 @@ struct HomeView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.horizontal, -4)
             .offset(y: -4)
+            .transition(.blurReplace)
         }
       }.overlay {
           GeometryReader { view in
