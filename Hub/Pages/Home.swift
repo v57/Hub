@@ -286,7 +286,7 @@ struct HomeView: View {
                   }
                 }
               } else {
-                Text("Not running").transition(.blurReplace)
+                Text(app.active ? "Not running" : "Stopped").transition(.blurReplace)
               }
             }.secondary()
             if canUpgrade {
@@ -350,7 +350,7 @@ struct HomeView: View {
             return Text("\(Int(mem))MB")
           }
         } else {
-          return Text("Not running")
+          return Text("Active")
         }
       }
       func updateInstances() async throws {
