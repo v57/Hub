@@ -260,7 +260,7 @@ struct HomeView: View {
             HStack(alignment: .lastTextBaseline) {
               VStack(alignment: .leading) {
                 ForEach(status?.processes?.suffix(7) ?? []) { process in
-                  statusText(process: process)?.transition(.home)
+                  statusText(process: process)?.transition(.blurReplace)
                 }
                 if status?.manyRunning == true {
                   totalStatus()?.foregroundStyle(.primary)
@@ -277,7 +277,7 @@ struct HomeView: View {
                         Stepper("Instances", value: $targetInstances, in: 1...1024)
                           .labelsHidden()
                           .task(id: targetInstances) { try? await updateInstances() }
-                      }.transition(.home)
+                      }.transition(.blurReplace)
                     }
 #endif
                     TimelineView(.everyMinute) { timeline in
@@ -286,7 +286,7 @@ struct HomeView: View {
                   }
                 }
               } else {
-                Text("Not running")
+                Text("Not running").transition(.blurReplace)
               }
             }.secondary()
             if canUpgrade {
