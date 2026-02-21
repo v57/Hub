@@ -114,6 +114,7 @@ extension Hub {
 
 @MainActor class EventDelayManager {
   static let main = EventDelayManager()
+  var animate = true
   var isWaiting = false
   var pending: [() -> ()] = []
   func execute(_ action: @escaping () -> ()) {
@@ -124,11 +125,15 @@ extension Hub {
     }
   }
   func wait() async throws {
-    try await Task.sleep(for: .milliseconds(500))
+    try await Task.sleep(for: .milliseconds(animate ? 500 : 3000))
     isWaiting = false
     let pending = self.pending
     self.pending = []
-    withAnimation(.home) {
+    if animate {
+      withAnimation(.home) {
+        pending.forEach { $0() }
+      }
+    } else {
       pending.forEach { $0() }
     }
   }

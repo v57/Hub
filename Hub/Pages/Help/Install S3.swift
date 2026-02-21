@@ -219,7 +219,7 @@ struct InstallS3: View {
             try await action(status: status)
           }.transition(.blurReplace).buttonStyle(.borderedProminent)
         }
-      }.contentTransition(.numericText()).animation(.smooth, value: status)
+      }.contentTransition(.numericText())
     }
     var canCreate: Bool { hub.require(permissions: "launcher/app/create") }
     var canReadFiles: Bool { hub.require(permissions: "s3/read") }

@@ -26,8 +26,12 @@ import Foundation
 import AppKit
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-  func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-    return true
+  func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+  func applicationDidBecomeActive(_ notification: Notification) {
+    EventDelayManager.main.animate = true
+  }
+  func applicationDidResignActive(_ notification: Notification) {
+    EventDelayManager.main.animate = false
   }
 }
 #endif
