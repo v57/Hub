@@ -18,7 +18,7 @@ extension EnvironmentValues {
 }
 
 struct HomeGrid: Layout {
-  static var minSpacing: Int { 12 }
+  static var minSpacing: Int { 32 }
   static var size: Int { 68 }
   static func spacing(width: CGFloat) -> CGFloat {
     widthAndSpacing(proposal: ProposedViewSize(width: width, height: nil)).1
@@ -56,8 +56,8 @@ struct HomeGrid: Layout {
     for i in 0..<min(subviews.count, cache.data.count) {
       let position = cache.data[i].float
       let p = CGPoint(x: position.x * (size + spacing) + spacing + bounds.minX, y: position.y * (size + spacing) + bounds.minY)
-      let width = CGFloat((size+spacing)*position.w - spacing)
-      let height = CGFloat((size+spacing)*position.h - spacing)
+      let width = CGFloat((size + spacing) * position.w - spacing).rounded(.up)
+      let height = CGFloat((size + spacing) * position.h - spacing).rounded(.up)
       let s = ProposedViewSize(width: width, height: height)
       subviews[i].place(at: p, proposal: s)
     }

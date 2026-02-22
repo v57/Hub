@@ -36,7 +36,6 @@ struct HomeView: View {
             SupportView()
           }.padding(.top).animation(.home, value: isFocusing)
             .animation(.home, value: hubs.list.count)
-            .safeAreaPadding(.horizontal, 8)
             .animation(.smooth, value: view.size.width)
         }.environment(\.homeGridSpacing, HomeGrid.spacing(width: view.size.width - 16))
       }.navigationTitle("Home")
