@@ -13,20 +13,30 @@ extension View {
   }
 }
 enum KeyboardStyle: ViewModifier {
-  case url
+  case url, code
   func body(content: Content) -> some View {
     switch self {
     case .url:
 #if os(macOS)
       content
         .textContentType(.URL)
-        .disableAutocorrection(true)
+        .autocorrectionDisabled()
 #else
       content
         .textContentType(.URL)
-        .disableAutocorrection(true)
         .keyboardType(.URL)
-        .autocapitalization(.none)
+        .autocorrectionDisabled()
+        .textInputAutocapitalization(.never)
+#endif
+    case .code:
+#if os(macOS)
+      content
+        .autocorrectionDisabled()
+#else
+      content
+        .autocorrectionDisabled()
+        .textInputAutocapitalization(.never)
+        .keyboardType(.asciiCapable)
 #endif
     }
   }

@@ -85,7 +85,7 @@ struct InstallS3: View {
 4. Select server
 5. Fill data in the fields below
 """)
-        TextField("Bucket Name", text: $bucketName)
+        TextField("Bucket Name", text: $bucketName).keyboard(style: .code)
           .frame(maxWidth: 400)
         Picker("Server region", selection: $region) {
           ForEach(Region.allCases, id: \.self) { region in
@@ -101,7 +101,9 @@ struct InstallS3: View {
 4. Enter **Access Key** and **Secret Key** in the fields below 
 """)
         TextField("Access Key", text: $accessKey).frame(maxWidth: 400)
+          .keyboard(style: .code)
         TextField("Secret Key", text: $secretKey).frame(maxWidth: 400)
+          .keyboard(style: .code)
         CreationButtons(settings: settings)
       }
     }
@@ -302,11 +304,11 @@ struct InstallS3: View {
     @Binding var open: Bool
     var body: some View {
       Text("Use this page if you use other S3 services like AWS, Azure, Google Cloud and so on")
-      TextField("Endpoint", text: $endpoint)
-      TextField("Region", text: $region)
-      TextField("Bucket name", text: $bucketName)
-      TextField("Access Key", text: $accessKey)
-      TextField("Secret Key", text: $secretKey)
+      TextField("Endpoint", text: $endpoint).keyboard(style: .url)
+      TextField("Region", text: $region).keyboard(style: .code)
+      TextField("Bucket name", text: $bucketName).keyboard(style: .code)
+      TextField("Access Key", text: $accessKey).keyboard(style: .code)
+      TextField("Secret Key", text: $secretKey).keyboard(style: .code)
       CreationButtons(settings: settings)
     }
     private var isReady: Bool {

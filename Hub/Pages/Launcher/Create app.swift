@@ -55,7 +55,7 @@ struct CreateApp: View {
           TextField("Uninstall script", text: $uninstall, axis: .vertical)
             .lineLimit(3...100)
           TextField("Launch command", text: $launch)
-        }.fontDesign(.monospaced)
+        }.fontDesign(.monospaced).keyboard(style: .code)
       }
       Toggle("Restart on crash", isOn: $restarts)
     }.frame(maxHeight: .infinity, alignment: .top)

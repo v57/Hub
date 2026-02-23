@@ -89,7 +89,7 @@ struct EditApp: View {
         TextField("Key", text: $env.key)
           .frame(width: 80)
         TextField("Value", text: $env.value)
-      }
+      }.keyboard(style: .code)
     }
   }
   struct SecretView: View {
