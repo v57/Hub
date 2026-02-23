@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import HubClient
+import HubService
 
 enum OnlineStatus: Comparable {
   case online, unauthorized, offline

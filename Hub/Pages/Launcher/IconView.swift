@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import HubClient
+import HubService
 
 extension Icon {
   func body(dark: Bool) -> some View {

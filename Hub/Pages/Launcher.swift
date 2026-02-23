@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import HubClient
+import HubService
 
 struct LauncherView: View {
 #if PRO

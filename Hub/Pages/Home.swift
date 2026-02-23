@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import HubClient
+import HubService
 
 struct HomeView: View {
   typealias StatusBadges = ContentView.StatusBadges

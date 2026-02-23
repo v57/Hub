@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import HubClient
+import HubService
 
 struct PendingListView: View {
   @Environment(Hub.self) private var hub

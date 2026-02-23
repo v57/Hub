@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import HubClient
+import HubService
 
 struct UserConnections: View {
   @Environment(Hub.self) private var hub

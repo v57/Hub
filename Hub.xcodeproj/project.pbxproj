@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		13C54CA92D638FB6000C4CA5 /* HubClient in Frameworks */ = {isa = PBXBuildFile; productRef = 13C54CA82D638FB6000C4CA5 /* HubClient */; };
-		13F573AC2D68EE24008546EB /* HubClient in Frameworks */ = {isa = PBXBuildFile; productRef = 13F573AB2D68EE24008546EB /* HubClient */; };
+		132DD8B82F4CDDE300282A30 /* HubService in Frameworks */ = {isa = PBXBuildFile; productRef = 132DD8B72F4CDDE300282A30 /* HubService */; };
+		132DD8BA2F4CDDEB00282A30 /* HubService in Frameworks */ = {isa = PBXBuildFile; productRef = 132DD8B92F4CDDEB00282A30 /* HubService */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,7 +29,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				13C54CA92D638FB6000C4CA5 /* HubClient in Frameworks */,
+				132DD8B82F4CDDE300282A30 /* HubService in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				13F573AC2D68EE24008546EB /* HubClient in Frameworks */,
+				132DD8BA2F4CDDEB00282A30 /* HubService in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -89,7 +89,7 @@
 			);
 			name = Hub;
 			packageProductDependencies = (
-				13C54CA82D638FB6000C4CA5 /* HubClient */,
+				132DD8B72F4CDDE300282A30 /* HubService */,
 			);
 			productName = Hub;
 			productReference = 13C54C712D638AA1000C4CA5 /* Hub.app */;
@@ -112,7 +112,7 @@
 			);
 			name = "Hub Pro";
 			packageProductDependencies = (
-				13F573AB2D68EE24008546EB /* HubClient */,
+				132DD8B92F4CDDEB00282A30 /* HubService */,
 			);
 			productName = HubAdmin;
 			productReference = 13F5738E2D68EDB4008546EB /* Hub Pro.app */;
@@ -146,7 +146,7 @@
 			mainGroup = 13C54C682D638AA1000C4CA5;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				13C54CA72D638FB6000C4CA5 /* XCRemoteSwiftPackageReference "HubClient" */,
+				132DD8B62F4CDDE300282A30 /* XCRemoteSwiftPackageReference "HubService" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 13C54C722D638AA1000C4CA5 /* Products */;
@@ -519,9 +519,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		13C54CA72D638FB6000C4CA5 /* XCRemoteSwiftPackageReference "HubClient" */ = {
+		132DD8B62F4CDDE300282A30 /* XCRemoteSwiftPackageReference "HubService" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/v57/HubClient";
+			repositoryURL = "https://github.com/v57/HubService";
 			requirement = {
 				branch = main;
 				kind = branch;
@@ -530,15 +530,15 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		13C54CA82D638FB6000C4CA5 /* HubClient */ = {
+		132DD8B72F4CDDE300282A30 /* HubService */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 13C54CA72D638FB6000C4CA5 /* XCRemoteSwiftPackageReference "HubClient" */;
-			productName = HubClient;
+			package = 132DD8B62F4CDDE300282A30 /* XCRemoteSwiftPackageReference "HubService" */;
+			productName = HubService;
 		};
-		13F573AB2D68EE24008546EB /* HubClient */ = {
+		132DD8B92F4CDDEB00282A30 /* HubService */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 13C54CA72D638FB6000C4CA5 /* XCRemoteSwiftPackageReference "HubClient" */;
-			productName = HubClient;
+			package = 132DD8B62F4CDDE300282A30 /* XCRemoteSwiftPackageReference "HubService" */;
+			productName = HubService;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

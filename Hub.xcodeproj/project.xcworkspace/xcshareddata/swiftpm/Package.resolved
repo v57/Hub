@@ -1,5 +1,5 @@
 {
-  "originHash" : "5c8e5fb3f3eaf725824f0fad7599b30941e59a54679b2cce3fc84ce3c509eefa",
+  "originHash" : "80ce564b1c8400b9ca10dfe15680eeb9782dde9f1b5d24b61159a829d78204ba",
   "pins" : [
     {
       "identity" : "channelswift",
@@ -11,12 +11,12 @@
       }
     },
     {
-      "identity" : "hubclient",
+      "identity" : "hubservice",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/v57/HubClient",
+      "location" : "https://github.com/v57/HubService",
       "state" : {
         "branch" : "main",
-        "revision" : "9b0c7bcd406c94c83480590c6f64fd10a9824149"
+        "revision" : "ecde5443c174cb4cc78714ce0ef29149809f20a9"
       }
     }
   ],

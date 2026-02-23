@@ -6,7 +6,7 @@
 //
 
 #if os(macOS) || os(iOS)
-import HubClient
+import HubService
 import Translation
 import Combine
 

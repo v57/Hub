@@ -7,7 +7,7 @@
 
 import SwiftUI
 import Combine
-import HubClient
+import HubService
 
 struct InterfaceData {
   var string: [String: String]

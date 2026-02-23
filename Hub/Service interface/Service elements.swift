@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import HubClient
+import HubService
 
 extension Element.Action {
   

@@ -7,7 +7,7 @@
 
 import Foundation
 import AVFoundation
-import HubClient
+import HubService
 import Combine
 
 extension HubService.Group {
