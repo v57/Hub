@@ -513,10 +513,7 @@ struct HomeView: View {
         Spacer()
         TextField("Address", text: $address).focused(focus, equals: .joinHubAddress)
           .textFieldStyle(.plain)
-          .textContentType(.URL)
-          .keyboardType(.URL)
-          .disableAutocorrection(true)
-          .autocapitalization(.none)
+          .keyboard(style: .url)
           .padding(.horizontal, 8).padding(.vertical, 4)
           .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 8))
         if !address.isEmpty {

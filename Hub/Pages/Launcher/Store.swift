@@ -134,6 +134,7 @@ struct StoreView: View {
     var body: some View {
       HStack {
         TextField("Store URL", text: $text)
+          .keyboard(style: .url)
           .focused($isFocused)
         if let url = URL(string: text) {
           Button("Open") {

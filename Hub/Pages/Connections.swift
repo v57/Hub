@@ -132,7 +132,7 @@ struct ConnectionsView: View {
     var body: some View {
       VStack(alignment: .leading) {
         Text(url?.absoluteString ?? "Add connection").secondary()
-        TextField("Address", text: $address)
+        TextField("Address", text: $address).keyboard(style: .url)
         TextField(url?.name ?? "Name", text: $name)
         if let url, let providedName {
           Button("Connect") {
