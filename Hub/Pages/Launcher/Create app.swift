@@ -17,6 +17,7 @@ struct CreateApp: View {
   @Environment(\.dismiss) var dismiss
   @State var install: String = ""
   @State var uninstall: String = ""
+  @State var directory: String = ""
   @State var launch: String = ""
   @State var type: AppType = .shell
   @State var repo: String = ""
@@ -54,6 +55,7 @@ struct CreateApp: View {
             .lineLimit(3...100)
           TextField("Uninstall script", text: $uninstall, axis: .vertical)
             .lineLimit(3...100)
+          TextField("Launch directory", text: $directory)
           TextField("Launch command", text: $launch)
         }.fontDesign(.monospaced).keyboard(style: .code)
       }
@@ -81,7 +83,7 @@ struct CreateApp: View {
   var setup: Setup {
     switch type {
     case .bun: .bun(.init(repo: repo, commit: nil, command: nil))
-    case .shell: .sh(.init(directory: nil, install: install.commands(), uninstall: uninstall.commands(), run: launch))
+    case .shell: .sh(.init(directory: directory.isEmpty ? nil : directory, install: install.commands(), uninstall: uninstall.commands(), run: launch))
     }
   }
 }
@@ -95,6 +97,5 @@ extension String {
 }
 
 #Preview {
-  CreateApp().padding().frame(maxWidth: 300)
-    .environment(Hub.test)
+  CreateApp().padding().environment(Hub.test)
 }
