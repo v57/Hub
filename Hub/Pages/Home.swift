@@ -246,7 +246,7 @@ struct HomeView: View {
       var instances: Int { app.instances }
       var body: some View {
         let showsStepper = showsInstances || instances > 1
-        let canUpgrade = app.id == "Hub Lite"
+        let canUpgrade = app.id == "Hub" || app.id == "Hub Lite"
         let status = status
         HStack(alignment: .top) {
           VStack(alignment: .leading) {
