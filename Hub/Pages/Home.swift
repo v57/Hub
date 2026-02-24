@@ -63,7 +63,7 @@ struct HomeView: View {
             Text("Learn how to host your own Hub")
               .secondary()
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-          }.padding(8).blockBackground()
+          }.blockBackground()
         }.buttonStyle(.plain).gridSize(.x21)
         ForEach(Hubs.main.list) { hub in
           HubView(merging: $merging).environment(hub)
@@ -208,8 +208,7 @@ struct HomeView: View {
                 .fill(.background).padding(.horizontal, -4).padding(.vertical, -2)
             }.secondary()
           }
-        }.padding(8)
-          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
           .blockBackground()
       }
       struct LabelStyle: SwiftUI.LabelStyle {
@@ -301,7 +300,7 @@ struct HomeView: View {
               }.buttonStyle(.plain)
             }
           }
-        }.padding(8).frame(maxWidth: .infinity, alignment: .leading).overlay(alignment: .topTrailing) {
+        }.frame(maxWidth: .infinity, alignment: .leading).overlay(alignment: .topTrailing) {
           if let installationStatus {
             Text(installationStatus).badgeStyle()
           }
@@ -405,7 +404,7 @@ struct HomeView: View {
               }
             }
           }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(8).blockBackground()
+        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).blockBackground()
       }
       struct ServiceToggle: View {
         @Environment(Hub.self) var hub
@@ -475,7 +474,7 @@ struct HomeView: View {
             }
           }
         }
-      }.animation(.smooth, value: hub.isConnected).padding(8).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).blockBackground().contextMenu {
+      }.animation(.smooth, value: hub.isConnected).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).blockBackground().contextMenu {
         if canMerge && merging == nil {
           Button("Merge") {
             merging = hub
@@ -530,7 +529,7 @@ struct HomeView: View {
             .background(.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 8))
             .transition(.home)
         }
-      }.padding(8).animation(.home, value: address.isEmpty).blockBackground()
+      }.animation(.home, value: address.isEmpty).blockBackground()
     }
   }
   struct ServiceContent: View {
@@ -564,7 +563,6 @@ struct HomeView: View {
         .font(.callout).fontWeight(.semibold)
         .fontDesign(.rounded)
         .minimumScaleFactor(0.6)
-        .padding(8)
         .blockBackground()
     }
   }
@@ -670,15 +668,13 @@ extension Animation {
 
 struct BlockStyle: ViewModifier {
   let cornerRadius: CGFloat
+  @Environment(\.colorScheme) var scheme
   func body(content: Content) -> some View {
     RoundedRectangle(cornerRadius: cornerRadius)
-      .fill(.regularMaterial)
+      .fill(scheme == .dark ? Color(hue: 0.98, saturation: 0.3, brightness: 0.18) : Color(hue: 0.98, saturation: 0.05, brightness: 0.98))
       .strokeBorder(LinearGradient(colors: [.clear, .white.opacity(0.2), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
-      .overlay {
-        content
-      }
-      .compositingGroup()
       .shadow(color: .black.opacity(0.2), radius: 12)
+      .overlay { content.safeAreaPadding(8) }
       .modifier {
         #if os(macOS)
         $0
