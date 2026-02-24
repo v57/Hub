@@ -573,10 +573,12 @@ struct HomeView: View {
     var badge: Text?
     var badgeColor: Color = .blue
     @ViewBuilder let icon: Icon
+    var hasBadge: Bool { badge != nil }
     var body: some View {
       ZStack {
         LinearGradient(colors: [.red, .orange, .green, .blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
-          .mask { icon.blur(radius: 8) }
+          .mask { icon.blur(radius: hasBadge ? 4 : 1) }
+          .ignoresSafeArea()
         icon.opacity(0.8)
       }
       .contentTransition(.symbolEffect).font(.system(size: 32, weight: .semibold, design: .rounded))
