@@ -18,8 +18,14 @@ extension EnvironmentValues {
 }
 
 struct HomeGrid: Layout {
-  static var minSpacing: Int { 32 }
-  static var size: Int { 68 }
+  static var minSpacing: Int { 16 }
+  static var size: Int {
+    #if os(macOS)
+    64
+    #else
+    80
+    #endif
+  }
   static func spacing(width: CGFloat) -> CGFloat {
     widthAndSpacing(proposal: ProposedViewSize(width: width, height: nil)).1
   }
