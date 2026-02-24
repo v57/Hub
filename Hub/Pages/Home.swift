@@ -289,9 +289,16 @@ struct HomeView: View {
               }
             }.secondary()
             if canUpgrade {
-              AsyncButton("Upgrade to Pro") {
+              AsyncButton {
                 try await hub.launcher.pro(KeyChain.main.publicKey())
-              }.buttonStyle(.borderedProminent)
+              } label: {
+                Text("Upgrade to Pro").font(.body.weight(.medium))
+                  .frame(maxWidth: .infinity)
+                  .padding(.horizontal, 12)
+                  .padding(.vertical, 6)
+                  .background(.background, in: .capsule)
+                  
+              }.buttonStyle(.plain)
             }
           }
         }.padding(8).frame(maxWidth: .infinity, alignment: .leading).overlay(alignment: .topTrailing) {
