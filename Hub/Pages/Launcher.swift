@@ -301,6 +301,6 @@ extension Launcher.Status {
 #endif
 
 #Preview {
-  LauncherView().frame(width: 500, height: 200)
+  LauncherView()
     .environment(Hub.test)
 }
