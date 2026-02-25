@@ -28,7 +28,7 @@ struct StorageView: View {
 #if !os(tvOS)
     Table(of: FileInfo.self, selection: $selected, sortOrder: $sortOrder) {
       TableColumn("Name", value: \FileInfo.name) { (file: FileInfo) in
-        NameView(file: file, path: path).tint(selected.contains(file.name) ? .white : .blue)
+        NameView(file: file, path: path).tint(selected.contains(file.name) ? .white : .blue).environment(hub)
       }
       TableColumn("Size", value: \FileInfo.size) { (file: FileInfo) in
         Text(file.size.bytesString)
@@ -87,7 +87,7 @@ struct StorageView: View {
       add(files: files)
       return true
     }.navigationTitle("Storage").hubStream("s3/list", path, to: $list)
-      .environment(uploadManager).contentTransition(.symbolEffect(.replace))
+      .contentTransition(.symbolEffect(.replace))
       .progressDraw()
 #endif
   }
@@ -130,10 +130,11 @@ struct StorageView: View {
       }
     }
     struct IconView: View {
+      @Environment(Hub.self) private var hub
+      @State private var uploadManager = UploadManager.main
+      
       let file: FileInfo
       let path: String
-      @Environment(UploadManager.self) private var uploadManager
-      @Environment(Hub.self) var hub
       var body: some View {
         let progress = uploadManager.progress(for: hub, at: path + file.name)
         let isCompleted: Bool = progress == 1
