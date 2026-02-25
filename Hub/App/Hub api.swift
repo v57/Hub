@@ -21,7 +21,7 @@ struct HubStateStorage {
   let hostPending = Sync("hub/host/pending", PendingList())
   let launcherInfo = Sync("launcher/info", Hub.Launcher.Apps())
   let launcherStatus = Sync("launcher/status", Hub.Launcher.Status())
-  let whitelist = Sync("hub/whitelist", WhitelistStatus())
+  let whitelist = Sync("hub/whitelist/status", WhitelistStatus())
   
   @MainActor @Observable
   class Sync<T: Decodable> {
@@ -109,6 +109,13 @@ struct WhitelistStatus: Decodable {
   var users: Set<String> = []
 }
 
+struct SetLockdown: Encodable {
+  var enabled: Bool?
+  var add: [String]?
+  var remove: [String]?
+  var allowsCurrent: Bool?
+}
+
 extension Hub {
   var host: HostApi { HostApi(hub: self) }
   var hasStorage: Bool { require(permissions: "s3/read/directory") }
@@ -127,6 +134,10 @@ extension Hub {
     struct UpdateApi: Encodable {
       let key: String, allow: [String]?, revoke: [String]?
     }
+  }
+  var canLockdown: Bool { require(permissions: "hub/whitelist") }
+  func lockdown(_ lockdown: SetLockdown) async throws {
+    try await client.send("hub/whitelist", lockdown)
   }
   struct User: Hashable, Decodable, Identifiable {
     var id: String

@@ -99,7 +99,7 @@ struct HomeView: View {
     @State private var sheet: Sheet?
     enum Sheet: Identifiable {
       var id: Sheet { self }
-      case pending, connections, permissions
+      case pending, connections, permissions, lockdown
     }
     var body: some View {
       Text(hub.settings.name).sectionTitle()
@@ -132,6 +132,13 @@ struct HomeView: View {
             sheet = .permissions
           } label: {
             AppIcon(title: "Permissions", systemImage: "lock")
+          }.buttonStyle(.plain)
+        }
+        if hub.canLockdown {
+          Button {
+            sheet = .lockdown
+          } label: {
+            AppIcon(title: "Lockdown", systemImage: "key.shield")
           }.buttonStyle(.plain)
         }
         if hub.require(permissions: "launcher/app/create") {
@@ -170,6 +177,10 @@ struct HomeView: View {
             .environment(hub)
         case .permissions:
           PermissionGroups()
+            .safeAreaPadding(.top).frame(minHeight: 400)
+            .environment(hub)
+        case .lockdown:
+          LockdownView()
             .safeAreaPadding(.top).frame(minHeight: 400)
             .environment(hub)
         }
