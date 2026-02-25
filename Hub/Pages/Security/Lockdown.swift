@@ -16,7 +16,9 @@ struct LockdownView: View {
   @HubState(\.whitelist) private var whitelist
   var body: some View {
     List {
-      LockdownStatus()
+      Section {
+        LockdownStatus()
+      }.listRowBackground(Color.clear)
       ForEach(users) { user in
         UserView(user: user, isMe: user.key == hub.key, whitelist: whitelist).contextMenu {
           if let key = user.key {
