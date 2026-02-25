@@ -573,24 +573,19 @@ struct HomeView: View {
     @ViewBuilder let icon: Icon
     var hasBadge: Bool { badge != nil }
     var body: some View {
-      ZStack {
-        LinearGradient(colors: [.red, .orange, .green, .blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
-          .mask { icon.blur(radius: hasBadge ? 4 : 1) }
-          .ignoresSafeArea()
-        icon.opacity(0.8)
-      }
-      .contentTransition(.symbolEffect).font(.system(size: 32, weight: .semibold, design: .rounded))
-      .blockBackground().overlay(alignment: .top) {
-        if let badge {
-          badge.foregroundStyle(.white).font(.caption.bold()).padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(badgeColor, in: .capsule)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding(.horizontal, -4)
-            .offset(y: -4)
-            .transition(.blurReplace)
-        }
-      }.overlay {
+      icon.gradientBlur(radius: hasBadge ? 4 : 1)
+        .contentTransition(.symbolEffect).font(.system(size: 32, weight: .semibold, design: .rounded))
+        .blockBackground().overlay(alignment: .top) {
+          if let badge {
+            badge.foregroundStyle(.white).font(.caption.bold()).padding(.horizontal, 6)
+              .padding(.vertical, 2)
+              .background(badgeColor, in: .capsule)
+              .frame(maxWidth: .infinity, alignment: .trailing)
+              .padding(.horizontal, -4)
+              .offset(y: -4)
+              .transition(.blurReplace)
+          }
+        }.overlay {
           GeometryReader { view in
             title.font(.system(size: 10)).offset(y: view.size.height + 4)
               .multilineTextAlignment(.center)
@@ -634,6 +629,13 @@ extension View {
   }
   func blockBackground(_ radius: CGFloat = 16) -> some View {
     self.modifier(BlockStyle(cornerRadius: radius))
+  }
+  func gradientBlur(radius: CGFloat) -> some View {
+    opacity(0.8).background {
+      LinearGradient(colors: [.red, .orange, .green, .blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+        .mask { blur(radius: radius) }
+        .padding(-radius)
+    }
   }
 }
 struct SectionTitleModifier: ViewModifier {
