@@ -21,6 +21,7 @@ struct HubStateStorage {
   let hostPending = Sync("hub/host/pending", PendingList())
   let launcherInfo = Sync("launcher/info", Hub.Launcher.Apps())
   let launcherStatus = Sync("launcher/status", Hub.Launcher.Status())
+  let whitelist = Sync("hub/whitelist", WhitelistStatus())
   
   @MainActor @Observable
   class Sync<T: Decodable> {
@@ -101,6 +102,11 @@ struct PendingList: Decodable {
       return set.sorted().joined(separator: " & ")
     }
   }
+}
+
+struct WhitelistStatus: Decodable {
+  var enabled: Bool = false
+  var users: Set<String> = []
 }
 
 extension Hub {
