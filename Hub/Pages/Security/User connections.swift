@@ -27,28 +27,8 @@ struct UserConnections: View {
       }
     }
   }
-  struct User: Hashable, Decodable, Identifiable {
-    var id: String
-    var key: String?
-    var services: Int
-    var name: String
-    var icon: Icon
-    var apps: Int
-    enum CodingKeys: CodingKey {
-      case id, key, services, apps, permissions, name, icon
-    }
-    init(from decoder: any Decoder) throws {
-      let container = try decoder.container(keyedBy: CodingKeys.self)
-      id = try container.decode(.id)
-      key = container.decodeIfPresent(.key)
-      services = container.decodeIfPresent(.services, 0)
-      apps = container.decodeIfPresent(.apps, 0)
-      name = container.decodeIfPresent(.name, "")
-      icon = container.decodeIfPresent(.icon) ?? Icon(symbol: .init(name: "hexagon"))
-    }
-  }
   struct UserView: View {
-    let user: User
+    let user: Hub.User
     let isMe: Bool
     var body: some View {
       HStack {

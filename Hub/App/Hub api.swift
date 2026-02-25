@@ -8,10 +8,11 @@
 import Foundation
 import Combine
 import SwiftUI
+import HubService
 
 @MainActor
 struct HubStateStorage {
-  let users = Sync("hub/connections", [UserConnections.User]())
+  let users = Sync("hub/connections", [Hub.User]())
   let groups = Sync("hub/group/list", GroupList())
   let permissions = Sync("hub/group/names", PermissionList())
   let statusBadges = Sync("hub/status/badges", ContentView.StatusBadges())
@@ -119,6 +120,26 @@ extension Hub {
     }
     struct UpdateApi: Encodable {
       let key: String, allow: [String]?, revoke: [String]?
+    }
+  }
+  struct User: Hashable, Decodable, Identifiable {
+    var id: String
+    var key: String?
+    var services: Int
+    var name: String
+    var icon: Icon
+    var apps: Int
+    enum CodingKeys: CodingKey {
+      case id, key, services, apps, permissions, name, icon
+    }
+    init(from decoder: any Decoder) throws {
+      let container = try decoder.container(keyedBy: CodingKeys.self)
+      id = try container.decode(.id)
+      key = container.decodeIfPresent(.key)
+      services = container.decodeIfPresent(.services, 0)
+      apps = container.decodeIfPresent(.apps, 0)
+      name = container.decodeIfPresent(.name, "")
+      icon = container.decodeIfPresent(.icon) ?? Icon(symbol: .init(name: "hexagon"))
     }
   }
 }
