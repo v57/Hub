@@ -13,12 +13,34 @@
 
 /* Begin PBXFileReference section */
 		13C54C712D638AA1000C4CA5 /* Hub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Hub.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13DF13502F5158BF00BF8AA5 /* Hub-Pro-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Hub-Pro-Info.plist"; sourceTree = "<group>"; };
 		13F5738E2D68EDB4008546EB /* Hub Pro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Hub Pro.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		13DF134E2F5156DB00BF8AA5 /* Exceptions for "Hub" folder in "Hub" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 13C54C702D638AA1000C4CA5 /* Hub */;
+		};
+		13DF134F2F5156DB00BF8AA5 /* Exceptions for "Hub" folder in "Hub Pro" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 13F5738D2D68EDB4008546EB /* Hub Pro */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		13C54C732D638AA1000C4CA5 /* Hub */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				13DF134E2F5156DB00BF8AA5 /* Exceptions for "Hub" folder in "Hub" target */,
+				13DF134F2F5156DB00BF8AA5 /* Exceptions for "Hub" folder in "Hub Pro" target */,
+			);
 			path = Hub;
 			sourceTree = "<group>";
 		};
@@ -47,6 +69,7 @@
 		13C54C682D638AA1000C4CA5 = {
 			isa = PBXGroup;
 			children = (
+				13DF13502F5158BF00BF8AA5 /* Hub-Pro-Info.plist */,
 				13C54C732D638AA1000C4CA5 /* Hub */,
 				13F573AA2D68EE24008546EB /* Frameworks */,
 				13C54C722D638AA1000C4CA5 /* Products */,
@@ -352,6 +375,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Hub/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -394,6 +418,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Hub/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -437,6 +462,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Hub-Pro-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -469,6 +495,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Hub-Pro-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
