@@ -403,6 +403,13 @@ final class UploadManager: Sendable {
     }
     self.tasks[hub.id] = tasks
   }
+  func progress(for hub: Hub, paths: [String], defaultValue: Double) -> Double {
+    var total: Double = 0
+    for path in paths {
+      total += progress(for: hub, at: path) ?? defaultValue
+    }
+    return total / Double(paths.count)
+  }
   func progress(for hub: Hub, at path: String) -> Double? {
     let components = path.components(separatedBy: "/")
     var iterator = components.makeIterator()
