@@ -80,6 +80,7 @@ extension Element: @retroactive View {
     case .cell(let a): CellView(value: a)
     case .files(let a): FilesView(value: a)
     case .fileOperation(let a): FileOperationView(value: a)
+    case .spacer: SwiftUI.Spacer()
     @unknown default: UnknownView()
     }
   }
