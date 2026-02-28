@@ -183,7 +183,7 @@ extension Element: @retroactive View {
     @Environment(NestedList.self) private var nested: NestedList?
     @State private var files = [String]()
     @State private var session: UploadManager.UploadSession?
-    var path: String { "Hasher/" }
+    var path: String { app.app.header?.name ?? "Services" }
     var body: some View {
       RoundedRectangle(cornerRadius: 16).fill(Color.gray.opacity(0.1))
         .frame(height: 80).overlay {
@@ -222,22 +222,30 @@ extension Element: @retroactive View {
     @Environment(NestedList.self) private var nested: NestedList?
     @State private var files = [String]()
     @State private var session: UploadManager.UploadSession?
-    var path: String { "Hasher/" }
+    @State private var processed = 0
+    @State private var isClearing = false
+    var path: String { (app.app.header?.name ?? "Services") + "/" }
     var body: some View {
       RoundedRectangle(cornerRadius: 16).fill(Color.gray.opacity(0.1))
-        .frame(height: 80).overlay {
-          SwiftUI.List(files, id: \.self) { name in
-            StorageView.NameView(file: FileInfo(name: name, size: 0, lastModified: nil), path: path)
-          }.environment(UploadManager.main).progressDraw()
+        .frame(height: 140).overlay {
           if files.isEmpty {
             VStack {
-              SwiftUI.Text("Drop files").foregroundStyle(.secondary)
+              SwiftUI.Text("Drop files")
+                .foregroundStyle(.secondary)
               value.title
-            }
+            }.transition(.blurReplace)
+          } else if let session {
+            FileTaskStatus(session: session, files: files, uploaded: files.count - session.tasks, processed: processed, target: path + "Output/", isClearing: $isClearing).transition(.blurReplace)
           }
-        }.dropFiles { (files: [URL], point: CGPoint) -> Bool in
-          self.files = files.map(\.lastPathComponent)
-          session = UploadManager.main.upload(files: files, directory: path, to: hub)
+        }.animation(.smooth, value: session?.tasks)
+        .animation(.smooth, value: processed)
+        .dropFiles { (files: [URL], point: CGPoint) -> Bool in
+          withAnimation {
+            isClearing = false
+            self.files = files.map(\.lastPathComponent)
+            processed = 0
+            session = UploadManager.main.upload(files: files, directory: path, to: hub)
+          }
           return true
         }.onChange(of: session?.tasks == 0) {
           guard let session, session.tasks == 0 else { return }
@@ -252,12 +260,13 @@ extension Element: @retroactive View {
                   data["from"] = .string(from)
                   data["to"] = .string(to)
                 }
+                processed += 1
               }
             } catch {
               print(error)
             }
           }
-        }
+        }.buttonStyle(.plain)
     }
     func target(from path: String, value: String) -> String {
       let result = path.parentDirectory + "Output/" + path.components(separatedBy: "/").last!
@@ -292,10 +301,12 @@ struct ServiceView: View {
   @State private var app = ServiceApp()
   let header: AppHeader
   var body: some View {
-    List {
-      if let body = app.app.body {
-        ForEach(body) { element in
-          element
+    ScrollView {
+      LazyVStack {
+        if let body = app.app.body {
+          ForEach(body) { element in
+            element
+          }
         }
       }
     }.navigationTitle(app.app.header?.name ?? header.name)
@@ -304,6 +315,108 @@ struct ServiceView: View {
   }
 }
 
+
+struct FileTaskStatus: View {
+  @Environment(Hub.self) private var hub
+  let session: UploadManager.UploadSession
+  let files: [String]
+  let uploaded: Int
+  let processed: Int
+  let target: String
+  @State var toClear = 0
+  @Binding var isClearing: Bool
+  var isUploading: Bool {
+    uploaded < files.count
+  }
+  var isProcessing: Bool {
+    processed < files.count
+  }
+  var title: LocalizedStringKey {
+    if isClearing {
+      return toClear > 0 ? "Clearing" : "Cleared"
+    } else {
+      return isUploading ? "Uploading" : "Uploaded"
+    }
+  }
+  var body: some View {
+    VStack {
+      HStack(alignment: .top) {
+        VStack {
+          LargeProgressView(running: files.count - uploaded, completed: uploaded, icon: isClearing ? "trash" : "arrow.up", title: title)
+          if !isProcessing && !(isClearing && toClear == 0) {
+            AsyncButton {
+              try await clear()
+            } label: {
+              HStack(spacing: 4) {
+                Image(systemName: "trash.fill")
+                Text("Clear")
+              }.padding(.horizontal, 12).padding(.vertical, 4)
+                .background(Color.tertiaryBackground, in: .capsule)
+                .foregroundStyle(.secondary)
+            }.transition(.blurReplace)
+          }
+        }
+        VStack {
+          LargeProgressView(running: files.count - processed, completed: processed, icon: "photo", title: isProcessing ? "Processing" : "Processed")
+          if !isProcessing {
+            NavigationLink {
+              StorageView(path: target).environment(hub)
+            } label: {
+              HStack(spacing: 4) {
+                Image(systemName: "folder.fill")
+                Text("View")
+              }.padding(.horizontal, 12).padding(.vertical, 4)
+                .background(.blue, in: .capsule)
+            }.transition(.blurReplace)
+          }
+        }
+      }.buttonStyle(.plain).fontWeight(.medium)
+    }.contentTransition(.numericText())
+  }
+  func clear() async throws {
+    withAnimation {
+      isClearing = true
+      toClear = session.files.count
+    }
+    for file in session.files.map(\.target) {
+      try await hub.client.send("s3/delete", file)
+      withAnimation {
+        toClear -= 1
+      }
+    }
+  }
+}
+
+struct LargeProgressView: View {
+  var progress: CGFloat { CGFloat(completed) / CGFloat(running + completed) }
+  let running: Int
+  let completed: Int
+  let icon: String
+  let title: LocalizedStringKey
+  var body: some View {
+    VStack(spacing: 6) {
+      ZStack {
+        Image(systemName: running > 0 ? icon : "checkmark")
+          .font(.system(size: 20, weight: .bold))
+          .contentTransition(.symbolEffect)
+          .gradientBlur(radius: running > 0 ? 1 : 4)
+        Circle().stroke(.blue.opacity(0.2), lineWidth: 5)
+        Circle().trim(from: 0, to: progress)
+          .rotation(.degrees(-90))
+          .stroke(.blue.gradient, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+      }.frame(width: 48, height: 48)
+      if running > 0 {
+        Text("\(running)").font(.system(size: 16, weight: .bold, design: .monospaced))
+          .contentTransition(.numericText())
+          .transition(.blurReplace)
+      }
+      Text(title).secondary()
+    }.frame(width: 100)
+  }
+}
+
 #Preview {
-  ServiceView(header: AppHeader(name: "Hasher", path: "hasher/ui")).environment(Hub.test)
+  NavigationStack {
+    ServiceView(header: AppHeader(name: "Image Encoder", path: "image/encode/ui")).environment(Hub.test)
+  }
 }
