@@ -81,6 +81,8 @@ extension Element: @retroactive View {
     case .files(let a): FilesView(value: a)
     case .fileOperation(let a): FileOperationView(value: a)
     case .spacer: SwiftUI.Spacer()
+    case .hstack(let a): HStackView(value: a)
+    case .vstack(let a): VStackView(value: a)
     @unknown default: UnknownView()
     }
   }
@@ -101,6 +103,22 @@ extension Element: @retroactive View {
     var body: some View {
       Image(systemName: "questionmark.circle.dashed")
         .foregroundStyle(.tertiary)
+    }
+  }
+  struct HStackView: View {
+    let value: HStack
+    var body: some View {
+      SwiftUI.HStack(spacing: value.spacing?.cg) {
+        value.content
+      }
+    }
+  }
+  struct VStackView: View {
+    let value: VStack
+    var body: some View {
+      SwiftUI.VStack(spacing: value.spacing?.cg) {
+        value.content
+      }
     }
   }
   struct TextFieldView: View {
@@ -296,6 +314,9 @@ extension String {
     starts(with: "$") ? String(dropFirst()) : nil
   }
 }
+extension Double {
+  var cg: CGFloat { CGFloat(self) }
+}
 
 @Observable
 class NestedList: Identifiable {
@@ -438,3 +459,4 @@ struct LargeProgressView: View {
     ServiceView(header: AppHeader(name: "Image Encoder", path: "image/encode/ui")).environment(Hub.test)
   }
 }
+
