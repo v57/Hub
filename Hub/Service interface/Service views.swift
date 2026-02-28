@@ -224,6 +224,7 @@ extension Element: @retroactive View {
     @State private var session: UploadManager.UploadSession?
     @State private var processed = 0
     @State private var isClearing = false
+    @State private var failed = Set<String>()
     var path: String { (app.app.header?.name ?? "Services") + "/" }
     var body: some View {
       RoundedRectangle(cornerRadius: 16).fill(Color.gray.opacity(0.1))
@@ -251,8 +252,8 @@ extension Element: @retroactive View {
           guard let session, session.tasks == 0 else { return }
           let files = session.files.map(\.target)
           Task {
-            do {
-              for path in files {
+            for path in files {
+              do {
                 let from: String = try await hub.client.send("s3/read", path)
                 let target = target(from: path, value: value.value)
                 let to: String = try await hub.client.send("s3/write", target)
@@ -260,10 +261,10 @@ extension Element: @retroactive View {
                   data["from"] = .string(from)
                   data["to"] = .string(to)
                 }
-                processed += 1
+              } catch {
+                failed.insert(path)
               }
-            } catch {
-              print(error)
+              processed += 1
             }
           }
         }.buttonStyle(.plain)
