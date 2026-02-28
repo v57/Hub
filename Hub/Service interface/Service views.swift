@@ -70,6 +70,13 @@ extension Element: @retroactive View {
     func double(_ value: String) -> Double? {
       nested?.data?[value]?.double ?? app.data[value]?.double
     }
+    func doubleBinding(_ value: String, defaultValue: Double) -> Binding<Double> {
+      Binding {
+        self.double(value) ?? defaultValue
+      } set: { newValue in
+        app.store(.double(newValue), for: value, nested: nested)
+      }
+    }
   }
   
   @ViewBuilder
@@ -88,6 +95,7 @@ extension Element: @retroactive View {
     case .vstack(let a): VStackView(value: a)
     case .zstack(let a): ZStackView(value: a)
     case .progress(let a): ProgressView(value: a)
+    case .slider(let a): SliderView(value: a)
     @unknown default: UnknownView()
     }
   }
@@ -206,6 +214,21 @@ extension Element: @retroactive View {
         .onChange(of: self.selected) {
           app.store(.string(self.selected), for: value.selected, nested: nested)
         }
+    }
+  }
+  struct SliderView: View {
+    let value: Slider
+    let state = AppState()
+    var range: ClosedRange<Double> {
+      value.min...max(value.min, value.max)
+    }
+    var body: some View {
+      let v = state.doubleBinding(value.value, defaultValue: value.max)
+      if let step = value.step {
+        SwiftUI.Slider(value: v, in: range, step: step)
+      } else {
+        SwiftUI.Slider(value: v, in: range)
+      }
     }
   }
   struct ButtonView: View {
