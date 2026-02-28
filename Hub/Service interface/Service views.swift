@@ -80,6 +80,7 @@ extension Element: @retroactive View {
     case .cell(let a): CellView(value: a)
     case .files(let a): FilesView(value: a)
     case .fileOperation(let a): FileOperationView(value: a)
+    @unknown default: UnknownView()
     }
   }
   struct TextView: View {
@@ -93,6 +94,12 @@ extension Element: @retroactive View {
           SwiftUI.Text(text).textSelection()
         }
       }
+    }
+  }
+  struct UnknownView: View {
+    var body: some View {
+      Image(systemName: "questionmark.circle.dashed")
+        .foregroundStyle(.tertiary)
     }
   }
   struct TextFieldView: View {
@@ -160,8 +167,8 @@ extension Element: @retroactive View {
     var body: some View {
       if let list = app.lists[value.data] {
         SwiftUI.ForEach(list) { data in
-          HStack {
-            value.elements
+          SwiftUI.HStack {
+            value.content
           }.environment(data)
         }
       }
@@ -170,7 +177,7 @@ extension Element: @retroactive View {
   struct CellView: View {
     let value: Cell
     var body: some View {
-      VStack(alignment: .leading) {
+      SwiftUI.VStack(alignment: .leading) {
         value.title?.secondary()
         value.subtitle
       }
@@ -191,7 +198,7 @@ extension Element: @retroactive View {
             StorageView.NameView(file: FileInfo(name: name, size: 0, lastModified: nil), path: path)
           }.environment(UploadManager.main).progressDraw()
           if files.isEmpty {
-            VStack {
+            SwiftUI.VStack {
               SwiftUI.Text("Drop files").foregroundStyle(.secondary)
               value.title
             }
@@ -230,7 +237,7 @@ extension Element: @retroactive View {
       RoundedRectangle(cornerRadius: 16).fill(Color.gray.opacity(0.1))
         .frame(height: 140).overlay {
           if files.isEmpty {
-            VStack {
+            SwiftUI.VStack {
               SwiftUI.Text("Drop files")
                 .foregroundStyle(.secondary)
               value.title
