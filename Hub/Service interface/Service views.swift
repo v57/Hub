@@ -235,7 +235,7 @@ extension Element: @retroactive View {
               value.title
             }.transition(.blurReplace)
           } else if let session {
-            FileTaskStatus(session: session, files: files, uploaded: files.count - session.tasks, processed: processed, target: path + "Output/", isClearing: $isClearing).transition(.blurReplace)
+            FileTaskStatus(session: session, files: session.files.map(\.target), uploaded: files.count - session.tasks, processed: processed, target: path + "Output/", isClearing: $isClearing).transition(.blurReplace)
           }
         }.animation(.smooth, value: session?.tasks)
         .animation(.smooth, value: processed)
@@ -338,11 +338,14 @@ struct FileTaskStatus: View {
       return isUploading ? "Uploading" : "Uploaded"
     }
   }
+  var progress: Double {
+    return UploadManager.main.progress(for: hub, paths: files, defaultValue: 1)
+  }
   var body: some View {
     VStack {
       HStack(alignment: .top) {
         VStack {
-          LargeProgressView(running: files.count - uploaded, completed: uploaded, icon: isClearing ? "trash" : "arrow.up", title: title)
+          LargeProgressView(progress: progress, running: files.count - uploaded, completed: uploaded, icon: isClearing ? "trash" : "arrow.up", title: title)
           if !isProcessing && !(isClearing && toClear == 0) {
             AsyncButton {
               try await clear()
@@ -357,7 +360,7 @@ struct FileTaskStatus: View {
           }
         }
         VStack {
-          LargeProgressView(running: files.count - processed, completed: processed, icon: "photo", title: isProcessing ? "Processing" : "Processed")
+          LargeProgressView(progress: Double(processed) / Double(files.count), running: files.count - processed, completed: processed, icon: "photo", title: isProcessing ? "Processing" : "Processed")
           if !isProcessing {
             NavigationLink {
               StorageView(path: target).environment(hub)
@@ -388,11 +391,12 @@ struct FileTaskStatus: View {
 }
 
 struct LargeProgressView: View {
-  var progress: CGFloat { CGFloat(completed) / CGFloat(running + completed) }
+  let progress: CGFloat
   let running: Int
   let completed: Int
   let icon: String
   let title: LocalizedStringKey
+  @State private var appear = false
   var body: some View {
     VStack(spacing: 6) {
       ZStack {
@@ -400,10 +404,13 @@ struct LargeProgressView: View {
           .font(.system(size: 20, weight: .bold))
           .contentTransition(.symbolEffect)
           .gradientBlur(radius: running > 0 ? 1 : 4)
-        Circle().stroke(.blue.opacity(0.2), lineWidth: 5)
+        Circle().trim(from: 0, to: appear ? 1 : 0)
+          .rotation(.degrees(-90))
+          .stroke(.blue.opacity(0.2), lineWidth: 5)
         Circle().trim(from: 0, to: progress)
           .rotation(.degrees(-90))
           .stroke(.blue.gradient, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+          .animation(.smooth, value: progress)
       }.frame(width: 48, height: 48)
       if running > 0 {
         Text("\(running)").font(.system(size: 16, weight: .bold, design: .monospaced))
@@ -412,6 +419,8 @@ struct LargeProgressView: View {
       }
       Text(title).secondary()
     }.frame(width: 100)
+      .onAppear { withAnimation(.smooth(duration: 1)) { appear = true } }
+      .onDisappear { withAnimation { appear = false } }
   }
 }
 
