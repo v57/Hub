@@ -67,6 +67,9 @@ extension Element: @retroactive View {
     func value(_ value: String) -> String? {
       nested?.data?[value]?.string ?? app.data[value]?.string
     }
+    func double(_ value: String) -> Double? {
+      nested?.data?[value]?.double ?? app.data[value]?.double
+    }
   }
   
   @ViewBuilder
@@ -83,6 +86,7 @@ extension Element: @retroactive View {
     case .spacer: SwiftUI.Spacer()
     case .hstack(let a): HStackView(value: a)
     case .vstack(let a): VStackView(value: a)
+    case .progress(let a): ProgressView(value: a)
     @unknown default: UnknownView()
     }
   }
@@ -96,6 +100,33 @@ extension Element: @retroactive View {
         } else {
           SwiftUI.Text(text).textSelection()
         }
+      }
+    }
+  }
+  struct ProgressView: View {
+    let value: Progress
+    let state = AppState()
+    
+    func progress(current: Double) -> Double {
+      let range = range
+      let current = min(max(range.lowerBound, current), range.upperBound)
+      return (current - range.lowerBound) / (range.upperBound - range.lowerBound)
+    }
+    var range: Range<Double> {
+      return value.min..<max(value.min, value.max)
+    }
+    var body: some View {
+      if let current = state.double(value.value) {
+        let progress = progress(current: current)
+        SwiftUI.ZStack {
+          Circle().trim(from: 0, to: 1)
+            .rotation(.degrees(-90))
+            .stroke(.blue.opacity(0.2), lineWidth: 2)
+          Circle().trim(from: 0, to: progress)
+            .rotation(.degrees(-90))
+            .stroke(.blue.gradient, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            .animation(.smooth, value: progress)
+        }.frame(width: 24, height: 24)
       }
     }
   }
