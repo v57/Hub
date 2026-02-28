@@ -86,6 +86,7 @@ extension Element: @retroactive View {
     case .spacer: SwiftUI.Spacer()
     case .hstack(let a): HStackView(value: a)
     case .vstack(let a): VStackView(value: a)
+    case .zstack(let a): ZStackView(value: a)
     case .progress(let a): ProgressView(value: a)
     @unknown default: UnknownView()
     }
@@ -148,6 +149,14 @@ extension Element: @retroactive View {
     let value: VStack
     var body: some View {
       SwiftUI.VStack(spacing: value.spacing?.cg) {
+        value.content
+      }
+    }
+  }
+  struct ZStackView: View {
+    let value: ZStack
+    var body: some View {
+      SwiftUI.ZStack {
         value.content
       }
     }
